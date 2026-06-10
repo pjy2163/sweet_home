@@ -247,3 +247,12 @@ python src/region/build_dong_mapping.py
 python scripts/security_scan.py
 git status --short --ignored
 ```
+
+## GitHub 이슈 생성
+
+GitHub CLI 인증 후 P0/P1 작업 이슈를 생성할 수 있습니다.
+
+```bash
+gh auth login -h github.com
+python scripts/create_github_issues.py --apply
+```
