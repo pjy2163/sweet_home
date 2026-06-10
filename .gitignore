@@ -1,0 +1,76 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.token
+secrets.*
+credentials.*
+service-account*.json
+
+# Local runtime outputs
+logs/
+tmp/
+*.log
+
+# Raw and private data
+data/raw/**
+!data/raw/
+!data/raw/**/.gitkeep
+
+# Large or generated processed data
+data/processed/*.parquet
+data/processed/*.xlsx
+
+# Keep small CSV schemas/results only when intentionally reviewed.
+# If a processed CSV becomes large or sensitive, move it to data/raw or add it here explicitly.
+
+# Exports are generated report outputs
+data/exports/**
+!data/exports/
+!data/exports/.gitkeep
+
+# Private/internal operating docs
+docs/agents/**
+docs/workflows/**
+docs/briefing-*.md
+docs/project-board.md
+docs/project-log.md
+docs/automation-playbook.md
+docs/integration-strategy.md
+docs/open-source-strategy.md
+docs/original-product-definition.xltx
+docs/data-inventory.xlsx
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local scratch files
+scratch/
+local/

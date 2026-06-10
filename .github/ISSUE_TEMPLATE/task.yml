@@ -1,0 +1,71 @@
+name: Task
+description: SweetHome 작업 티켓
+title: "[Task] "
+labels: ["status: ready"]
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: Background
+      description: 왜 이 작업이 필요한가요?
+      placeholder: 이 작업의 배경을 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: 이번 작업의 목표는 무엇인가요?
+      placeholder: 완료해야 하는 목표를 적어주세요.
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Owner Agent
+      options:
+        - PM Agent
+        - Design Agent
+        - Data Architect Agent
+        - Full-stack Agent
+        - Portfolio Manager Agent
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: 완료 체크리스트를 적어주세요.
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected Output
+      description: 어떤 파일이나 결과물이 생기나요?
+      placeholder: 예) data/processed/population_fact.csv
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: 완료 여부를 어떻게 확인하나요?
+      placeholder: 예) python src/population/build_population_fact.py 실행
+    validations:
+      required: false
