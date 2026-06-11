@@ -41,6 +41,10 @@ MVP의 핵심 질문은 다음 하나입니다.
 
 > 후보 지역 A와 B 중 내 생활 조건에 더 적합한 곳은 어디이며, 그 이유는 무엇인가?
 
+첫 번째 MVP는 가격 비교에 집중합니다.
+
+> 이 지역의 전월세 가격은 서울 평균 대비 어느 정도 수준인가?
+
 ## 하지 않는 것
 
 - 이 집을 사세요
@@ -177,12 +181,13 @@ MVP의 핵심 질문은 다음 하나입니다.
 
 `문래동 더샵 르프리베` vs `고덕강일 3단지`
 
+- 가격: 서울 평균 대비 전세가/보증금 수준 비교
+- 거래량: 가격 해석에 필요한 시장 참고성 비교
 - 교통: 문래 우세
 - 안전: 고덕 우세
 - 생활인프라: 문래 우세
 - 상권: 문래 우세
 - 주거환경: 고덕 우세
-- 가격: 사용자 예산에 따라 다름
 
 최종 판단 예시:
 
@@ -195,29 +200,40 @@ MVP의 핵심 질문은 다음 하나입니다.
 - 행정동 기준 데이터 모델 확정
 - 법정동과 행정동 매핑 데이터 확보
 - Region Master 설계 완료
+- 서울 전월세 실거래 데이터를 행정동/월 단위 `real_estate_fact.csv`로 집계 완료
+- 서울 평균 대비 지역별 전월세 가격 비교용 `real_estate_price_comparison.csv` 생성 완료
+- 후보 지역 2개의 서울 평균 대비 가격 수준을 출력하는 MVP 리포트 생성기 구현
+- 서울 생활인구 원천 데이터 소스 확정
+- `population_fact.csv` 생성을 위한 ETL 스크립트 준비
+
+## MVP 리포트 실행
+
+가격 비교 MVP 리포트는 `real_estate_price_comparison.csv` 데이터 마트를 읽어 후보 행정동 2개의 가격 수준을 비교합니다.
+
+```bash
+.venv/bin/python src/report/generate_report.py --a 개포1동 --b 개포2동
+```
+
+구 이름까지 지정해야 하는 경우 다음처럼 입력합니다.
+
+```bash
+.venv/bin/python src/report/generate_report.py --a "강남구 개포1동" --b "강남구 개포2동"
+```
+
+특정 계약월을 지정할 수도 있습니다.
+
+```bash
+.venv/bin/python src/report/generate_report.py --a 개포1동 --b 개포2동 --month 2025-12
+```
 
 ## 다음 단계
 
-1. `region_master.csv` 생성
-2. `dong_mapping.csv` 생성
-3. `population_fact.csv` 구축
-4. `crime_fact.csv` 구축
-5. `real_estate_fact.csv` 구축
-6. `commercial_fact.csv` 구축
-7. 비교 리포트 MVP 제작
+1. MVP 리포트 문구와 예외 케이스 정리
+2. 서울 열린데이터광장에서 `LOCAL_PEOPLE_DONG_YYYYMM.zip` 다운로드
+3. `population_fact.csv` 생성
+4. `crime_fact.csv` 또는 안전 대체 지표 구축
+5. `commercial_fact.csv` 구축
 
-## 포트폴리오 관점
-
-이 프로젝트는 사업성과 필요성에서 출발하지만, 동시에 데이터 엔지니어링 및 백엔드 포트폴리오로 확장 가능한 구조를 목표로 합니다.
-
-초기 MVP에서는 CSV 기반 ETL과 데이터 마트 설계에 집중합니다. 이후 단계에서 GraphQL API, 이벤트 기반 처리, 데이터 품질 검증, 백오피스, 실험 분석 구조로 확장할 수 있습니다.
-
-현재는 과한 인프라보다 다음 역량을 증명하는 데 집중합니다.
-
-- 공공데이터 수집과 정제
-- 행정동 기준 데이터 모델링
-- ETL 파이프라인 설계
-- 데이터 품질과 정합성 검증
 - Python과 SQL 기반 분석
 - 비교 리포트용 데이터 마트 구성
 
