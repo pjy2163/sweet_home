@@ -204,7 +204,7 @@ MVP의 핵심 질문은 다음 하나입니다.
 - 서울 평균 대비 지역별 전월세 가격 비교용 `real_estate_price_comparison.csv` 생성 완료
 - 후보 지역 2개의 서울 평균 대비 가격 수준을 출력하는 MVP 리포트 생성기 구현
 - 서울 생활인구 원천 데이터 소스 확정
-- `population_fact.csv` 생성을 위한 ETL 스크립트 준비
+- 서울 생활인구 데이터를 행정동/월 단위 `population_fact.csv`로 집계 완료
 
 ## MVP 리포트 실행
 
@@ -229,10 +229,9 @@ MVP의 핵심 질문은 다음 하나입니다.
 ## 다음 단계
 
 1. MVP 리포트 문구와 예외 케이스 정리
-2. 서울 열린데이터광장에서 `LOCAL_PEOPLE_DONG_YYYYMM.zip` 다운로드
-3. `population_fact.csv` 생성
-4. `crime_fact.csv` 또는 안전 대체 지표 구축
-5. `commercial_fact.csv` 구축
+2. 가격 비교 리포트에 생활인구 지표 연결
+3. `crime_fact.csv` 또는 안전 대체 지표 구축
+4. `commercial_fact.csv` 구축
 
 - Python과 SQL 기반 분석
 - 비교 리포트용 데이터 마트 구성

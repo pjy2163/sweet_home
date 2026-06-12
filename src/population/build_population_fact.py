@@ -15,6 +15,7 @@ SOURCE_URL = "https://data.seoul.go.kr/dataList/OA-14991/S/1/datasetView.do"
 DATE_COLUMNS = ("기준일ID", "기준일자", "STDR_DE_ID")
 DONG_CODE_COLUMNS = ("행정동코드", "ADSTRD_CODE_SE")
 LIVING_POPULATION_COLUMNS = ("총생활인구수", "TOT_LVPOP_CO")
+SOURCE_COLUMNS = set(DATE_COLUMNS + DONG_CODE_COLUMNS + LIVING_POPULATION_COLUMNS)
 
 
 def find_column(df: pd.DataFrame, candidates: tuple[str, ...]) -> str:
@@ -28,7 +29,13 @@ def find_column(df: pd.DataFrame, candidates: tuple[str, ...]) -> str:
 def read_csv(path: Path) -> pd.DataFrame:
     for encoding in ("utf-8-sig", "cp949"):
         try:
-            return pd.read_csv(path, encoding=encoding, dtype=str)
+            return pd.read_csv(
+                path,
+                encoding=encoding,
+                dtype=str,
+                index_col=False,
+                usecols=lambda column: column in SOURCE_COLUMNS,
+            )
         except UnicodeDecodeError:
             continue
 
@@ -46,7 +53,15 @@ def read_zip(path: Path) -> pd.DataFrame:
             with archive.open(name) as file:
                 for encoding in ("utf-8-sig", "cp949"):
                     try:
-                        frames.append(pd.read_csv(file, encoding=encoding, dtype=str))
+                        frames.append(
+                            pd.read_csv(
+                                file,
+                                encoding=encoding,
+                                dtype=str,
+                                index_col=False,
+                                usecols=lambda column: column in SOURCE_COLUMNS,
+                            ),
+                        )
                         break
                     except UnicodeDecodeError:
                         file.seek(0)
@@ -81,7 +96,8 @@ def normalize_month(series: pd.Series) -> pd.Series:
 
 
 def normalize_dong_code(series: pd.Series) -> pd.Series:
-    return series.fillna("").astype(str).str.extract(r"(\d+)", expand=False).str.zfill(10)
+    code = series.fillna("").astype(str).str.extract(r"(\d+)", expand=False)
+    return code.where(code.str.len() != 8, code + "00").str.zfill(10)
 
 
 def infer_source_month(df: pd.DataFrame, date_column: str) -> str:
@@ -94,6 +110,7 @@ def infer_source_month(df: pd.DataFrame, date_column: str) -> str:
 
 def main() -> None:
     population = read_latest_source()
+    source_rows = len(population)
     region_master = pd.read_csv(REGION_MASTER_PATH, encoding="utf-8-sig", dtype=str)
 
     date_column = find_column(population, DATE_COLUMNS)
@@ -124,7 +141,8 @@ def main() -> None:
     fact.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
 
     source_month = fact["기준일자"].max()
-    print(f"source rows: {len(population):,}")
+    print(f"source rows: {source_rows:,}")
+    print(f"matched rows: {len(population):,}")
     print(f"source month: {source_month}")
     print(f"output rows: {len(fact):,}")
     print(f"saved: {OUTPUT_PATH}")
