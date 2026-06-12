@@ -240,6 +240,7 @@ MVP의 핵심 질문은 다음 하나입니다.
 ## 문서
 
 - [Product Clarity](docs/product-clarity.md)
+- [MVP Report Spec](docs/report-spec.md)
 - [Public Project Summary](docs/public-project-summary.md)
 - [Data Dictionary](docs/data-dictionary.md)
 - [Data Inventory](docs/data-inventory.md)

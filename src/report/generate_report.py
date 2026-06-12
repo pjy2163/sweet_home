@@ -14,6 +14,9 @@ PRICE_COMPARISON_PATH = (
 HIGH_PRICE_THRESHOLD = 10
 LOW_PRICE_THRESHOLD = -10
 MEANINGFUL_GAP_THRESHOLD = 5
+DATA_SOURCE_TEXT = "서울 전월세 실거래 데이터 기반"
+AGGREGATION_TEXT = "행정동/계약월 기준 집계"
+LIMITATION_TEXT = "법정동-행정동 매핑과 거래량에 따라 지역 대표성이 달라질 수 있습니다."
 
 
 @dataclass(frozen=True)
@@ -200,6 +203,15 @@ def render_summary(region_a: RegionPrice, region_b: RegionPrice) -> list[str]:
     return lines
 
 
+def render_data_basis() -> list[str]:
+    return [
+        "데이터 기준:",
+        f"- 원천: {DATA_SOURCE_TEXT}",
+        f"- 집계: {AGGREGATION_TEXT}",
+        f"- 한계: {LIMITATION_TEXT}",
+    ]
+
+
 def generate_report(region_a: RegionPrice, region_b: RegionPrice) -> str:
     lines = [
         "[SweetHome 가격 비교 리포트]",
@@ -213,6 +225,8 @@ def generate_report(region_a: RegionPrice, region_b: RegionPrice) -> str:
         *render_region(region_b),
         "",
         *render_summary(region_a, region_b),
+        "",
+        *render_data_basis(),
     ]
     return "\n".join(lines)
 
