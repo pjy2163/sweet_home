@@ -57,6 +57,7 @@ data/exports/**
 !data/exports/.gitkeep
 
 # Private/internal operating docs
+AGENTS.md
 docs/agents/**
 docs/workflows/**
 docs/briefing-*.md
