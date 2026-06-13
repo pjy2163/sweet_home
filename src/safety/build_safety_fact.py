@@ -27,6 +27,17 @@ REGION_COLUMNS = ("region_id", "행정동코드", "ADSTRD_CODE_SE")
 DATE_COLUMNS = ("기준일자", "기준일", "기준월", "인허가일자", "데이터기준일자")
 STATUS_COLUMNS = ("영업상태명", "상세영업상태명", "영업상태", "상태")
 OPEN_STATUS_KEYWORDS = ("영업", "정상", "운영")
+OUTPUT_COLUMNS = [
+    "region_id",
+    "기준일자",
+    "안심시설수",
+    "유흥시설수",
+    "CCTV수",
+    "경찰시설수",
+    "범죄율",
+    "매핑방법",
+    "데이터출처",
+]
 
 
 def find_latest_files(patterns: tuple[str, ...]) -> list[Path]:
@@ -141,16 +152,42 @@ def load_sources(patterns: tuple[str, ...], source_type: str) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def validate_fact(fact: pd.DataFrame) -> None:
+    missing_columns = [column for column in OUTPUT_COLUMNS if column not in fact.columns]
+    if missing_columns:
+        raise ValueError(f"safety_fact output columns missing: {missing_columns}")
+
+    duplicate_keys = int(fact.duplicated(["region_id", "기준일자"]).sum())
+    if duplicate_keys:
+        raise ValueError(
+            "safety_fact has duplicate keys. "
+            f"duplicate region_id + 기준일자 rows: {duplicate_keys:,}",
+        )
+
+    null_region_ids = int(fact["region_id"].isna().sum())
+    null_dates = int(fact["기준일자"].isna().sum())
+    if null_region_ids or null_dates:
+        raise ValueError(
+            "safety_fact key columns contain nulls. "
+            f"region_id nulls: {null_region_ids:,}, 기준일자 nulls: {null_dates:,}",
+        )
+
+
 def build_fact(safe_facilities: pd.DataFrame, nightlife: pd.DataFrame) -> pd.DataFrame:
     region_master = pd.read_csv(REGION_MASTER_PATH, encoding="utf-8-sig", dtype=str)
     valid_region_ids = set(region_master["region_id"])
 
     source = pd.concat([safe_facilities, nightlife], ignore_index=True)
     source_rows = len(source)
-    source = source[source["region_id"].isin(valid_region_ids)].copy()
+    valid_region_mask = source["region_id"].isin(valid_region_ids)
+    invalid_region_rows = int((~valid_region_mask).sum())
+    source = source[valid_region_mask].copy()
 
     if source.empty:
-        raise ValueError("safety sources were loaded, but no rows matched region_master.")
+        raise ValueError(
+            "safety sources were loaded, but no rows matched region_master. "
+            f"source rows: {source_rows:,}, unmatched rows: {invalid_region_rows:,}",
+        )
 
     base = (
         region_master[["region_id"]]
@@ -195,21 +232,12 @@ def build_fact(safe_facilities: pd.DataFrame, nightlife: pd.DataFrame) -> pd.Dat
 
     print(f"source rows: {source_rows:,}")
     print(f"matched rows: {len(source):,}")
+    print(f"unmatched rows after region validation: {invalid_region_rows:,}")
     print(f"output rows: {len(fact):,}")
 
-    return fact[
-        [
-            "region_id",
-            "기준일자",
-            "안심시설수",
-            "유흥시설수",
-            "CCTV수",
-            "경찰시설수",
-            "범죄율",
-            "매핑방법",
-            "데이터출처",
-        ]
-    ].sort_values(["기준일자", "region_id"])
+    fact = fact[OUTPUT_COLUMNS].sort_values(["기준일자", "region_id"])
+    validate_fact(fact)
+    return fact
 
 
 def main() -> None:
