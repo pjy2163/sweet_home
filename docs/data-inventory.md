@@ -35,6 +35,20 @@ Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능
 - 유흥시설은 `유흥주점영업`과 `단란주점영업` 인허가 정보를 결합하되, 영업상태가 정상인 건만 집계합니다.
 - 주소만 있는 원천은 지오코딩 후 행정동 경계에 매핑하고, TM 좌표가 있는 원천은 좌표계를 변환한 뒤 행정동 경계에 매핑합니다.
 
+### Safety Fact MVP 입력 계약
+
+`src/safety/build_safety_fact.py`는 초기 MVP에서 행정동 매핑이 끝난 CSV를 입력으로 사용합니다.
+주소 지오코딩 또는 좌표 공간조인은 별도 단계로 분리하고, 이 빌더는 `region_id` 또는 `행정동코드`가 있는 중간 산출물을 집계합니다.
+
+예상 raw 경로는 `data/raw/safety/`이며 git에는 올리지 않습니다.
+
+| source_type | 파일명 패턴 | 필수 지역 컬럼 | 기준일자 처리 |
+| --- | --- | --- | --- |
+| safe_facility | `safe_facilities_*.csv`, `safety_facilities_*.csv`, `safe_parcel_locker_*.csv`, `safe_return_home_*.csv` | `region_id` 또는 `행정동코드` | 날짜 컬럼 또는 파일명의 `YYYYMM`/`YYYYMMDD` |
+| nightlife | `nightlife_facilities_*.csv`, `entertainment_bar_*.csv`, `danran_bar_*.csv` | `region_id` 또는 `행정동코드` | 날짜 컬럼 또는 파일명의 `YYYYMM`/`YYYYMMDD` |
+
+주소/좌표만 있는 공식 원천은 바로 fact로 집계하지 않고, 행정동 매핑 검증 후 위 입력 계약에 맞춘 중간 CSV로 변환합니다.
+
 ## 메모
 
 - 사용자가 요청한 구조에는 `data-inventory.xlsx`가 포함되어 있지만, 초기 버전은 Git diff와 문서 관리가 쉬운 Markdown으로 관리합니다.
