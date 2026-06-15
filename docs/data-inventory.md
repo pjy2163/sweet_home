@@ -62,7 +62,8 @@ Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능
 
 따라서 다음 구현 단위는 공식 원천을 바로 `safety_fact`에 넣는 것이 아니라, raw 원천을 검사하고 행정동 매핑 전 중간 CSV 계약에 맞추는 전처리 단계입니다.
 
-raw CSV를 내려받은 뒤에는 `src/safety/inspect_safety_sources.py`로 인코딩, 행 수, 컬럼 수, `region_id`/기준일자/영업상태 후보 컬럼을 먼저 확인합니다.
+raw CSV/XLSX/ZIP을 내려받은 뒤에는 `src/safety/inspect_safety_sources.py`로 인코딩, 시트, 행 수, 컬럼 수, `region_id`/기준일자/영업상태 후보 컬럼을 먼저 확인합니다.
+ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확인한 뒤, 행정동 매핑 전처리 방식이 주소 기반인지 공간조인 기반인지 결정합니다.
 
 ## 메모
 
