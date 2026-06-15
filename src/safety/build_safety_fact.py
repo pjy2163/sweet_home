@@ -27,6 +27,8 @@ REGION_COLUMNS = ("region_id", "행정동코드", "ADSTRD_CODE_SE")
 DATE_COLUMNS = ("기준일자", "기준일", "기준월", "인허가일자", "데이터기준일자")
 STATUS_COLUMNS = ("영업상태명", "상세영업상태명", "영업상태", "상태")
 OPEN_STATUS_KEYWORDS = ("영업", "정상", "운영")
+MAPPING_METHOD_COLUMNS = ("매핑방법", "mapping_method")
+SOURCE_NAME_COLUMNS = ("데이터출처", "source_name", "source_file")
 OUTPUT_COLUMNS = [
     "region_id",
     "기준일자",
@@ -70,7 +72,8 @@ def normalize_dong_code(series: pd.Series) -> pd.Series:
 
 
 def normalize_date(series: pd.Series) -> pd.Series:
-    digits = series.fillna("").astype(str).str.extract(r"(\d{6,8})", expand=False)
+    digits = series.fillna("").astype(str).str.replace(r"\D", "", regex=True)
+    digits = digits.str.extract(r"^(\d{6,8})", expand=False)
     month = digits.str.slice(0, 6).str.replace(r"(\d{4})(\d{2})", r"\1-\2", regex=True)
     day = digits.str.slice(0, 8).str.replace(
         r"(\d{4})(\d{2})(\d{2})",
@@ -118,9 +121,19 @@ def prepare_source(path: Path, source_type: str) -> pd.DataFrame:
             "기준일자": 기준일자,
             "source_type": source_type,
             "source_file": path.name,
+            "매핑방법": "행정동코드",
+            "데이터출처": path.name,
             "_source_index": df.index,
         },
     )
+    mapping_method_column = find_column(df, MAPPING_METHOD_COLUMNS)
+    if mapping_method_column:
+        prepared["매핑방법"] = df[mapping_method_column].fillna("행정동코드")
+
+    source_name_column = find_column(df, SOURCE_NAME_COLUMNS)
+    if source_name_column:
+        prepared["데이터출처"] = df[source_name_column].fillna(path.name)
+
     return prepared[prepared["기준일자"].notna()].copy()
 
 
@@ -140,7 +153,16 @@ def keep_open_business_rows(df: pd.DataFrame, source_path: Path) -> pd.DataFrame
 def load_sources(patterns: tuple[str, ...], source_type: str) -> pd.DataFrame:
     files = find_latest_files(patterns)
     if not files:
-        return pd.DataFrame(columns=["region_id", "기준일자", "source_type", "source_file"])
+        return pd.DataFrame(
+            columns=[
+                "region_id",
+                "기준일자",
+                "source_type",
+                "source_file",
+                "매핑방법",
+                "데이터출처",
+            ],
+        )
 
     frames = []
     for path in files:
@@ -227,8 +249,8 @@ def build_fact(safe_facilities: pd.DataFrame, nightlife: pd.DataFrame) -> pd.Dat
     fact["CCTV수"] = pd.NA
     fact["경찰시설수"] = pd.NA
     fact["범죄율"] = pd.NA
-    fact["매핑방법"] = "행정동코드"
-    fact["데이터출처"] = ", ".join(sorted(source["source_file"].dropna().unique()))
+    fact["매핑방법"] = ", ".join(sorted(source["매핑방법"].dropna().astype(str).unique()))
+    fact["데이터출처"] = ", ".join(sorted(source["데이터출처"].dropna().astype(str).unique()))
 
     print(f"source rows: {source_rows:,}")
     print(f"matched rows: {len(source):,}")
