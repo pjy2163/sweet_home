@@ -6,6 +6,7 @@
 | region | 국가데이터처_법정동 연계정보_20250602.csv | 확보 | cp949 | 행정동과 법정동 매핑 |
 | real_estate | seoul_month_2025.csv | fact 생성 완료 | cp949 | 서울 전월세 실거래 데이터 |
 | population | LOCAL_PEOPLE_DONG_202605.csv | fact 생성 완료 | utf-8-sig | 서울 열린데이터광장 행정동 단위 서울 생활인구(내국인) |
+| boundary | SGIS 센서스용 행정구역 경계 | 후보 검증 완료 | SHP | 행정동 좌표 공간조인용 경계 polygon |
 | safety | 서울시 안심택배함 설치 장소 | 후보 검증 완료 | Open API/Sheet | 주소 기반 안심시설 위치 지표 후보 |
 | safety | 서울시 안심귀갓길 서비스 | 후보 검증 완료 | Open API/Sheet/File | 안심귀갓길 및 인근 안전시설물 위치 지표 후보 |
 | safety | 서울시 유흥주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
@@ -67,6 +68,21 @@ Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능
 
 raw CSV/XLSX/ZIP을 내려받은 뒤에는 `src/safety/inspect_safety_sources.py`로 인코딩, 시트, 행 수, 컬럼 수, `region_id`/기준일자/영업상태 후보 컬럼을 먼저 확인합니다.
 ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확인한 뒤, 행정동 매핑 전처리 방식이 주소 기반인지 공간조인 기반인지 결정합니다.
+
+### 행정동 경계 데이터 검증
+
+2026-06-17 기준 SGIS 통계지리정보서비스 자료제공 목록에서 확인한 공간조인 후보입니다.
+
+| 후보 | 공식 URL | 제공 단위 | 형식 | 좌표계 | MVP 판단 |
+| --- | --- | --- | --- | --- | --- |
+| SGIS 센서스용 행정구역 경계 | https://sgis.kostat.go.kr/view/pss/openDataIntrcn | 전체, 시도, 시군구, 읍면동. 2001~2025년 연 단위 | SHP | UTM-K(GRS80), EPSG:5179 | 1순위. 서울 읍면동 경계만 필터링해 좌표 공간조인 기준 polygon으로 사용 |
+
+사용 판단:
+
+- safety 인허가 원천의 중부원점TM(EPSG:5174) 좌표를 SGIS 행정동 경계 좌표계(EPSG:5179)로 변환한 뒤 공간조인합니다.
+- 원천 파일은 `data/raw/boundary/` 또는 `data/raw/safety/boundary/`에 보관하고 git에는 올리지 않습니다.
+- 실제 파일 확보 후 경계 컬럼명, 서울 행정동 수, `region_master.region_id` 매칭률, CRS 메타데이터를 검증합니다.
+- SGIS 경계는 센서스용 경계이므로 법정 행정구역 고시 경계와 차이가 있을 수 있습니다. MVP에서는 좌표 공간조인 기준으로 사용하되 한계를 문서화합니다.
 
 ## 메모
 
