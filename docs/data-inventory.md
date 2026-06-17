@@ -82,6 +82,7 @@ ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확�
 - safety 인허가 원천의 중부원점TM(EPSG:5174) 좌표를 SGIS 행정동 경계 좌표계(EPSG:5179)로 변환한 뒤 공간조인합니다.
 - 원천 파일은 `data/raw/boundary/` 또는 `data/raw/safety/boundary/`에 보관하고 git에는 올리지 않습니다.
 - 실제 파일 확보 후 `src/safety/inspect_boundary_source.py`로 ZIP/SHP 구성 파일 완전성, 경계 컬럼명, 서울 행정동 수, `region_master.region_id` 매칭률, CRS 메타데이터를 검증합니다.
+- SGIS boundary 파일을 `data/raw/boundary/` 아래에 하나만 둘 경우 `.venv/bin/python src/safety/inspect_boundary_source.py`로 기본 검사를 실행합니다. 여러 파일이 있으면 `--input`으로 검사 대상을 명시합니다.
 - SGIS 경계는 센서스용 경계이므로 법정 행정구역 고시 경계와 차이가 있을 수 있습니다. MVP에서는 좌표 공간조인 기준으로 사용하되 한계를 문서화합니다.
 
 ## 메모

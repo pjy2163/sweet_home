@@ -6,6 +6,7 @@ import zipfile
 
 import pandas as pd
 
+from build_safety_fact import BASE_DIR
 from build_safety_fact import REGION_MASTER_PATH, normalize_dong_code
 from map_safety_coordinates import BOUNDARY_REGION_COLUMNS, find_column
 
@@ -17,6 +18,8 @@ except ModuleNotFoundError:  # pragma: no cover - exercised by CLI validation.
 
 SPATIAL_SUFFIXES = {".shp", ".shx", ".dbf", ".prj", ".cpg"}
 REQUIRED_SHP_SUFFIXES = {".shp", ".shx", ".dbf", ".prj"}
+RAW_BOUNDARY_DIR = BASE_DIR / "data" / "raw" / "boundary"
+SUPPORTED_BOUNDARY_SUFFIXES = {".zip", ".shp"}
 
 
 def list_zip_members(path: Path) -> tuple[list[str], list[str]]:
@@ -125,11 +128,46 @@ def inspect_boundary(path: Path, member: str | None, region_column: str | None) 
     print(f"unique matched region ids: {unique_matched:,}")
 
 
+def find_boundary_files(raw_dir: Path) -> list[Path]:
+    if not raw_dir.exists():
+        return []
+    return sorted(
+        path
+        for path in raw_dir.rglob("*")
+        if path.is_file() and path.suffix.lower() in SUPPORTED_BOUNDARY_SUFFIXES
+    )
+
+
+def resolve_input_path(input_path: Path | None, raw_dir: Path) -> Path:
+    if input_path:
+        return input_path
+
+    candidates = find_boundary_files(raw_dir)
+    if not candidates:
+        raise FileNotFoundError(
+            f"no boundary SHP/ZIP files found under {raw_dir}. "
+            "Place SGIS boundary raw files there or pass --input.",
+        )
+    if len(candidates) > 1:
+        joined = ", ".join(str(path) for path in candidates)
+        raise ValueError(
+            "multiple boundary SHP/ZIP files found. "
+            f"Pass --input to choose one: {joined}",
+        )
+    return candidates[0]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Inspect administrative-dong boundary SHP/ZIP before spatial join.",
     )
-    parser.add_argument("--input", type=Path, required=True, help="Boundary SHP or ZIP.")
+    parser.add_argument("--input", type=Path, help="Boundary SHP or ZIP.")
+    parser.add_argument(
+        "--raw-dir",
+        type=Path,
+        default=RAW_BOUNDARY_DIR,
+        help="Directory to scan when --input is omitted.",
+    )
     parser.add_argument(
         "--member",
         help="SHP member path inside ZIP when the archive contains multiple SHP files.",
@@ -143,7 +181,8 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    inspect_boundary(args.input, args.member, args.region_column)
+    input_path = resolve_input_path(args.input, args.raw_dir)
+    inspect_boundary(input_path, args.member, args.region_column)
 
 
 if __name__ == "__main__":
