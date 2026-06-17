@@ -16,6 +16,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised by CLI validation.
 
 
 SPATIAL_SUFFIXES = {".shp", ".shx", ".dbf", ".prj", ".cpg"}
+REQUIRED_SHP_SUFFIXES = {".shp", ".shx", ".dbf", ".prj"}
 
 
 def list_zip_members(path: Path) -> tuple[list[str], list[str]]:
@@ -25,6 +26,31 @@ def list_zip_members(path: Path) -> tuple[list[str], list[str]]:
         member for member in members if Path(member).suffix.lower() in SPATIAL_SUFFIXES
     ]
     return members, spatial_members
+
+
+def group_spatial_members(spatial_members: list[str]) -> dict[str, set[str]]:
+    groups: dict[str, set[str]] = {}
+    for member in spatial_members:
+        member_path = Path(member)
+        stem = str(member_path.with_suffix(""))
+        groups.setdefault(stem, set()).add(member_path.suffix.lower())
+    return groups
+
+
+def print_spatial_member_report(spatial_members: list[str]) -> None:
+    groups = group_spatial_members(spatial_members)
+    print("spatial member groups:")
+    if not groups:
+        print("  none")
+        return
+
+    for stem, suffixes in sorted(groups.items()):
+        missing_required = sorted(REQUIRED_SHP_SUFFIXES - suffixes)
+        optional = sorted(suffixes - REQUIRED_SHP_SUFFIXES)
+        print(f"  {stem}")
+        print(f"    suffixes: {sorted(suffixes)}")
+        print(f"    missing required: {missing_required}")
+        print(f"    optional: {optional}")
 
 
 def resolve_boundary_source(path: Path, member: str | None) -> str:
@@ -65,6 +91,7 @@ def inspect_boundary(path: Path, member: str | None, region_column: str | None) 
         print("kind: zip")
         print(f"members: {len(members):,}")
         print(f"spatial members: {spatial_members}")
+        print_spatial_member_report(spatial_members)
 
     boundary = read_boundary(path, member)
     resolved_region_column = region_column or find_column(
