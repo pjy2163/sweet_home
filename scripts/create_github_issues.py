@@ -39,23 +39,23 @@ MVP 비교 리포트에 인구/환경 지표를 넣기 위해 행정동 기준 �
 """,
     ),
     Issue(
-        title="[SH-014] Crime/Safety Fact 데이터 소스 선정",
+        title="[SH-014] Safety Fact 데이터 소스 선정",
         labels=("type: data", "priority: p0", "status: ready", "agent: data-architect"),
         body="""## Background
-스위트홈 MVP의 핵심 차별점 중 하나는 안전 지표입니다. 다만 범죄 데이터는 행정동 단위 확보가 어려울 수 있습니다.
+스위트홈 MVP의 핵심 차별점 중 하나는 안전 지표입니다. 다만 직접 범죄 데이터는 행정동 단위 확보가 어려울 수 있습니다.
 
 ## Goal
 MVP에 넣을 안전 지표의 데이터 소스를 확정합니다.
 
 ## Checklist
-- [ ] 범죄 데이터의 지역 단위 확인
-- [ ] 성범죄/강력범죄 데이터 사용 가능성 확인
+- [ ] 직접 범죄 데이터의 지역 단위 한계 확인
+- [ ] 안전 대체 지표 사용 가능성 확인
 - [ ] 유흥시설, CCTV, 안심시설 대체 지표 확인
 - [ ] MVP 안전 지표 범위 결정
 - [ ] data-inventory.md 업데이트
 
 ## Expected Output
-- safety/crime 데이터 후보 및 선택 근거
+- safety 데이터 후보 및 선택 근거
 - MVP 안전 지표 설계 방향
 """,
     ),

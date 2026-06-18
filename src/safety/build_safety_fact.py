@@ -36,7 +36,6 @@ OUTPUT_COLUMNS = [
     "유흥시설수",
     "CCTV수",
     "경찰시설수",
-    "범죄율",
     "매핑방법",
     "데이터출처",
 ]
@@ -248,7 +247,6 @@ def build_fact(safe_facilities: pd.DataFrame, nightlife: pd.DataFrame) -> pd.Dat
     fact["유흥시설수"] = fact["nightlife"].fillna(0).astype(int)
     fact["CCTV수"] = pd.NA
     fact["경찰시설수"] = pd.NA
-    fact["범죄율"] = pd.NA
     fact["매핑방법"] = ", ".join(sorted(source["매핑방법"].dropna().astype(str).unique()))
     fact["데이터출처"] = ", ".join(sorted(source["데이터출처"].dropna().astype(str).unique()))
 
