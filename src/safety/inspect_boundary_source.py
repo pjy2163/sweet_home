@@ -19,7 +19,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised by CLI validation.
 SPATIAL_SUFFIXES = {".shp", ".shx", ".dbf", ".prj", ".cpg"}
 REQUIRED_SHP_SUFFIXES = {".shp", ".shx", ".dbf", ".prj"}
 RAW_BOUNDARY_DIR = BASE_DIR / "data" / "raw" / "boundary"
-SUPPORTED_BOUNDARY_SUFFIXES = {".zip", ".shp"}
+SUPPORTED_BOUNDARY_SUFFIXES = {".zip", ".shp", ".geojson", ".gpkg"}
 
 
 def list_zip_members(path: Path) -> tuple[list[str], list[str]]:
@@ -74,8 +74,12 @@ def resolve_boundary_source(path: Path, member: str | None) -> str:
 
     if suffix == ".shp":
         return str(path)
+    if suffix in {".geojson", ".gpkg"}:
+        return str(path)
 
-    raise ValueError(f"unsupported boundary format: {path.suffix}. Use SHP or ZIP.")
+    raise ValueError(
+        f"unsupported boundary format: {path.suffix}. Use SHP, ZIP, GeoJSON, or GPKG.",
+    )
 
 
 def read_boundary(path: Path, member: str | None):
@@ -162,7 +166,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Inspect administrative-dong boundary SHP/ZIP before spatial join.",
     )
-    parser.add_argument("--input", type=Path, help="Boundary SHP or ZIP.")
+    parser.add_argument("--input", type=Path, help="Boundary SHP, ZIP, GeoJSON, or GPKG.")
     parser.add_argument(
         "--raw-dir",
         type=Path,
