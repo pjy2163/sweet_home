@@ -82,10 +82,11 @@ def prepare_source(args: argparse.Namespace) -> pd.DataFrame:
     return source
 
 
-def spatial_join(args: argparse.Namespace) -> pd.DataFrame:
+def spatial_join(args: argparse.Namespace) -> tuple[pd.DataFrame, dict[str, int]]:
     require_geospatial_dependency()
 
     source = prepare_source(args)
+    source_rows = len(source)
     x_column, y_column = resolve_coordinate_columns(source, args.x_column, args.y_column)
     points = gpd.GeoDataFrame(
         source,
@@ -113,17 +114,23 @@ def spatial_join(args: argparse.Namespace) -> pd.DataFrame:
         how="left",
         predicate="within",
     )
+    normalized_region_ids = normalize_dong_code(joined[boundary_region_column])
+    mapped_mask = normalized_region_ids.notna() & normalized_region_ids.ne("")
 
     mapped = pd.DataFrame(
         {
-            "region_id": normalize_dong_code(joined[boundary_region_column]),
+            "region_id": normalized_region_ids,
             "기준일자": resolve_date(joined, args.input, args.date),
             "매핑방법": "좌표공간조인",
             "데이터출처": args.source_name,
         },
     )
-    mapped = mapped[mapped["region_id"].notna() & mapped["region_id"].ne("")].copy()
-    return mapped.drop_duplicates()
+    stats = {
+        "source_rows": source_rows,
+        "mapped_rows": int(mapped_mask.sum()),
+        "unmapped_rows": source_rows - int(mapped_mask.sum()),
+    }
+    return mapped[mapped_mask].copy().drop_duplicates(), stats
 
 
 def default_output_path(args: argparse.Namespace) -> Path:
@@ -169,7 +176,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    mapped = spatial_join(args)
+    mapped, stats = spatial_join(args)
     if mapped.empty:
         raise ValueError("coordinate spatial join produced no mapped rows.")
 
@@ -177,7 +184,10 @@ def main() -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     mapped.to_csv(output_path, index=False, encoding="utf-8-sig")
 
-    print(f"mapped rows: {len(mapped):,}")
+    print(f"source rows: {stats['source_rows']:,}")
+    print(f"mapped rows: {stats['mapped_rows']:,}")
+    print(f"unmapped rows: {stats['unmapped_rows']:,}")
+    print(f"output rows: {len(mapped):,}")
     print(f"saved: {output_path}")
 
 
