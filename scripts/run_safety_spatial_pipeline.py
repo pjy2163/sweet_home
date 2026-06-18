@@ -10,11 +10,23 @@ SAFETY_SRC = ROOT / "src" / "safety"
 if str(SAFETY_SRC) not in sys.path:
     sys.path.insert(0, str(SAFETY_SRC))
 
+from build_safety_fact import infer_date_from_filename
 from map_safety_coordinates import spatial_join
 from prepare_boundary_source import prepare_boundary
+from prepare_safety_inputs import DEFAULT_OUTPUT_NAMES
 
 
 DEFAULT_OUTPUT_DIR = Path("/private/tmp/sweethome_safety_spatial_pipeline")
+
+
+def safe_date_from_args(args: argparse.Namespace) -> str:
+    date = args.date or infer_date_from_filename(args.points) or "undated"
+    return date.replace("-", "")
+
+
+def default_mapped_output_name(args: argparse.Namespace) -> str:
+    stem = DEFAULT_OUTPUT_NAMES[args.source_type]
+    return f"{stem}_{safe_date_from_args(args)}.csv"
 
 
 def boundary_args(args: argparse.Namespace, prepared_boundary_path: Path) -> argparse.Namespace:
@@ -52,7 +64,8 @@ def map_args(
 def run(args: argparse.Namespace) -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     prepared_boundary_path = args.output_dir / "prepared_boundary.geojson"
-    mapped_output_path = args.output_dir / args.mapped_output_name
+    mapped_output_name = args.mapped_output_name or default_mapped_output_name(args)
+    mapped_output_path = args.output_dir / mapped_output_name
 
     prepared_boundary, boundary_stats = prepare_boundary(
         boundary_args(args, prepared_boundary_path),
@@ -127,8 +140,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--mapped-output-name",
-        default="mapped_safety_source.csv",
-        help="Mapped CSV filename under --output-dir.",
+        help=(
+            "Mapped CSV filename under --output-dir. Defaults to the "
+            "build_safety_fact.py input pattern for --source-type."
+        ),
     )
     return parser.parse_args()
 

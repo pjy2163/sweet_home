@@ -86,7 +86,7 @@ ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확�
 - 2026-06-18 기준 synthetic polygon/point 데이터로 `geopandas`, `pyproj`, `shapely` 의존성과 좌표 공간조인 흐름을 검증했습니다. `map_safety_coordinates.py`는 입력 행 수, 매핑 성공 행 수, 미매핑 행 수, 출력 행 수를 리포트합니다.
 - `src/safety/prepare_boundary_source.py`는 boundary 원천을 `region_master.region_id` 기준으로 필터링하고 정규화한 prepared boundary를 생성합니다. 생성된 boundary 파일은 raw/로컬 산출물로 관리하고 git에는 올리지 않습니다.
 - `scripts/verify_safety_spatial_pipeline.py`는 synthetic 데이터로 boundary prepare와 coordinate mapping을 한 번에 검증합니다.
-- `scripts/run_safety_spatial_pipeline.py`는 실제 boundary 파일과 좌표 원천을 받아 prepared boundary 생성과 coordinate mapping을 한 번에 실행합니다. 출력은 기본적으로 `/private/tmp/sweethome_safety_spatial_pipeline` 아래에 생성합니다.
+- `scripts/run_safety_spatial_pipeline.py`는 실제 boundary 파일과 좌표 원천을 받아 prepared boundary 생성과 coordinate mapping을 한 번에 실행합니다. 출력은 기본적으로 `/private/tmp/sweethome_safety_spatial_pipeline` 아래에 생성하며, mapped CSV 파일명은 `build_safety_fact.py` 입력 패턴과 호환됩니다.
 - SGIS 경계는 센서스용 경계이므로 법정 행정구역 고시 경계와 차이가 있을 수 있습니다. MVP에서는 좌표 공간조인 기준으로 사용하되 한계를 문서화합니다.
 
 ## 메모
