@@ -13,6 +13,15 @@
 | safety | 서울시 단란주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
 | safety | 서울시 자치구 CCTV 설치현황 | 보조 후보 | xlsx | 자치구 단위 CCTV 현황. 행정동 MVP에는 직접 사용 약함 |
 
+## Region 데이터 정합성
+
+법정동 연계정보 원천은 과거 개정 이력을 포함합니다.
+강북구 `번1동`, `번2동`, `번3동`, `수유1동`, `수유2동`, `수유3동`은 2018-10-01까지 사용된 과거 행정동코드와 2019-01-01 이후 사용된 현재 행정동코드가 함께 존재했습니다.
+
+MVP의 `region_master`와 `dong_mapping`은 현재 분석 기준을 유지하기 위해 `시도명 + 시군구명 + 행정동명` 기준 최신 `개정일자` 행을 사용합니다.
+2026-06-21 검증 결과 `region_master`는 433개 서울 행정동을 포함하며, 중복 `region_id`와 중복 행정동명은 0건입니다.
+재생성된 `real_estate_fact`, `real_estate_price_comparison`, `population_fact`, `safety_fact`는 모두 `region_master.region_id` 참조 무결성 검증을 통과했습니다.
+
 ## Safety 데이터 소스 검증
 
 Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능한 안전 대체 지표를 우선 검토합니다.
@@ -85,7 +94,7 @@ ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확�
 - SGIS boundary 파일을 `data/raw/boundary/` 아래에 하나만 둘 경우 `.venv/bin/python src/safety/inspect_boundary_source.py`로 기본 검사를 실행합니다. 여러 파일이 있으면 `--input`으로 검사 대상을 명시합니다.
 - 2026-06-18 기준 synthetic polygon/point 데이터로 `geopandas`, `pyproj`, `shapely` 의존성과 좌표 공간조인 흐름을 검증했습니다. `map_safety_coordinates.py`는 입력 행 수, 매핑 성공 행 수, 미매핑 행 수, 출력 행 수를 리포트합니다.
 - `src/safety/prepare_boundary_source.py`는 boundary 원천을 `region_master.region_id` 기준으로 필터링하고 정규화한 prepared boundary를 생성합니다. 생성된 boundary 파일은 raw/로컬 산출물로 관리하고 git에는 올리지 않습니다.
-- SGIS 행정동 경계의 `ADM_CD`는 SweetHome의 행정안전부 10자리 `region_id`와 직접 같은 코드체계가 아니므로, SGIS ZIP 내부 `3. 코드집/1. 행정구역 코드(adm_code).xlsx`를 사용해 `시군구명 + 읍면동명` 기준으로 `region_master`에 매핑합니다. 이름 기준 중복이 있는 행정동은 자동 매핑하지 않고 제외합니다.
+- SGIS 행정동 경계의 `ADM_CD`는 SweetHome의 행정안전부 10자리 `region_id`와 직접 같은 코드체계가 아니므로, SGIS ZIP 내부 `3. 코드집/1. 행정구역 코드(adm_code).xlsx`를 사용해 `시군구명 + 읍면동명` 기준으로 `region_master`에 매핑합니다.
 - `scripts/verify_safety_spatial_pipeline.py`는 synthetic 데이터로 boundary prepare와 coordinate mapping을 한 번에 검증합니다.
 - `scripts/run_safety_spatial_pipeline.py`는 실제 boundary 파일과 좌표 원천을 받아 prepared boundary 생성과 coordinate mapping을 한 번에 실행합니다. 출력은 기본적으로 `/private/tmp/sweethome_safety_spatial_pipeline` 아래에 생성하며, mapped CSV 파일명은 `build_safety_fact.py` 입력 패턴과 호환됩니다.
 - SGIS 경계는 센서스용 경계이므로 법정 행정구역 고시 경계와 차이가 있을 수 있습니다. MVP에서는 좌표 공간조인 기준으로 사용하되 한계를 문서화합니다.
@@ -99,9 +108,9 @@ ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확�
 | 서울시 유흥주점영업 인허가 정보 | 4,985 | 1,686 | 1,637 | 49 |
 | 서울시 단란주점영업 인허가 정보 | 11,614 | 1,857 | 1,790 | 67 |
 
-SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준으로 매핑 가능한 서울 행정동 420개를 사용했습니다. 서울 행정동 426개 중 강북구 `번1동`, `번2동`, `번3동`, `수유1동`, `수유2동`, `수유3동`은 `region_master`에 중복 `region_id`가 있어 MVP 공간조인에서는 제외했습니다.
+SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준으로 매핑 가능한 서울 행정동 426개를 사용했습니다.
 
-생성된 `safety_fact.csv`는 2026-06-17 기준 439개 `region_id` 행을 가지며, 총 `유흥시설수`는 3,427건입니다. `region_id + 기준일자` 중복 key는 0건이고 key null도 0건입니다.
+생성된 `safety_fact.csv`는 2026-06-17 기준 433개 `region_id` 행을 가지며, 총 `유흥시설수`는 3,427건입니다. `region_id + 기준일자` 중복 key는 0건이고 key null도 0건입니다.
 
 ## 메모
 
