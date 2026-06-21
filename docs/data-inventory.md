@@ -61,6 +61,7 @@ Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능
 | nightlife | `nightlife_facilities_*.csv`, `entertainment_bar_*.csv`, `danran_bar_*.csv` | `region_id` 또는 `행정동코드` | 날짜 컬럼 또는 파일명의 `YYYYMM`/`YYYYMMDD` | `매핑방법`, `데이터출처` |
 
 주소/좌표만 있는 공식 원천은 바로 fact로 집계하지 않고, 행정동 매핑 검증 후 위 입력 계약에 맞춘 중간 CSV로 변환합니다.
+중간 CSV는 시설 1개를 1 row로 유지해야 합니다. 같은 `region_id`와 `기준일자`에 여러 시설이 있더라도 중복 제거로 합치지 않고, `build_safety_fact.py`에서 row 수를 집계합니다.
 
 ### Safety 원천 컬럼/위치정보 검증
 

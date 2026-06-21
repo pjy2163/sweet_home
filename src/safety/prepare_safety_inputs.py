@@ -97,7 +97,7 @@ def prepare_input(args: argparse.Namespace) -> pd.DataFrame:
         & prepared["기준일자"].notna()
         & prepared["region_id"].ne("")
     ].copy()
-    return prepared.drop_duplicates()
+    return prepared
 
 
 def validate_region_ids(prepared: pd.DataFrame) -> tuple[int, int]:
