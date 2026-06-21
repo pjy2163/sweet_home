@@ -130,7 +130,7 @@ def spatial_join(args: argparse.Namespace) -> tuple[pd.DataFrame, dict[str, int]
         "mapped_rows": int(mapped_mask.sum()),
         "unmapped_rows": source_rows - int(mapped_mask.sum()),
     }
-    return mapped[mapped_mask].copy().drop_duplicates(), stats
+    return mapped[mapped_mask].copy(), stats
 
 
 def default_output_path(args: argparse.Namespace) -> Path:

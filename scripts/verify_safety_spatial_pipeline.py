@@ -40,6 +40,7 @@ def build_synthetic_inputs(work_dir: Path) -> tuple[Path, Path]:
     points = pd.DataFrame(
         [
             {"x": 5, "y": 5, "영업상태명": "영업", "업소명": "inside"},
+            {"x": 6, "y": 6, "영업상태명": "영업", "업소명": "inside_same_region"},
             {"x": 20, "y": 20, "영업상태명": "영업", "업소명": "outside"},
         ],
     )
@@ -53,6 +54,9 @@ def parse_prepare_namespace(boundary_path: Path, output_path: Path) -> argparse.
         raw_dir=work_dir_fallback(),
         member=None,
         region_column=None,
+        region_id_source="direct",
+        sgis_codebook_member=None,
+        sgis_codebook_sheet=None,
         output=output_path,
         driver="GeoJSON",
     )
@@ -102,10 +106,10 @@ def verify(work_dir: Path) -> None:
     assert boundary_stats["matched_rows"] == 1
     assert boundary_stats["unmatched_rows"] == 0
     assert boundary_stats["unique_region_ids"] == 1
-    assert map_stats["source_rows"] == 2
-    assert map_stats["mapped_rows"] == 1
+    assert map_stats["source_rows"] == 3
+    assert map_stats["mapped_rows"] == 2
     assert map_stats["unmapped_rows"] == 1
-    assert len(mapped) == 1
+    assert len(mapped) == 2
     assert mapped.iloc[0]["region_id"] == TEST_REGION_ID
     assert mapped.iloc[0]["매핑방법"] == "좌표공간조인"
 

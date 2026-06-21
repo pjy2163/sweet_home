@@ -35,6 +35,9 @@ def boundary_args(args: argparse.Namespace, prepared_boundary_path: Path) -> arg
         raw_dir=args.boundary_raw_dir,
         member=args.boundary_member,
         region_column=args.boundary_region_column,
+        region_id_source=args.boundary_region_id_source,
+        sgis_codebook_member=args.sgis_codebook_member,
+        sgis_codebook_sheet=args.sgis_codebook_sheet,
         output=prepared_boundary_path,
         driver=args.boundary_driver,
     )
@@ -85,6 +88,11 @@ def run(args: argparse.Namespace) -> None:
     print(f"  matched rows: {boundary_stats['matched_rows']:,}")
     print(f"  unmatched rows: {boundary_stats['unmatched_rows']:,}")
     print(f"  unique region ids: {boundary_stats['unique_region_ids']:,}")
+    if "sgis_codebook_rows" in boundary_stats:
+        print(f"  sgis codebook rows: {boundary_stats['sgis_codebook_rows']:,}")
+        print(f"  sgis name matched rows: {boundary_stats['sgis_name_matched_rows']:,}")
+        print(f"  sgis name unmatched rows: {boundary_stats['sgis_name_unmatched_rows']:,}")
+        print(f"  ambiguous name keys: {boundary_stats['ambiguous_name_keys']:,}")
     print(f"  crs: {boundary_stats['crs']}")
     print(f"  saved: {prepared_boundary_path}")
     print("coordinate mapping")
@@ -111,6 +119,25 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--boundary-member", help="SHP member path inside ZIP.")
     parser.add_argument("--boundary-region-column", help="Boundary region code column.")
+    parser.add_argument(
+        "--boundary-region-id-source",
+        choices=("direct", "sgis-codebook"),
+        default="direct",
+        help=(
+            "How to derive SweetHome region_id from boundary rows. Use "
+            "sgis-codebook for SGIS ADM_CD boundaries."
+        ),
+    )
+    parser.add_argument(
+        "--sgis-codebook-member",
+        default="3. 코드집/1. 행정구역 코드(adm_code).xlsx",
+        help="SGIS adm_code.xlsx member path inside the original SGIS ZIP.",
+    )
+    parser.add_argument(
+        "--sgis-codebook-sheet",
+        default="2025년 6월",
+        help="SGIS adm_code.xlsx sheet to use for administrative-dong names.",
+    )
     parser.add_argument(
         "--boundary-driver",
         default="GeoJSON",
