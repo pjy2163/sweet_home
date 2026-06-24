@@ -113,6 +113,26 @@ SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준�
 
 생성된 `safety_fact.csv`는 2026-06-17 기준 433개 `region_id` 행을 가지며, 총 `유흥시설수`는 3,427건입니다. `region_id + 기준일자` 중복 key는 0건이고 key null도 0건입니다.
 
+## Region Comparison Snapshot
+
+2026-06-25 기준 `region_master`, `real_estate_price_comparison`, `population_fact`, `safety_fact`를 결합해 `data/processed/region_comparison_snapshot.csv`를 생성했습니다.
+
+mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지표를 바로 조회하기 위한 read model입니다.
+가격, 생활인구, 안전 지표는 원천 갱신 주기가 다르므로 `가격_기준월`, `생활인구_기준월`, `안전_기준일자`를 별도 컬럼으로 보존합니다.
+
+검증 결과:
+
+- output rows: 433
+- unique `region_id`: 433
+- duplicate `region_id`: 0
+- null `region_id`: 0
+- price missing rows: 0
+- population missing rows: 15
+- safety missing rows: 0
+- price latest month: 2026-02
+- population latest month: 2026-05
+- safety latest date: 2026-06-17
+
 ## 메모
 
 - 사용자가 요청한 구조에는 `data-inventory.xlsx`가 포함되어 있지만, 초기 버전은 Git diff와 문서 관리가 쉬운 Markdown으로 관리합니다.
