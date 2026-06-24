@@ -78,6 +78,7 @@ Issue #2에서는 범죄율을 바로 쓰기보다 행정동으로 매핑 가능
 
 raw CSV/XLSX/ZIP을 내려받은 뒤에는 `src/safety/inspect_safety_sources.py`로 인코딩, 시트, 행 수, 컬럼 수, `region_id`/기준일자/영업상태 후보 컬럼을 먼저 확인합니다.
 ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확인한 뒤, 행정동 매핑 전처리 방식이 주소 기반인지 공간조인 기반인지 결정합니다.
+검사 도구는 `safe_facility`와 `nightlife` 입력 패턴별 파일 수를 먼저 출력하므로, 안심시설 원천 누락 여부를 fact 생성 전에 확인할 수 있습니다.
 
 ### 행정동 경계 데이터 검증
 
@@ -112,6 +113,15 @@ ZIP 원천은 내부 CSV/XLSX 멤버와 SHP 구성 파일 포함 여부를 확�
 SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준으로 매핑 가능한 서울 행정동 426개를 사용했습니다.
 
 생성된 `safety_fact.csv`는 2026-06-17 기준 433개 `region_id` 행을 가지며, 총 `유흥시설수`는 3,427건입니다. `region_id + 기준일자` 중복 key는 0건이고 key null도 0건입니다.
+
+2026-06-25 기준 `src/safety/inspect_safety_sources.py`로 raw availability를 재검증했습니다.
+
+| source_group | 파일 수 | 상태 |
+| --- | ---: | --- |
+| safe_facility | 0 | 안심시설 raw 또는 행정동 매핑 중간 CSV 미확보 |
+| nightlife | 2 | `nightlife_facilities_20260617.csv`, `danran_bar_20260617.csv` 확보 |
+
+따라서 현재 `safety_fact.안심시설수`는 원천 미확보로 0이며, #11의 남은 작업은 안심택배함/안심귀갓길 raw 확보 후 주소 또는 공간조인 방식으로 `safe_facilities_YYYYMMDD.csv`를 생성하는 것입니다.
 
 ## Region Comparison Snapshot
 

@@ -100,7 +100,7 @@ grain은 `region_id` 1행입니다.
 | 주민등록인구 | 주민등록 기준 인구. 별도 원천 확보 전까지 비워둠 |
 | 세대수 | 세대 수. 별도 원천 확보 전까지 비워둠 |
 | 안전_기준일자 | 안전 대체 지표 기준일 |
-| 안심시설수 | 안심시설 수. 원천 확보 전까지 0 |
+| 안심시설수 | 안심시설 수. 원천 또는 행정동 매핑 중간 CSV 미확보 시 0 |
 | 유흥시설수 | 영업 중인 유흥주점/단란주점 수 |
 | CCTV수 | CCTV 수. 자치구 단위만 확보될 경우 비워둠 |
 | 경찰시설수 | 경찰시설 수. 공식 위치 원천 확보 전까지 비워둠 |
@@ -151,6 +151,8 @@ grain은 `region_id` 1행입니다.
 현재 MVP의 `유흥시설수`는 서울시 유흥주점영업/단란주점영업 인허가 원천에서 `상세영업상태명 = 영업`이고 좌표가 유효한 row를 SGIS 행정동 경계에 공간조인해 집계합니다.
 SGIS `ADM_CD`는 SweetHome `region_id`와 코드체계가 달라 SGIS 코드집의 행정동명과 `region_master`의 `시군구명 + 행정동명`을 기준으로 변환합니다.
 `region_master`는 최신 행정동코드 기준으로 중복 행정동명을 제거하므로, SGIS 서울 행정동 426개를 모두 매핑할 수 있습니다.
+2026-06-25 기준 안심시설 raw 또는 행정동 매핑 중간 CSV는 아직 확보되지 않아 `안심시설수`는 0으로 유지합니다.
+안심시설 원천이 추가되면 `safe_facilities_YYYYMMDD.csv`, `safety_facilities_YYYYMMDD.csv`, `safe_parcel_locker_YYYYMMDD.csv`, `safe_return_home_YYYYMMDD.csv` 중 하나의 패턴으로 저장하고, 시설 1개를 1 row로 유지한 뒤 `build_safety_fact.py`에서 집계합니다.
 
 ### commercial_fact
 

@@ -1,16 +1,28 @@
 from __future__ import annotations
 
 import argparse
+from fnmatch import fnmatch
 from io import BytesIO
 from pathlib import Path
 import zipfile
 
 import pandas as pd
 
-from build_safety_fact import DATE_COLUMNS, RAW_DIR, REGION_COLUMNS, STATUS_COLUMNS
+from build_safety_fact import (
+    DATE_COLUMNS,
+    NIGHTLIFE_PATTERNS,
+    RAW_DIR,
+    REGION_COLUMNS,
+    SAFE_FACILITY_PATTERNS,
+    STATUS_COLUMNS,
+)
 
 SUPPORTED_SUFFIXES = {".csv", ".xlsx", ".zip"}
 SPATIAL_SUFFIXES = {".shp", ".shx", ".dbf", ".prj", ".cpg"}
+SOURCE_GROUPS = {
+    "safe_facility": SAFE_FACILITY_PATTERNS,
+    "nightlife": NIGHTLIFE_PATTERNS,
+}
 
 
 def read_csv_profile(open_binary) -> tuple[str, list[str], int]:
@@ -158,10 +170,36 @@ def format_count(value: object) -> str:
     return "-"
 
 
+def matching_source_groups(path: Path) -> list[str]:
+    return [
+        source_group
+        for source_group, patterns in SOURCE_GROUPS.items()
+        if any(fnmatch(path.name, pattern) for pattern in patterns)
+    ]
+
+
+def print_source_group_summary(files: list[Path]) -> None:
+    print("source group summary:")
+    for source_group, patterns in SOURCE_GROUPS.items():
+        matched_files = [
+            path.name
+            for path in files
+            if any(fnmatch(path.name, pattern) for pattern in patterns)
+        ]
+        print(f"- {source_group}: {len(matched_files):,} file(s)")
+        if matched_files:
+            for file_name in matched_files:
+                print(f"  - {file_name}")
+        else:
+            print(f"  expected patterns: {patterns}")
+    print()
+
+
 def print_report(reports: list[dict[str, object]]) -> None:
     for report in reports:
         print(f"file: {report['file']}")
         print(f"  kind: {report['kind']}")
+        print(f"  source groups: {report['source_groups']}")
         if "member" in report:
             print(f"  member: {report['member']}")
         if "sheet" in report and report["sheet"] is not None:
@@ -209,6 +247,14 @@ def main() -> None:
         raise FileNotFoundError(f"no safety raw files found under {args.raw_dir}")
 
     reports = [report for path in files for report in inspect_file(path)]
+    source_groups_by_file = {
+        path.name: matching_source_groups(path)
+        for path in files
+    }
+    for report in reports:
+        report["source_groups"] = source_groups_by_file.get(str(report["file"]), [])
+
+    print_source_group_summary(files)
     print_report(reports)
 
 
