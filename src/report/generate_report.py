@@ -14,12 +14,13 @@ SNAPSHOT_PATH = (
 HIGH_PRICE_THRESHOLD = 10
 LOW_PRICE_THRESHOLD = -10
 MEANINGFUL_GAP_THRESHOLD = 5
-DATA_SOURCE_TEXT = "서울 전월세 실거래, 생활인구, 안전 대체 지표 데이터 기반"
+DATA_SOURCE_TEXT = "서울 전월세 실거래, 생활인구, 안전 대체 지표, 상권 점포 데이터 기반"
 AGGREGATION_TEXT = "행정동 기준 최신 snapshot mart"
 LIMITATION_TEXT = (
     "도메인별 기준일자가 다를 수 있으며, 안전 지표는 범죄율이 아니라 "
     "안전 대체 지표입니다. 가격 지표는 법정동-행정동 매핑 영향으로 "
-    "인접 행정동이 같은 값을 가질 수 있습니다."
+    "인접 행정동이 같은 값을 가질 수 있습니다. 상권 지표는 매출이나 "
+    "투자성을 뜻하지 않습니다."
 )
 
 
@@ -42,9 +43,13 @@ class RegionSnapshot:
     safety_date: str | None
     safe_facility_count: float | None
     nightlife_count: float | None
+    commercial_date: str | None
+    industry_count: float | None
+    store_count: float | None
     has_price_data: bool
     has_population_data: bool
     has_safety_data: bool
+    has_commercial_data: bool
 
 
 def parse_args() -> argparse.Namespace:
@@ -142,9 +147,13 @@ def to_region_snapshot(row: pd.Series) -> RegionSnapshot:
         safety_date=optional_str(row["안전_기준일자"]),
         safe_facility_count=optional_float(row["안심시설수"]),
         nightlife_count=optional_float(row["유흥시설수"]),
+        commercial_date=optional_str(row["상권_기준일자"]),
+        industry_count=optional_float(row["업종수"]),
+        store_count=optional_float(row["사업체수"]),
         has_price_data=to_bool(row["가격_데이터여부"]),
         has_population_data=to_bool(row["생활인구_데이터여부"]),
         has_safety_data=to_bool(row["안전_데이터여부"]),
+        has_commercial_data=to_bool(row["상권_데이터여부"]),
     )
 
 
@@ -187,6 +196,8 @@ def render_region(region: RegionSnapshot) -> list[str]:
     population = format_count(region.living_population, "명")
     safe_facilities = format_count(region.safe_facility_count, "개")
     nightlife = format_count(region.nightlife_count, "개")
+    industries = format_count(region.industry_count, "개")
+    stores = format_count(region.store_count, "개")
 
     return [
         f"{region.gu_name} {region.dong_name}",
@@ -199,6 +210,8 @@ def render_region(region: RegionSnapshot) -> list[str]:
         f"- 생활인구: {population} (기준월: {region.population_month or '데이터 없음'})",
         f"- 안심시설수: {safe_facilities}",
         f"- 유흥시설수: {nightlife} (안전 지표 기준일: {region.safety_date or '데이터 없음'})",
+        f"- 업종수: {industries}",
+        f"- 사업체수: {stores} (상권 기준분기: {region.commercial_date or '데이터 없음'})",
     ]
 
 
@@ -234,9 +247,13 @@ def render_summary(region_a: RegionSnapshot, region_b: RegionSnapshot) -> list[s
     if not region_a.has_population_data or not region_b.has_population_data:
         lines.append("- 생활인구 데이터가 없는 지역이 있어 인구 지표 비교에 제한이 있습니다.")
 
+    if not region_a.has_commercial_data or not region_b.has_commercial_data:
+        lines.append("- 상권 데이터가 없는 지역이 있어 상권 지표 비교에 제한이 있습니다.")
+
     lines.append(
         "- 유흥시설수와 안심시설수는 안전을 단정하는 지표가 아니라 생활환경 참고 지표입니다.",
     )
+    lines.append("- 업종수와 사업체수는 상권 규모 참고 지표이며 매출이나 수익성을 뜻하지 않습니다.")
     lines.append("- 이 리포트는 투자 추천이 아니라 후보 지역 비교를 위한 참고 정보입니다.")
     return lines
 
@@ -252,6 +269,8 @@ def render_data_basis(region_a: RegionSnapshot, region_b: RegionSnapshot) -> lis
         f"{region_b.dong_name} {region_b.population_month or '데이터 없음'}",
         f"- 안전 지표 기준일: {region_a.dong_name} {region_a.safety_date or '데이터 없음'}, "
         f"{region_b.dong_name} {region_b.safety_date or '데이터 없음'}",
+        f"- 상권 기준분기: {region_a.dong_name} {region_a.commercial_date or '데이터 없음'}, "
+        f"{region_b.dong_name} {region_b.commercial_date or '데이터 없음'}",
         f"- 한계: {LIMITATION_TEXT}",
     ]
 
@@ -260,7 +279,7 @@ def generate_report(region_a: RegionSnapshot, region_b: RegionSnapshot) -> str:
     lines = [
         "[SweetHome 지역 비교 리포트]",
         "",
-        "가격, 생활인구, 안전 대체 지표를 행정동 기준으로 비교합니다.",
+        "가격, 생활인구, 안전 대체 지표, 상권 지표를 행정동 기준으로 비교합니다.",
         f"서울 평균 보증금: {format_money(region_a.seoul_deposit)}",
         f"서울 평균 전세가: {format_money(region_a.seoul_jeonse)}",
         "",

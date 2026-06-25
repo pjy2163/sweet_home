@@ -10,6 +10,7 @@ REGION_MASTER_PATH = BASE_DIR / "data" / "processed" / "region_master.csv"
 PRICE_PATH = BASE_DIR / "data" / "processed" / "real_estate_price_comparison.csv"
 POPULATION_PATH = BASE_DIR / "data" / "processed" / "population_fact.csv"
 SAFETY_PATH = BASE_DIR / "data" / "processed" / "safety_fact.csv"
+COMMERCIAL_PATH = BASE_DIR / "data" / "processed" / "commercial_fact.csv"
 OUTPUT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
 
 OUTPUT_COLUMNS = [
@@ -39,9 +40,13 @@ OUTPUT_COLUMNS = [
     "경찰시설수",
     "안전_매핑방법",
     "안전_데이터출처",
+    "상권_기준일자",
+    "업종수",
+    "사업체수",
     "가격_데이터여부",
     "생활인구_데이터여부",
     "안전_데이터여부",
+    "상권_데이터여부",
 ]
 
 
@@ -136,11 +141,13 @@ def build_snapshot() -> pd.DataFrame:
     price = latest_per_region(read_csv(PRICE_PATH))
     population = latest_per_region(read_csv(POPULATION_PATH))
     safety = latest_safety_snapshot(read_csv(SAFETY_PATH))
+    commercial = latest_per_region(read_csv(COMMERCIAL_PATH))
 
     validate_unique_region(region_master, "region_master")
     validate_unique_region(price, "latest price")
     validate_unique_region(population, "latest population")
     validate_unique_region(safety, "latest safety")
+    validate_unique_region(commercial, "latest commercial")
 
     price = price.rename(columns={"기준일자": "가격_기준월"})
     population = population.rename(columns={"기준일자": "생활인구_기준월"})
@@ -151,6 +158,7 @@ def build_snapshot() -> pd.DataFrame:
             "데이터출처": "안전_데이터출처",
         },
     )
+    commercial = commercial.rename(columns={"기준일자": "상권_기준일자"})
 
     snapshot = region_master.merge(
         price.drop(columns=["시군구명", "행정동명"], errors="ignore"),
@@ -159,10 +167,23 @@ def build_snapshot() -> pd.DataFrame:
     )
     snapshot = snapshot.merge(population, on="region_id", how="left")
     snapshot = snapshot.merge(safety, on="region_id", how="left")
+    snapshot = snapshot.merge(
+        commercial[
+            [
+                "region_id",
+                "상권_기준일자",
+                "업종수",
+                "사업체수",
+            ]
+        ],
+        on="region_id",
+        how="left",
+    )
 
     snapshot["가격_데이터여부"] = snapshot["가격_기준월"].notna()
     snapshot["생활인구_데이터여부"] = snapshot["생활인구_기준월"].notna()
     snapshot["안전_데이터여부"] = snapshot["안전_기준일자"].notna()
+    snapshot["상권_데이터여부"] = snapshot["상권_기준일자"].notna()
 
     snapshot = snapshot[OUTPUT_COLUMNS].sort_values(
         ["시군구명", "행정동명", "region_id"],
@@ -180,9 +201,11 @@ def print_validation(snapshot: pd.DataFrame) -> None:
         f"{int((~snapshot['생활인구_데이터여부']).sum()):,}",
     )
     print(f"safety missing rows: {int((~snapshot['안전_데이터여부']).sum()):,}")
+    print(f"commercial missing rows: {int((~snapshot['상권_데이터여부']).sum()):,}")
     print(f"price latest month: {snapshot['가격_기준월'].dropna().max()}")
     print(f"population latest month: {snapshot['생활인구_기준월'].dropna().max()}")
     print(f"safety latest date: {snapshot['안전_기준일자'].dropna().max()}")
+    print(f"commercial latest quarter: {snapshot['상권_기준일자'].dropna().max()}")
 
 
 def main() -> None:
