@@ -12,6 +12,7 @@
 | safety | 서울시 유흥주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
 | safety | 서울시 단란주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
 | safety | 서울시 자치구 CCTV 설치현황 | 보조 후보 | xlsx | 자치구 단위 CCTV 현황. 행정동 MVP에는 직접 사용 약함 |
+| commercial | 서울시 상권/생활편의 후보 데이터 | 후보 검토 중 | CSV/XLSX/API | 행정동 기준 점포수, 업종수, 생활편의시설 지표 후보 |
 
 ## Region 데이터 정합성
 
@@ -145,6 +146,34 @@ mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지
 - price latest month: 2026-02
 - population latest month: 2026-05
 - safety latest date: `안심시설수 2023-04-21; 유흥시설수 2026-06-17`
+
+## Commercial 데이터 소스 검토
+
+Issue #14에서는 상권/생활편의 지표를 행정동 단위로 정규화할 수 있는 원천을 우선 검토합니다.
+현재 `src/commercial/build_commercial_fact.py`는 placeholder이고, `data/processed/commercial_fact.csv`는 헤더만 존재합니다.
+
+검증 기준은 다음 순서입니다.
+
+1. 행정동코드 또는 행정동 단위 집계가 직접 제공되는 원천
+2. 주소 또는 좌표가 있어 행정동 경계로 매핑 가능한 원천
+3. 자치구 단위만 제공되는 원천
+
+MVP에서는 매출 규모를 단정적으로 비교하기보다, 사용자가 생활편의와 상권 밀도를 참고할 수 있는 지표를 우선합니다.
+매출 데이터는 업종/기간/카드사 표본에 따라 해석 리스크가 있으므로, 기준일자와 집계 단위를 명확히 확인한 뒤 사용합니다.
+
+### Commercial Fact MVP 입력 계약
+
+상권 raw 파일은 `data/raw/commercial/` 아래에 보관하고 git에는 올리지 않습니다.
+raw를 내려받은 뒤에는 `src/commercial/inspect_commercial_sources.py`로 인코딩, 행 수, 시트, 지역/기준일자/지표 후보 컬럼을 먼저 확인합니다.
+
+| source_group | 파일명 패턴 | 우선 컬럼 | 후보 지표 |
+| --- | --- | --- | --- |
+| store | `commercial_store_*.csv`, `store_count_*.csv`, `business_count_*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `점포수`, `업종수`, `사업체수` |
+| sales | `commercial_sales_*.csv`, `card_sales_*.csv`, `estimated_sales_*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `카드매출`, `매출금액`, `당월_매출_금액` |
+| facility | `convenience_facilities_*.csv`, `living_facilities_*.csv` | `region_id`, `행정동코드`, 주소 또는 좌표 | `시설수`, 업종별 시설 수 |
+
+초기 `commercial_fact`는 시설 또는 점포 1개 row를 그대로 서비스에 노출하지 않고, 행정동/기준일 단위로 집계한 fact로 관리합니다.
+상권 지표가 `region_comparison_snapshot`에 들어갈 때는 가격/생활인구/안전과 동일하게 기준일자와 데이터 존재 여부를 함께 표시합니다.
 
 ## 메모
 
