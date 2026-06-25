@@ -4,6 +4,7 @@ import argparse
 from fnmatch import fnmatch
 from io import BytesIO
 from pathlib import Path
+import unicodedata
 import zipfile
 
 import pandas as pd
@@ -18,11 +19,13 @@ SOURCE_GROUPS = {
         "commercial_store_*.csv",
         "store_count_*.csv",
         "business_count_*.csv",
+        "*점포-행정동*.csv",
     ),
     "sales": (
         "commercial_sales_*.csv",
         "card_sales_*.csv",
         "estimated_sales_*.csv",
+        "*추정매출-행정동*.csv",
     ),
     "facility": (
         "convenience_facilities_*.csv",
@@ -42,6 +45,8 @@ METRIC_COLUMNS = (
     "매출금액",
     "당월_매출_금액",
     "점포수",
+    "점포_수",
+    "유사_업종_점포_수",
     "업종수",
     "사업체수",
     "시설수",
@@ -187,10 +192,11 @@ def inspect_file(path: Path) -> list[dict[str, object]]:
 
 
 def matching_source_groups(path: Path) -> list[str]:
+    file_name = unicodedata.normalize("NFC", path.name)
     return [
         source_group
         for source_group, patterns in SOURCE_GROUPS.items()
-        if any(fnmatch(path.name, pattern) for pattern in patterns)
+        if any(fnmatch(file_name, pattern) for pattern in patterns)
     ]
 
 
@@ -206,7 +212,10 @@ def print_source_group_summary(files: list[Path]) -> None:
         matched_files = [
             path.name
             for path in files
-            if any(fnmatch(path.name, pattern) for pattern in patterns)
+            if any(
+                fnmatch(unicodedata.normalize("NFC", path.name), pattern)
+                for pattern in patterns
+            )
         ]
         print(f"- {source_group}: {len(matched_files):,} file(s)")
         if matched_files:
