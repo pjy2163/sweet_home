@@ -58,6 +58,54 @@ def latest_per_region(
     return sorted_frame.drop_duplicates("region_id", keep="last").copy()
 
 
+def latest_safety_snapshot(safety: pd.DataFrame) -> pd.DataFrame:
+    metric_columns = ["안심시설수", "유흥시설수", "CCTV수", "경찰시설수"]
+    frames = []
+    기준일자_parts = []
+
+    for metric in metric_columns:
+        metric_frame = safety[["region_id", "기준일자", metric]].copy()
+        metric_frame[metric] = pd.to_numeric(metric_frame[metric], errors="coerce")
+        dated_metric = metric_frame[
+            metric_frame[metric].notna() & metric_frame["기준일자"].notna()
+        ].copy()
+        if dated_metric.empty:
+            continue
+
+        date_totals = dated_metric.groupby("기준일자")[metric].sum()
+        non_empty_dates = date_totals[date_totals > 0]
+        if non_empty_dates.empty:
+            latest_date = dated_metric["기준일자"].max()
+        else:
+            latest_date = non_empty_dates.index.max()
+
+        latest_metric = dated_metric[dated_metric["기준일자"] == latest_date][
+            ["region_id", metric]
+        ].copy()
+        frames.append(latest_metric)
+        기준일자_parts.append(f"{metric} {latest_date}")
+
+    if not frames:
+        return latest_per_region(safety)
+
+    base = safety[["region_id"]].drop_duplicates().copy()
+    for frame in frames:
+        base = base.merge(frame, on="region_id", how="left")
+
+    for metric in metric_columns:
+        if metric not in base.columns:
+            base[metric] = pd.NA
+
+    base["기준일자"] = "; ".join(기준일자_parts)
+    base["매핑방법"] = ", ".join(
+        sorted(safety["매핑방법"].dropna().astype(str).unique()),
+    )
+    base["데이터출처"] = ", ".join(
+        sorted(safety["데이터출처"].dropna().astype(str).unique()),
+    )
+    return base
+
+
 def validate_unique_region(frame: pd.DataFrame, name: str) -> None:
     duplicate_region_ids = int(frame["region_id"].duplicated().sum())
     if duplicate_region_ids:
@@ -87,7 +135,7 @@ def build_snapshot() -> pd.DataFrame:
     region_master = read_csv(REGION_MASTER_PATH)
     price = latest_per_region(read_csv(PRICE_PATH))
     population = latest_per_region(read_csv(POPULATION_PATH))
-    safety = latest_per_region(read_csv(SAFETY_PATH))
+    safety = latest_safety_snapshot(read_csv(SAFETY_PATH))
 
     validate_unique_region(region_master, "region_master")
     validate_unique_region(price, "latest price")

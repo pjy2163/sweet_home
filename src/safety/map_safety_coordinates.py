@@ -24,6 +24,7 @@ X_COLUMNS = ("x", "X", "좌표정보(X)", "좌표정보x", "중부원점X좌표"
 Y_COLUMNS = ("y", "Y", "좌표정보(Y)", "좌표정보y", "중부원점Y좌표", "중부원점Y")
 BOUNDARY_REGION_COLUMNS = ("region_id", "행정동코드", "ADSTRD_CD", "ADSTRD_CODE")
 DEFAULT_SOURCE_CRS = "EPSG:5174"
+GEOSPATIAL_SUFFIXES = {".shp", ".zip", ".geojson", ".gpkg"}
 
 
 def find_column(columns: pd.Index, candidates: tuple[str, ...]) -> str | None:
@@ -82,17 +83,45 @@ def prepare_source(args: argparse.Namespace) -> pd.DataFrame:
     return source
 
 
+def read_geospatial_source(args: argparse.Namespace):
+    require_geospatial_dependency()
+
+    source = gpd.read_file(args.input)
+    if source.crs is None:
+        source = source.set_crs(args.source_crs)
+
+    if source.empty:
+        raise ValueError("geospatial input has no rows.")
+
+    return source
+
+
+def is_geospatial_input(path: Path) -> bool:
+    return path.suffix.lower() in GEOSPATIAL_SUFFIXES
+
+
 def spatial_join(args: argparse.Namespace) -> tuple[pd.DataFrame, dict[str, int]]:
     require_geospatial_dependency()
 
-    source = prepare_source(args)
+    if is_geospatial_input(args.input):
+        source = read_geospatial_source(args)
+        if args.source_type == "nightlife":
+            source = keep_open_business_rows(source)
+        points = source
+    else:
+        source = prepare_source(args)
+        x_column, y_column = resolve_coordinate_columns(
+            source,
+            args.x_column,
+            args.y_column,
+        )
+        points = gpd.GeoDataFrame(
+            source,
+            geometry=gpd.points_from_xy(source[x_column], source[y_column]),
+            crs=args.source_crs,
+        )
+
     source_rows = len(source)
-    x_column, y_column = resolve_coordinate_columns(source, args.x_column, args.y_column)
-    points = gpd.GeoDataFrame(
-        source,
-        geometry=gpd.points_from_xy(source[x_column], source[y_column]),
-        crs=args.source_crs,
-    )
 
     boundary = gpd.read_file(args.boundary)
     if boundary.crs is None:
@@ -146,7 +175,12 @@ def parse_args() -> argparse.Namespace:
             "spatial join."
         ),
     )
-    parser.add_argument("--input", type=Path, required=True, help="Coordinate CSV/XLSX.")
+    parser.add_argument(
+        "--input",
+        type=Path,
+        required=True,
+        help="Coordinate CSV/XLSX or geospatial SHP/ZIP/GeoJSON/GPKG.",
+    )
     parser.add_argument(
         "--boundary",
         type=Path,
