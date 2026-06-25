@@ -12,7 +12,7 @@
 | safety | 서울시 유흥주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
 | safety | 서울시 단란주점영업 인허가 정보 | 후보 검증 완료 | Open API/Sheet | 주소/TM 좌표 기반 유흥시설 밀도 지표 후보 |
 | safety | 서울시 자치구 CCTV 설치현황 | 보조 후보 | xlsx | 자치구 단위 CCTV 현황. 행정동 MVP에는 직접 사용 약함 |
-| commercial | 서울시 상권/생활편의 후보 데이터 | 후보 검토 중 | CSV/XLSX/API | 행정동 기준 점포수, 업종수, 생활편의시설 지표 후보 |
+| commercial | 서울시 상권분석서비스(점포-행정동) | fact 생성 완료 | cp949 | 행정동 기준 점포수, 업종수 지표 |
 
 ## Region 데이터 정합성
 
@@ -150,7 +150,7 @@ mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지
 ## Commercial 데이터 소스 검토
 
 Issue #14에서는 상권/생활편의 지표를 행정동 단위로 정규화할 수 있는 원천을 우선 검토합니다.
-현재 `src/commercial/build_commercial_fact.py`는 placeholder이고, `data/processed/commercial_fact.csv`는 헤더만 존재합니다.
+2026-06-25 기준 서울시 상권분석서비스(점포-행정동) 2025년 CSV를 사용해 `commercial_fact.csv`를 생성했습니다.
 
 검증 기준은 다음 순서입니다.
 
@@ -168,12 +168,33 @@ raw를 내려받은 뒤에는 `src/commercial/inspect_commercial_sources.py`로 
 
 | source_group | 파일명 패턴 | 우선 컬럼 | 후보 지표 |
 | --- | --- | --- | --- |
-| store | `commercial_store_*.csv`, `store_count_*.csv`, `business_count_*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `점포수`, `업종수`, `사업체수` |
-| sales | `commercial_sales_*.csv`, `card_sales_*.csv`, `estimated_sales_*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `카드매출`, `매출금액`, `당월_매출_금액` |
+| store | `commercial_store_*.csv`, `store_count_*.csv`, `business_count_*.csv`, `*점포-행정동*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `점포수`, `업종수`, `사업체수` |
+| sales | `commercial_sales_*.csv`, `card_sales_*.csv`, `estimated_sales_*.csv`, `*추정매출-행정동*.csv` | `region_id`, `행정동코드`, `행정동_코드` | `카드매출`, `매출금액`, `당월_매출_금액` |
 | facility | `convenience_facilities_*.csv`, `living_facilities_*.csv` | `region_id`, `행정동코드`, 주소 또는 좌표 | `시설수`, 업종별 시설 수 |
 
 초기 `commercial_fact`는 시설 또는 점포 1개 row를 그대로 서비스에 노출하지 않고, 행정동/기준일 단위로 집계한 fact로 관리합니다.
 상권 지표가 `region_comparison_snapshot`에 들어갈 때는 가격/생활인구/안전과 동일하게 기준일자와 데이터 존재 여부를 함께 표시합니다.
+
+### Commercial Fact 생성 검증
+
+서울시 상권분석서비스(점포-행정동) 원천은 `행정동_코드`를 8자리로 제공합니다.
+SweetHome의 `region_id`는 10자리 행정동코드이므로, 뒤에 `00`을 붙여 정규화합니다.
+
+검증 결과:
+
+- source rows: 141,218
+- quarters: `20251`, `20252`, `20253`, `20254`
+- latest quarter: `20254`
+- latest quarter rows: 35,317
+- matched rows: 35,317
+- unmatched rows after region validation: 0
+- output rows: 433
+- total stores: 580,341
+- regions with stores: 425
+
+`업종수`는 행정동별 `서비스_업종_코드` distinct count로 계산합니다.
+`사업체수`는 행정동별 `점포_수` 합계로 계산합니다.
+추정매출 원천은 확보했지만, 매출 데이터는 표본/업종/기간 해석 리스크가 있어 현재 `commercial_fact.카드매출`에는 반영하지 않습니다.
 
 ## 메모
 
