@@ -114,14 +114,16 @@ SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준�
 
 생성된 `safety_fact.csv`는 2026-06-17 기준 433개 `region_id` 행을 가지며, 총 `유흥시설수`는 3,427건입니다. `region_id + 기준일자` 중복 key는 0건이고 key null도 0건입니다.
 
-2026-06-25 기준 `src/safety/inspect_safety_sources.py`로 raw availability를 재검증했습니다.
+2026-06-25 기준 `src/safety/inspect_safety_sources.py`로 raw availability를 재검증하고, 서울시 안심귀갓길 안전시설물 SHP를 행정동 경계와 공간조인했습니다.
 
-| source_group | 파일 수 | 상태 |
-| --- | ---: | --- |
-| safe_facility | 0 | 안심시설 raw 또는 행정동 매핑 중간 CSV 미확보 |
-| nightlife | 2 | `nightlife_facilities_20260617.csv`, `danran_bar_20260617.csv` 확보 |
+| 원천 | 전체 row | 집계 대상 row | 공간조인 매핑 row | 미매핑 row | 기준일자 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| 서울시 안심귀갓길 안전시설물 | 11,883 | 11,883 | 11,427 | 456 | 2023-04-21 |
+| 서울시 유흥주점영업/단란주점영업 인허가 정보 | 16,599 | 3,543 | 3,427 | 116 | 2026-06-17 |
 
-따라서 현재 `safety_fact.안심시설수`는 원천 미확보로 0이며, #11의 남은 작업은 안심택배함/안심귀갓길 raw 확보 후 주소 또는 공간조인 방식으로 `safe_facilities_YYYYMMDD.csv`를 생성하는 것입니다.
+재생성된 `safety_fact.csv`는 433개 행정동과 2개 안전 기준일을 포함해 866행입니다.
+총 `안심시설수`는 11,427건, 총 `유흥시설수`는 3,427건이며, `region_id + 기준일자` 중복 key는 0건입니다.
+안심시설 원천은 기준일자가 2023-04-21로 오래되었으므로 최신 시설 현황이 아니라 공개 데이터 기반 생활환경 참고 지표로 사용합니다.
 
 ## Region Comparison Snapshot
 
@@ -129,6 +131,7 @@ SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준�
 
 mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지표를 바로 조회하기 위한 read model입니다.
 가격, 생활인구, 안전 지표는 원천 갱신 주기가 다르므로 `가격_기준월`, `생활인구_기준월`, `안전_기준일자`를 별도 컬럼으로 보존합니다.
+안전 지표는 `안심시설수`와 `유흥시설수`의 최신 기준일이 다를 수 있어 snapshot에서 지표별 최신 기준일을 함께 표시합니다.
 
 검증 결과:
 
@@ -141,7 +144,7 @@ mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지
 - safety missing rows: 0
 - price latest month: 2026-02
 - population latest month: 2026-05
-- safety latest date: 2026-06-17
+- safety latest date: `안심시설수 2023-04-21; 유흥시설수 2026-06-17`
 
 ## 메모
 
