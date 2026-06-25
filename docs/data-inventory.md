@@ -128,11 +128,12 @@ SGIS boundary는 전국 행정동 3,559개 중 `region_master`와 이름 기준�
 
 ## Region Comparison Snapshot
 
-2026-06-25 기준 `region_master`, `real_estate_price_comparison`, `population_fact`, `safety_fact`를 결합해 `data/processed/region_comparison_snapshot.csv`를 생성했습니다.
+2026-06-25 기준 `region_master`, `real_estate_price_comparison`, `population_fact`, `safety_fact`, `commercial_fact`를 결합해 `data/processed/region_comparison_snapshot.csv`를 생성했습니다.
 
 mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지표를 바로 조회하기 위한 read model입니다.
 가격, 생활인구, 안전 지표는 원천 갱신 주기가 다르므로 `가격_기준월`, `생활인구_기준월`, `안전_기준일자`를 별도 컬럼으로 보존합니다.
 안전 지표는 `안심시설수`와 `유흥시설수`의 최신 기준일이 다를 수 있어 snapshot에서 지표별 최신 기준일을 함께 표시합니다.
+상권 지표는 `상권_기준일자`, `업종수`, `사업체수`, `상권_데이터여부`를 포함합니다.
 
 검증 결과:
 
@@ -143,9 +144,11 @@ mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지
 - price missing rows: 0
 - population missing rows: 15
 - safety missing rows: 0
+- commercial missing rows: 0
 - price latest month: 2026-02
 - population latest month: 2026-05
 - safety latest date: `안심시설수 2023-04-21; 유흥시설수 2026-06-17`
+- commercial latest quarter: `20254`
 
 ## Commercial 데이터 소스 검토
 
