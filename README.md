@@ -1,5 +1,8 @@
 # 스위트홈(SweetHome)
 
+<img width="900" alt="sweethome-portfolio-cover-text-large" src="https://github.com/user-attachments/assets/2b04aef8-4142-4f75-bbf1-7a614d42dcab" />
+
+
 스위트홈은 집을 추천하는 서비스가 아니라, 사용자가 여러 후보지를 비교할 때 객관적인 데이터를 기반으로 의사결정을 내릴 수 있도록 돕는 서비스입니다.
 
 ## 프로젝트 비전
