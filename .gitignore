@@ -58,6 +58,7 @@ data/exports/**
 
 # Private/internal operating docs
 AGENTS.md
+CLAUDE.md
 docs/agents/**
 docs/workflows/**
 docs/briefing-*.md
