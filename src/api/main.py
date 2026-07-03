@@ -5,6 +5,12 @@ from pathlib import Path
 from fastapi import FastAPI
 import pandas as pd
 
+from src.report.generate_report import (
+    AGGREGATION_TEXT,
+    DATA_SOURCE_TEXT,
+    LIMITATION_TEXT,
+)
+
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
@@ -30,6 +36,14 @@ def read_snapshot() -> pd.DataFrame:
     )
 
 
+def latest_text(snapshot: pd.DataFrame, column: str) -> str | None:
+    value = snapshot[column].dropna().max()
+    if pd.isna(value):
+        return None
+
+    return str(value)
+
+
 @app.get("/regions")
 def list_regions() -> list[dict[str, str]]:
     snapshot = read_snapshot()
@@ -50,3 +64,19 @@ def list_regions() -> list[dict[str, str]]:
         }
         for row in regions.itertuples(index=False)
     ]
+
+
+@app.get("/metadata")
+def get_metadata() -> dict[str, object]:
+    snapshot = read_snapshot()
+
+    return {
+        "source": DATA_SOURCE_TEXT,
+        "aggregation": AGGREGATION_TEXT,
+        "limitation": LIMITATION_TEXT,
+        "region_count": int(snapshot["region_id"].nunique()),
+        "price_latest_month": latest_text(snapshot, "가격_기준월"),
+        "population_latest_month": latest_text(snapshot, "생활인구_기준월"),
+        "safety_latest_date": latest_text(snapshot, "안전_기준일자"),
+        "commercial_latest_quarter": latest_text(snapshot, "상권_기준일자"),
+    }
