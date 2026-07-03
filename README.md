@@ -49,3 +49,11 @@ MVP의 핵심 질문은 다음 하나입니다.
 집을 추천하는 것이 아니라, 집을 비교하여 데이터 기반 의사결정을 돕습니다.
 
 장기적으로는 "어디가 더 좋은가?"가 아니라 "나에게 무엇이 더 적합한가?"를 데이터로 설명하는 서비스를 목표로 합니다.
+
+## 문서
+
+- [API Spec](docs/api-spec.md)
+- [Product Clarity](docs/product-clarity.md)
+- [MVP Report Spec](docs/report-spec.md)
+- [Data Dictionary](docs/data-dictionary.md)
+- [Data Inventory](docs/data-inventory.md)
