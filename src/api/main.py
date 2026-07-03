@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 import pandas as pd
 
+from src.api.errors import (
+    ApiError,
+    REGION_AMBIGUOUS,
+    REGION_NOT_FOUND,
+    api_error_handler,
+)
 from src.report.generate_report import (
     AGGREGATION_TEXT,
     DATA_SOURCE_TEXT,
@@ -27,6 +33,7 @@ app = FastAPI(
     description="SweetHome MVP region comparison API.",
     version="0.1.0",
 )
+app.add_exception_handler(ApiError, api_error_handler)
 
 
 @app.get("/health")
@@ -86,9 +93,17 @@ def resolve_region(snapshot: pd.DataFrame, query: str) -> RegionSnapshot:
     except ValueError as error:
         message = str(error)
         if "여러 개" in message:
-            raise HTTPException(status_code=400, detail=message) from error
+            raise ApiError(
+                status_code=400,
+                code=REGION_AMBIGUOUS,
+                message=message,
+            ) from error
 
-        raise HTTPException(status_code=404, detail=message) from error
+        raise ApiError(
+            status_code=404,
+            code=REGION_NOT_FOUND,
+            message=message,
+        ) from error
 
     return to_region_snapshot(matched.iloc[0])
 

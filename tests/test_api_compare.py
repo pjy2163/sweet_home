@@ -24,7 +24,10 @@ def test_compare_regions_returns_404_for_unknown_region() -> None:
     response = client.get("/compare", params={"a": "없는동", "b": "개포4동"})
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "지역을 찾을 수 없습니다: 없는동"
+    assert response.json() == {
+        "code": "REGION_NOT_FOUND",
+        "message": "지역을 찾을 수 없습니다: 없는동",
+    }
 
 
 def test_compare_regions_returns_400_for_ambiguous_region() -> None:
@@ -33,6 +36,8 @@ def test_compare_regions_returns_400_for_ambiguous_region() -> None:
     response = client.get("/compare", params={"a": "신사동", "b": "개포4동"})
 
     assert response.status_code == 400
-    assert "지역명이 여러 개입니다" in response.json()["detail"]
-    assert "강남구 신사동" in response.json()["detail"]
-    assert "관악구 신사동" in response.json()["detail"]
+    error = response.json()
+    assert error["code"] == "REGION_AMBIGUOUS"
+    assert "지역명이 여러 개입니다" in error["message"]
+    assert "강남구 신사동" in error["message"]
+    assert "관악구 신사동" in error["message"]
