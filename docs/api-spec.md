@@ -112,47 +112,43 @@ GET /compare?a=개포1동&b=개포4동
 
 후보지를 모르는 사용자를 위한 지도 기반 후보지 탐색 API로 확장할 수 있습니다.
 
-이 API는 SweetHome이 중요도를 결정하지 않습니다. 사용자가 조건별 가중치를 입력하면 API는 기본 도메인 점수에 해당 가중치를 적용해 행정동 목록을 다시 정렬합니다.
+이 API는 SweetHome이 중요도를 결정하거나 지역을 추천하지 않습니다. 사용자가 조건을 선택하면 API는 각 조건과 연결된 데이터 지표를 확인하고, 관련 수치가 상대적으로 많이 관측되는 행정동 후보군을 반환합니다.
 
 예상 query parameters:
 
 | 이름 | 설명 |
 | --- | --- |
-| `safety` | 안전 대체 지표 중요도 |
-| `convenience` | 생활 편의/상권 중요도 |
-| `transport` | 교통 접근성 중요도 |
-| `price` | 비용 중요도 |
-| `population` | 생활인구/환경 중요도 |
+| `safety` | 안전 대체 지표 포함 여부 |
+| `convenience` | 생활 편의/상권 지표 포함 여부 |
+| `transport` | 교통 접근성 지표 포함 여부 |
+| `price` | 비용 지표 포함 여부 |
+| `population` | 생활인구/환경 지표 포함 여부 |
 
 예상 응답 방향:
 
 ```json
 {
-  "weights": {
-    "safety": 40,
-    "convenience": 30,
-    "transport": 20,
-    "price": 10,
-    "population": 0
-  },
+  "selected_conditions": ["safety", "convenience"],
   "regions": [
     {
       "region_id": "1168066000",
       "display_name": "강남구 개포1동",
-      "weighted_score": 78.4,
-      "score_breakdown": {
-        "safety": 65.2,
-        "convenience": 81.1,
-        "transport": null,
-        "price": 55.0,
-        "population": 70.5
+      "match_count": 3,
+      "matched_indicators": [
+        "안심시설수",
+        "업종수",
+        "사업체수"
+      ],
+      "indicator_summary": {
+        "safety": "안전 대체 지표가 상대적으로 많이 관측됩니다.",
+        "convenience": "생활 편의 지표가 상대적으로 높은 편입니다."
       }
     }
   ]
 }
 ```
 
-`weighted_score`는 사용자가 입력한 현재 가중치 기준의 상대적 적합도입니다. API는 "추천", "최고", "안전", "위험" 같은 결론을 반환하지 않습니다.
+`match_count`와 `matched_indicators`는 선택 조건과 연결된 지표가 얼마나 관측됐는지 설명하기 위한 값입니다. API는 "추천", "최고", "안전", "위험" 같은 결론을 반환하지 않습니다.
 
 ## Error Response
 
@@ -179,14 +175,14 @@ API는 후보 지역 비교를 위한 참고 정보를 제공합니다.
 API는 다음을 제공하지 않습니다.
 
 - 특정 집 또는 지역 선택 추천
-- 고정된 서비스 기본 추천 순위
+- 고정된 서비스 기본 추천 순위 또는 점수
 - 투자 판단
 - 안전 또는 위험 단정
 - 가격 상승 예측
 
 안전 지표는 범죄율이 아니라 안전 대체 지표이며, 상권 지표는 매출이나 수익성을 뜻하지 않습니다.
 
-탐색 점수는 사용자가 정한 가중치를 적용한 계산 결과입니다. SweetHome은 어떤 조건이 더 중요하다고 결정하지 않습니다.
+탐색 후보군은 사용자가 선택한 조건과 관련된 데이터가 상대적으로 많이 관측된 지역입니다. SweetHome은 어떤 조건이 더 중요하다고 결정하지 않습니다.
 
 ## Verification
 
