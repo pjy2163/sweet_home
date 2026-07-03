@@ -106,6 +106,54 @@ GET /compare?a=개포1동&b=개포4동
 | `data_basis` | 데이터 기준과 한계 문장 목록 |
 | `report_text` | CLI 리포트와 일관된 텍스트 리포트 |
 
+## Future Endpoint Direction
+
+### `GET /explore`
+
+후보지를 모르는 사용자를 위한 지도 기반 후보지 탐색 API로 확장할 수 있습니다.
+
+이 API는 SweetHome이 중요도를 결정하지 않습니다. 사용자가 조건별 가중치를 입력하면 API는 기본 도메인 점수에 해당 가중치를 적용해 행정동 목록을 다시 정렬합니다.
+
+예상 query parameters:
+
+| 이름 | 설명 |
+| --- | --- |
+| `safety` | 안전 대체 지표 중요도 |
+| `convenience` | 생활 편의/상권 중요도 |
+| `transport` | 교통 접근성 중요도 |
+| `price` | 비용 중요도 |
+| `population` | 생활인구/환경 중요도 |
+
+예상 응답 방향:
+
+```json
+{
+  "weights": {
+    "safety": 40,
+    "convenience": 30,
+    "transport": 20,
+    "price": 10,
+    "population": 0
+  },
+  "regions": [
+    {
+      "region_id": "1168066000",
+      "display_name": "강남구 개포1동",
+      "weighted_score": 78.4,
+      "score_breakdown": {
+        "safety": 65.2,
+        "convenience": 81.1,
+        "transport": null,
+        "price": 55.0,
+        "population": 70.5
+      }
+    }
+  ]
+}
+```
+
+`weighted_score`는 사용자가 입력한 현재 가중치 기준의 상대적 적합도입니다. API는 "추천", "최고", "안전", "위험" 같은 결론을 반환하지 않습니다.
+
 ## Error Response
 
 API 도메인 오류는 공통 형식을 사용합니다.
@@ -131,11 +179,14 @@ API는 후보 지역 비교를 위한 참고 정보를 제공합니다.
 API는 다음을 제공하지 않습니다.
 
 - 특정 집 또는 지역 선택 추천
+- 고정된 서비스 기본 추천 순위
 - 투자 판단
 - 안전 또는 위험 단정
 - 가격 상승 예측
 
 안전 지표는 범죄율이 아니라 안전 대체 지표이며, 상권 지표는 매출이나 수익성을 뜻하지 않습니다.
+
+탐색 점수는 사용자가 정한 가중치를 적용한 계산 결과입니다. SweetHome은 어떤 조건이 더 중요하다고 결정하지 않습니다.
 
 ## Verification
 
