@@ -62,3 +62,26 @@ class CompareResponse(BaseModel):
     summary: list[str]
     data_basis: list[str]
     report_text: str
+
+
+class CandidateMatchRegion(BaseModel):
+    region_id: str
+    gu_name: str
+    dong_name: str
+    display_name: str
+    match_count: int
+    matched_indicators: list[str]
+    indicator_summary: dict[str, str]
+
+
+class ExploreMetadata(BaseModel):
+    source: str
+    aggregation: str
+    limitation: str
+    transport_status: str
+
+
+class ExploreResponse(BaseModel):
+    selected_conditions: list[str]
+    regions: list[CandidateMatchRegion]
+    metadata: ExploreMetadata

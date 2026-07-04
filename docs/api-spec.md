@@ -106,33 +106,40 @@ GET /compare?a=개포1동&b=개포4동
 | `data_basis` | 데이터 기준과 한계 문장 목록 |
 | `report_text` | CLI 리포트와 일관된 텍스트 리포트 |
 
-## Future Endpoint Direction
-
 ### `GET /explore`
 
-후보지를 모르는 사용자를 위한 지도 기반 후보지 탐색 API로 확장할 수 있습니다.
+후보지를 모르는 사용자를 위한 조건 기반 후보지 탐색 API입니다.
 
 이 API는 SweetHome이 중요도를 결정하거나 지역을 추천하지 않습니다. 사용자가 조건을 선택하면 API는 각 조건과 연결된 데이터 지표를 확인하고, 관련 수치가 상대적으로 많이 관측되는 행정동 후보군을 반환합니다.
 
-예상 query parameters:
+Query parameters:
 
-| 이름 | 설명 |
-| --- | --- |
-| `safety` | 안전 대체 지표 포함 여부 |
-| `convenience` | 생활 편의/상권 지표 포함 여부 |
-| `transport` | 교통 접근성 지표 포함 여부 |
-| `price` | 비용 지표 포함 여부 |
-| `population` | 생활인구/환경 지표 포함 여부 |
+| 이름 | 필수 | 기본값 | 설명 |
+| --- | --- | --- | --- |
+| `safety` | 아니오 | `false` | 안전 대체 지표 포함 여부 |
+| `convenience` | 아니오 | `false` | 생활 편의/상권 지표 포함 여부 |
+| `price` | 아니오 | `false` | 비용 지표 포함 여부 |
+| `population` | 아니오 | `false` | 생활인구/환경 지표 포함 여부 |
+| `transport` | 아니오 | `false` | 교통 접근성 지표 포함 여부. 현재 원천 미확보로 후보군 매칭에는 반영하지 않음 |
+| `limit` | 아니오 | `20` | 반환할 후보 지역 수. `1`~`100` |
 
-예상 응답 방향:
+요청 예시:
+
+```text
+GET /explore?safety=true&convenience=true&limit=3
+```
+
+응답 예시:
 
 ```json
 {
   "selected_conditions": ["safety", "convenience"],
   "regions": [
     {
-      "region_id": "1168066000",
-      "display_name": "강남구 개포1동",
+      "region_id": "1168052100",
+      "gu_name": "강남구",
+      "dong_name": "논현1동",
+      "display_name": "강남구 논현1동",
       "match_count": 3,
       "matched_indicators": [
         "안심시설수",
@@ -144,7 +151,13 @@ GET /compare?a=개포1동&b=개포4동
         "convenience": "생활 편의 지표가 상대적으로 높은 편입니다."
       }
     }
-  ]
+  ],
+  "metadata": {
+    "source": "서울 전월세 실거래, 생활인구, 안전 대체 지표, 상권 점포 데이터 기반",
+    "aggregation": "행정동 기준 최신 지표 profile mart",
+    "limitation": "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 관측된 지역이며 추천이나 우열 판단이 아닙니다.",
+    "transport_status": "교통 원천 데이터가 아직 추가되지 않아 후보군 매칭에는 반영하지 않습니다."
+  }
 }
 ```
 
@@ -167,6 +180,7 @@ API 도메인 오류는 공통 형식을 사용합니다.
 | --- | --- | --- |
 | `404` | `REGION_NOT_FOUND` | 입력한 행정동명을 찾을 수 없음 |
 | `400` | `REGION_AMBIGUOUS` | 같은 행정동명이 여러 구에 있어 구 이름 입력이 필요함 |
+| `400` | `EXPLORE_CONDITION_REQUIRED` | `/explore` 요청에서 선택한 조건이 없음 |
 
 ## Product Boundary
 
@@ -189,7 +203,7 @@ API는 다음을 제공하지 않습니다.
 API 테스트:
 
 ```bash
-.venv/bin/python -m pytest tests/test_api_health.py tests/test_api_regions.py tests/test_api_metadata.py tests/test_api_compare.py
+.venv/bin/python -m pytest tests/test_api_health.py tests/test_api_regions.py tests/test_api_metadata.py tests/test_api_compare.py tests/test_api_explore.py
 ```
 
 보안 점검:

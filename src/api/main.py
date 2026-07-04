@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 from src.api.errors import (
     ApiError,
@@ -8,6 +8,7 @@ from src.api.errors import (
 )
 from src.api.schemas import (
     CompareResponse,
+    ExploreResponse,
     HealthResponse,
     MetadataResponse,
     RegionOption,
@@ -15,6 +16,7 @@ from src.api.schemas import (
 from src.api.services.comparison_service import (
     compare_region_snapshots,
     get_data_metadata,
+    list_candidate_matches,
     list_region_options,
 )
 
@@ -45,3 +47,22 @@ def get_metadata() -> MetadataResponse:
 @app.get("/compare", response_model=CompareResponse)
 def compare_regions(a: str, b: str) -> CompareResponse:
     return compare_region_snapshots(a, b)
+
+
+@app.get("/explore", response_model=ExploreResponse)
+def explore_regions(
+    safety: bool = False,
+    convenience: bool = False,
+    price: bool = False,
+    population: bool = False,
+    transport: bool = False,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> ExploreResponse:
+    return list_candidate_matches(
+        safety=safety,
+        convenience=convenience,
+        price=price,
+        population=population,
+        transport=transport,
+        limit=limit,
+    )
