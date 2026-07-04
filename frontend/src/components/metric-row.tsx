@@ -9,9 +9,9 @@ type MetricRowProps = {
 export function MetricRow({ label, a, b }: MetricRowProps) {
   return (
     <div className={tableStyles.row}>
-      <div className="font-semibold text-neutral-950">{label}</div>
-      <div className="text-neutral-700">{a}</div>
-      <div className="text-neutral-700">{b}</div>
+      <div className="font-semibold text-[#10231d]">{label}</div>
+      <div className="text-[#526b62]">{a}</div>
+      <div className="text-[#526b62]">{b}</div>
     </div>
   );
 }

@@ -7,7 +7,7 @@ type DataStatusPanelProps = {
 
 export function DataStatusPanel({ metadata }: DataStatusPanelProps) {
   return (
-    <aside className="border-t border-neutral-300 bg-neutral-50 p-8 sm:p-12 lg:border-l lg:border-t-0">
+    <aside className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12 lg:border-l lg:border-t-0">
       <p className={textStyles.eyebrow}>Data Status</p>
       <h2 className="mt-4 text-4xl font-black">
         {metadata ? `${metadata.region_count}개 행정동` : "데이터 연결 대기"}
@@ -30,7 +30,7 @@ export function DataStatusPanel({ metadata }: DataStatusPanelProps) {
           value={metadata?.commercial_latest_quarter ?? "-"}
         />
       </dl>
-      <p className="mt-10 border-t border-neutral-300 pt-8 text-base leading-7 text-neutral-600">
+      <p className="mt-10 border-t border-[#d7e6df] pt-8 text-base leading-7 text-[#5e7069]">
         결과는 후보 지역의 객관 지표 비교입니다. 특정 주거지 선택, 투자
         판단, 안전 보장을 의미하지 않습니다.
       </p>
@@ -42,7 +42,7 @@ function DataStatusRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid grid-cols-[8rem_1fr] gap-4">
       <dt className="font-black">{label}</dt>
-      <dd className="text-neutral-600">{value}</dd>
+      <dd className="text-[#5e7069]">{value}</dd>
     </div>
   );
 }

@@ -84,8 +84,8 @@ export function CandidateExplorer({
                   <label
                     className={`min-h-28 border p-5 transition ${
                       checked
-                        ? "border-neutral-950 bg-neutral-950 text-white"
-                        : "border-neutral-300 bg-white text-neutral-950"
+                        ? "border-[#176b57] bg-[#176b57] text-white shadow-[0_10px_26px_rgba(23,107,87,0.16)]"
+                        : "border-[#d7e6df] bg-[#fbfefd] text-[#10231d] hover:border-[#176b57]"
                     }`}
                     key={condition.id}
                   >
@@ -100,7 +100,7 @@ export function CandidateExplorer({
                     </span>
                     <span
                       className={`mt-3 block text-sm font-semibold leading-6 ${
-                        checked ? "text-neutral-200" : "text-neutral-600"
+                        checked ? "text-[#e6f6ef]" : "text-[#5e7069]"
                       }`}
                     >
                       {condition.description}
@@ -137,10 +137,10 @@ function CandidateMatchList({
 }) {
   if (!exploration) {
     return (
-      <aside className="border-t border-neutral-300 bg-neutral-50 p-8 sm:p-12 lg:border-l lg:border-t-0">
+      <aside className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12 lg:border-l lg:border-t-0">
         <p className={textStyles.eyebrow}>Candidate Match</p>
         <h3 className="mt-4 text-4xl font-black">조건을 선택해 주세요</h3>
-        <p className="mt-8 text-base font-semibold leading-7 text-neutral-600">
+        <p className="mt-8 text-base font-semibold leading-7 text-[#5e7069]">
           후보군은 선택 조건과 연결된 지표가 많이 관측된 행정동입니다.
           특정 지역을 추천하거나 우열을 판단하지 않습니다.
         </p>
@@ -149,12 +149,12 @@ function CandidateMatchList({
   }
 
   return (
-    <aside className="border-t border-neutral-300 bg-neutral-50 p-8 sm:p-12 lg:border-l lg:border-t-0">
+    <aside className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12 lg:border-l lg:border-t-0">
       <p className={textStyles.eyebrow}>Candidate Match</p>
       <h3 className="mt-4 text-4xl font-black">
         {exploration.regions.length}개 후보군
       </h3>
-      <p className="mt-6 text-base font-semibold leading-7 text-neutral-600">
+      <p className="mt-6 text-base font-semibold leading-7 text-[#5e7069]">
         {exploration.metadata.limitation}
       </p>
       {exploration.regions.length ? (
@@ -164,7 +164,7 @@ function CandidateMatchList({
           ))}
         </ol>
       ) : (
-        <p className="mt-10 border border-neutral-300 bg-white p-5 text-base font-semibold text-neutral-700">
+        <p className="mt-10 border border-[#d7e6df] bg-white p-5 text-base font-semibold text-[#5e7069]">
           선택한 조건과 연결된 후보군이 아직 없습니다.
           {exploration.selected_conditions.includes("transport")
             ? ` ${exploration.metadata.transport_status}`
@@ -177,29 +177,29 @@ function CandidateMatchList({
 
 function CandidateMatchItem({ region }: { region: CandidateMatchRegion }) {
   return (
-    <li className="border border-neutral-300 bg-white p-5">
+    <li className="border border-[#d7e6df] bg-white p-5 shadow-[0_10px_24px_rgba(31,83,67,0.06)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xl font-black">{region.display_name}</p>
-          <p className="mt-2 text-sm font-semibold text-neutral-500">
+          <p className="mt-2 text-sm font-semibold text-[#527367]">
             관련 지표 {region.match_count}개 관측
           </p>
         </div>
-        <span className="border border-neutral-950 px-3 py-1 text-sm font-black">
+        <span className="border border-[#176b57] bg-[#ecf8f2] px-3 py-1 text-sm font-black text-[#176b57]">
           {region.match_count}
         </span>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         {region.matched_indicators.map((indicator) => (
           <span
-            className="border border-neutral-300 px-3 py-1 text-sm font-bold text-neutral-700"
+            className="border border-[#cfe3da] bg-[#fbfefd] px-3 py-1 text-sm font-bold text-[#47645a]"
             key={indicator}
           >
             {indicator}
           </span>
         ))}
       </div>
-      <ul className="mt-5 grid gap-2 text-sm font-semibold leading-6 text-neutral-600">
+      <ul className="mt-5 grid gap-2 text-sm font-semibold leading-6 text-[#5e7069]">
         {Object.entries(region.indicator_summary).map(([condition, summary]) => (
           <li key={condition}>{summary}</li>
         ))}
