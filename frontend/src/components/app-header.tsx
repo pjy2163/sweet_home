@@ -13,9 +13,9 @@ export function AppHeader() {
           </div>
         </div>
         <nav className="hidden items-center gap-12 text-lg font-bold md:flex">
+          <a href="#explore">후보탐색</a>
           <a href="#compare">지역비교</a>
           <a href="#basis">데이터기준</a>
-          <a href="#result">비교결과</a>
         </nav>
         <button
           aria-label="메뉴 열기"

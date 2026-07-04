@@ -45,3 +45,33 @@ export type CompareResponse = {
 };
 
 export type RegionGroups = Record<string, RegionOption[]>;
+
+export type ExploreCondition =
+  | "safety"
+  | "convenience"
+  | "price"
+  | "population"
+  | "transport";
+
+export type CandidateMatchRegion = {
+  region_id: string;
+  gu_name: string;
+  dong_name: string;
+  display_name: string;
+  match_count: number;
+  matched_indicators: string[];
+  indicator_summary: Record<string, string>;
+};
+
+export type ExploreMetadata = {
+  source: string;
+  aggregation: string;
+  limitation: string;
+  transport_status: string;
+};
+
+export type ExploreResponse = {
+  selected_conditions: ExploreCondition[];
+  regions: CandidateMatchRegion[];
+  metadata: ExploreMetadata;
+};

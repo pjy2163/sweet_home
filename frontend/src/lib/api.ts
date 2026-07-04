@@ -1,4 +1,10 @@
-import type { CompareResponse, Metadata, RegionOption } from "@/types/sweethome";
+import type {
+  CompareResponse,
+  ExploreCondition,
+  ExploreResponse,
+  Metadata,
+  RegionOption,
+} from "@/types/sweethome";
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string) {
   const payload = await response.json();
@@ -35,5 +41,22 @@ export async function fetchComparison(regionA: string, regionB: string) {
   return parseJsonResponse<CompareResponse>(
     response,
     "지역 비교에 실패했습니다.",
+  );
+}
+
+export async function fetchCandidateMatches(
+  selectedConditions: ExploreCondition[],
+  limit = 8,
+) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  selectedConditions.forEach((condition) => {
+    params.set(condition, "true");
+  });
+
+  const response = await fetch(`/api/backend/explore?${params.toString()}`);
+
+  return parseJsonResponse<ExploreResponse>(
+    response,
+    "후보군을 불러오지 못했습니다.",
   );
 }
