@@ -150,6 +150,35 @@ mart grain은 `region_id` 1행이며, API/CLI/웹에서 지역별 최신 MVP 지
 - safety latest date: `안심시설수 2023-04-21; 유흥시설수 2026-06-17`
 - commercial latest quarter: `20254`
 
+## Region Indicator Profile
+
+2026-07-05 기준 `region_comparison_snapshot`에서 후보지 탐색용 `data/processed/region_indicator_profile.csv`를 생성했습니다.
+
+mart grain은 `region_id` 1행이며, 사용자가 선택한 조건과 관련된 데이터 수치가 상대적으로 많이 관측되는 후보군을 찾기 위한 지표 프로필입니다.
+이 mart는 지역을 점수화하거나 추천하지 않습니다.
+
+현재 포함 조건:
+
+- 안전: `안심시설수`
+- 편의: `업종수`, `사업체수`
+- 가격: `실거래가_서울평균이하여부`, `전세가_서울평균이하여부`
+- 인구: `생활인구`
+- 교통: 원천 미확보로 미포함
+
+상대 수준은 서울 행정동 분포에서 하위 20%, 상위 20%를 기준으로 `상대적으로낮음`, `보통`, `상대적으로높음`, `데이터없음`으로 표시합니다.
+
+검증 결과:
+
+- output rows: 433
+- unique `region_id`: 433
+- duplicate `region_id`: 0
+- null `region_id`: 0
+- safety candidate indicator rows: 91
+- convenience candidate indicator rows: 111
+- price candidate indicator rows: 293
+- population candidate indicator rows: 84
+- transport candidate indicator rows: 0. 교통 원천 미확보
+
 ## Commercial 데이터 소스 검토
 
 Issue #14에서는 상권/생활편의 지표를 행정동 단위로 정규화할 수 있는 원천을 우선 검토합니다.
