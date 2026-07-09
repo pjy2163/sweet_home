@@ -1,30 +1,28 @@
+import Link from "next/link";
+
+import { BrandLogo } from "@/components/brand-logo";
 import { layoutStyles } from "@/styles/components";
 
 export function AppHeader() {
   return (
-    <header className="border-b border-[#d7e6df] bg-[#f7fbf8]/95">
+    <header className="absolute inset-x-0 top-0 z-20 border-b border-white/20 text-white">
       <div
-        className={`${layoutStyles.section} flex h-24 items-center justify-between`}
+        className={`${layoutStyles.section} flex h-20 items-center justify-between`}
       >
-        <div className="leading-none">
-          <div className="text-2xl font-black text-[#10231d]">SweetHome</div>
-          <div className="mt-2 text-xs font-bold uppercase text-[#527367]">
-            Seoul Region Compare
-          </div>
-        </div>
-        <nav className="hidden items-center gap-12 text-lg font-bold text-[#203d34] md:flex">
-          <a href="#entry">진입선택</a>
-          <a href="#explore">후보탐색</a>
-          <a href="#compare">지역비교</a>
-          <a href="#basis">데이터기준</a>
+        <Link className="flex items-center gap-3" href="/">
+          <BrandLogo className="h-10 w-auto" />
+        </Link>
+        <nav className="hidden items-center gap-9 text-sm font-semibold md:flex">
+          <a className="transition hover:opacity-60" href="#entry">시작하기</a>
+          <a className="transition hover:opacity-60" href="#explore">후보 탐색</a>
+          <a className="transition hover:opacity-60" href="#compare">지역 비교</a>
         </nav>
-        <button
-          aria-label="메뉴 열기"
-          className="flex h-12 w-12 items-center justify-center border border-[#176b57] bg-white"
-          type="button"
+        <a
+          className="rounded-full bg-[#dfff62] px-5 py-2.5 text-sm font-bold text-[#172019] transition hover:scale-[1.03]"
+          href="#entry"
         >
-          <span className="h-0.5 w-7 bg-[#176b57] shadow-[0_8px_0_#176b57,0_-8px_0_#176b57]" />
-        </button>
+          내 동네 찾기
+        </a>
       </div>
     </header>
   );

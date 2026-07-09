@@ -79,3 +79,7 @@ docs/data-inventory.xlsx
 scratch/
 local/
 README.local.md
+
+# Local design image assets
+assets/sweethome-logo.svg
+frontend/public/sweethome-map-background.png

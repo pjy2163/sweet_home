@@ -35,7 +35,7 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
             vs {comparison.region_b.display_name}
           </h2>
         </div>
-        <ul className="grid gap-4 text-lg font-semibold leading-8 text-[#526b62]">
+        <ul className="grid gap-4 text-lg leading-8 text-[#526b62]">
           {comparison.summary.map((line) => (
             <li key={line}>{line}</li>
           ))}
@@ -81,10 +81,10 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
       </div>
 
       <div
-        className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12"
+        className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12"
         id="basis"
       >
-        <h3 className="text-2xl font-black">데이터 기준</h3>
+        <h3 className="text-2xl font-semibold">데이터 기준</h3>
         <ul className="mt-6 grid gap-3 text-base leading-7 text-[#5e7069]">
           {comparison.data_basis.map((line) => (
             <li key={line}>{line}</li>
@@ -97,10 +97,10 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
 
 function EmptyResult() {
   return (
-    <div className="border border-[#d7e6df] bg-white p-8 text-center shadow-[0_12px_32px_rgba(31,83,67,0.06)] sm:p-12">
-      <p className="text-2xl font-black">아직 비교 결과가 없습니다.</p>
+    <div className="rounded-[2rem] border border-[#d7e6df] bg-[#fbfcf8] p-8 text-center sm:p-12">
+      <p className="text-2xl font-semibold">아직 비교 결과가 없습니다</p>
       <p className="mt-4 text-base font-semibold text-[#5e7069]">
-        후보 지역 두 곳을 선택하면 지표별 비교 결과가 이곳에 표시됩니다.
+        후보 지역 두 곳을 선택하면 지표별 비교 결과가 이곳에 표시됩니다
       </p>
     </div>
   );

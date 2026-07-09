@@ -15,13 +15,13 @@ const ENTRY_MODES: Array<{
     id: "unknown",
     eyebrow: "Explore",
     title: "후보지를 모르겠어요",
-    description: "조건을 선택해 관련 지표가 많이 관측된 행정동 후보군을 봅니다.",
+    description: "조건을 선택해 관련 지표가 많이 관측된 행정동 후보군을 봅니다",
   },
   {
     id: "known",
     eyebrow: "Compare",
     title: "후보지를 알고 있어요",
-    description: "알고 있는 행정동 2곳을 선택해 평균 대비 지표를 비교합니다.",
+    description: "알고 있는 행정동 2곳을 선택해 평균 대비 지표를 비교합니다",
   },
 ];
 
@@ -31,40 +31,48 @@ export function EntryModeSelector({
 }: EntryModeSelectorProps) {
   return (
     <section
-      className="mx-auto max-w-7xl px-6 pb-8 lg:px-10"
+      className="mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32"
       id="entry"
     >
-      <div className="border border-[#d7e6df] bg-white p-3 shadow-[0_14px_36px_rgba(31,83,67,0.07)]">
-        <div className="grid gap-2 md:grid-cols-2">
+      <div className="mb-14 grid gap-6 border-b border-[#b8c3bd] pb-8 md:grid-cols-[1fr_2fr]">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5e7069]">001 — Start</p>
+        <h2 className="text-3xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-5xl">
+          지금 어디쯤 와 있나요?
+        </h2>
+      </div>
+      <div className="grid gap-px overflow-hidden rounded-[2rem] bg-[#c9d2cc] md:grid-cols-2">
           {ENTRY_MODES.map((entryMode) => {
             const selected = mode === entryMode.id;
 
             return (
               <button
                 aria-pressed={selected}
-                className={`border px-5 py-4 text-left transition ${
+                className={`group min-h-80 p-8 text-left transition sm:p-12 ${
                   selected
-                    ? "border-[#176b57] bg-[#176b57] text-white"
-                    : "border-[#d7e6df] bg-[#fbfefd] text-[#10231d] hover:border-[#176b57]"
+                    ? "bg-[#121d17] text-[#f5f4ee]"
+                    : "bg-[#fbfcf8] text-[#172019] hover:bg-[#eef3ed]"
                 }`}
                 key={entryMode.id}
                 onClick={() => onModeChange(entryMode.id)}
                 type="button"
               >
                 <span
-                  className={`block text-xs font-black uppercase ${
-                    selected ? "text-[#d7eee5]" : "text-[#527367]"
+                  className={`block text-xs font-bold uppercase tracking-[0.16em] ${
+                    selected ? "text-[#dfff62]" : "text-[#527367]"
                   }`}
                 >
                   {entryMode.eyebrow}
                 </span>
-                <span className="mt-2 block text-xl font-black sm:text-2xl">
+                <span className="mt-20 block max-w-md text-2xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-4xl">
                   {entryMode.title}
                 </span>
+                <span className={`mt-7 block max-w-sm leading-7 ${selected ? "text-white/65" : "text-[#5e7069]"}`}>
+                  {entryMode.description}
+                </span>
+                <span className="mt-8 inline-grid h-12 w-12 place-items-center rounded-lg border border-current text-xl transition group-hover:rotate-45">↗</span>
               </button>
             );
           })}
-        </div>
       </div>
     </section>
   );
@@ -86,12 +94,12 @@ export function EntryModeModal({
           <p className="text-sm font-black uppercase text-[#527367]">
             Start
           </p>
-          <h2 className="mt-4 text-4xl font-black leading-tight sm:text-5xl">
+          <h2 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">
             어떤 방식으로 후보지를 볼까요?
           </h2>
           <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-[#526b62] sm:text-lg">
             알고 있는 지역을 바로 비교하거나, 조건을 선택해 데이터상 관련
-            지표가 많이 관측된 후보군을 먼저 확인할 수 있습니다.
+            지표가 많이 관측된 후보군을 먼저 확인할 수 있습니다
           </p>
         </div>
         <div className="grid gap-3 p-3 md:grid-cols-2">
@@ -105,7 +113,7 @@ export function EntryModeModal({
               <span className="inline-flex border border-[#cfe3da] bg-[#ecf8f2] px-3 py-1 text-xs font-black uppercase text-[#176b57] group-hover:border-white/35 group-hover:bg-white/15 group-hover:text-[#dff4eb]">
                 {entryMode.eyebrow}
               </span>
-              <span className="mt-5 block text-3xl font-black leading-tight sm:text-4xl">
+              <span className="mt-5 block text-2xl font-black leading-tight sm:text-3xl">
                 {entryMode.title}
               </span>
               <span className="mt-6 block text-base font-semibold leading-7 text-[#5e7069] group-hover:text-[#e6f6ef]">

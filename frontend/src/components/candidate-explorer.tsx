@@ -70,9 +70,9 @@ export function CandidateExplorer({
             <div className="mb-10">
               <p className={textStyles.eyebrow}>Explore</p>
               <h2 className={textStyles.sectionTitle}>후보지를 모르겠어요</h2>
-              <p className="mt-5 text-base font-semibold leading-7 text-neutral-600">
+              <p className="mt-5 text-base leading-7 text-[#5e7069]">
                 중요하게 볼 조건을 선택하면, 관련 데이터가 상대적으로 많이
-                관측된 행정동 후보군을 보여줍니다.
+                관측된 행정동 후보군을 보여줍니다
               </p>
             </div>
 
@@ -82,10 +82,10 @@ export function CandidateExplorer({
 
                 return (
                   <label
-                    className={`min-h-28 border p-5 transition ${
+                    className={`min-h-28 rounded-2xl border p-5 transition ${
                       checked
-                        ? "border-[#176b57] bg-[#176b57] text-white shadow-[0_10px_26px_rgba(23,107,87,0.16)]"
-                        : "border-[#d7e6df] bg-[#fbfefd] text-[#10231d] hover:border-[#176b57]"
+                        ? "border-[#121d17] bg-[#121d17] text-[#f5f4ee]"
+                        : "border-[#d7e6df] bg-[#fbfefd] text-[#10231d] hover:border-[#173d31]"
                     }`}
                     key={condition.id}
                   >
@@ -95,7 +95,7 @@ export function CandidateExplorer({
                       onChange={() => onToggleCondition(condition.id)}
                       type="checkbox"
                     />
-                    <span className="block text-2xl font-black">
+                    <span className="block text-2xl font-semibold">
                       {condition.label}
                     </span>
                     <span
@@ -137,24 +137,24 @@ function CandidateMatchList({
 }) {
   if (!exploration) {
     return (
-      <aside className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12 lg:border-l lg:border-t-0">
+      <aside className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12 lg:border-l lg:border-t-0">
         <p className={textStyles.eyebrow}>Candidate Match</p>
-        <h3 className="mt-4 text-4xl font-black">조건을 선택해 주세요</h3>
-        <p className="mt-8 text-base font-semibold leading-7 text-[#5e7069]">
-          후보군은 선택 조건과 연결된 지표가 많이 관측된 행정동입니다.
-          특정 지역을 추천하거나 우열을 판단하지 않습니다.
+        <h3 className="mt-4 text-3xl font-normal leading-[1.14] tracking-[-0.045em]">조건을 선택해 주세요</h3>
+        <p className="mt-8 text-base leading-7 text-[#5e7069]">
+          후보군은 선택 조건과 연결된 지표가 많이 관측된 행정동입니다
+          특정 지역을 추천하거나 우열을 판단하지 않습니다
         </p>
       </aside>
     );
   }
 
   return (
-    <aside className="border-t border-[#d7e6df] bg-[#eef6f3] p-8 sm:p-12 lg:border-l lg:border-t-0">
+    <aside className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12 lg:border-l lg:border-t-0">
       <p className={textStyles.eyebrow}>Candidate Match</p>
-      <h3 className="mt-4 text-4xl font-black">
+      <h3 className="mt-4 text-3xl font-normal leading-[1.14] tracking-[-0.045em]">
         {exploration.regions.length}개 후보군
       </h3>
-      <p className="mt-6 text-base font-semibold leading-7 text-[#5e7069]">
+      <p className="mt-6 text-base leading-7 text-[#5e7069]">
         {exploration.metadata.limitation}
       </p>
       {exploration.regions.length ? (
@@ -164,8 +164,8 @@ function CandidateMatchList({
           ))}
         </ol>
       ) : (
-        <p className="mt-10 border border-[#d7e6df] bg-white p-5 text-base font-semibold text-[#5e7069]">
-          선택한 조건과 연결된 후보군이 아직 없습니다.
+        <p className="mt-10 rounded-2xl border border-[#d7e6df] bg-white p-5 text-base font-semibold text-[#5e7069]">
+          선택한 조건과 연결된 후보군이 아직 없습니다
           {exploration.selected_conditions.includes("transport")
             ? ` ${exploration.metadata.transport_status}`
             : ""}
@@ -177,22 +177,22 @@ function CandidateMatchList({
 
 function CandidateMatchItem({ region }: { region: CandidateMatchRegion }) {
   return (
-    <li className="border border-[#d7e6df] bg-white p-5 shadow-[0_10px_24px_rgba(31,83,67,0.06)]">
+    <li className="rounded-2xl border border-[#d7e6df] bg-[#fbfcf8] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xl font-black">{region.display_name}</p>
+          <p className="text-xl font-semibold">{region.display_name}</p>
           <p className="mt-2 text-sm font-semibold text-[#527367]">
             관련 지표 {region.match_count}개 관측
           </p>
         </div>
-        <span className="border border-[#176b57] bg-[#ecf8f2] px-3 py-1 text-sm font-black text-[#176b57]">
+        <span className="rounded-full border border-[#173d31] bg-[#eef5ed] px-3 py-1 text-sm font-bold text-[#173d31]">
           {region.match_count}
         </span>
       </div>
       <div className="mt-5 flex flex-wrap gap-2">
         {region.matched_indicators.map((indicator) => (
           <span
-            className="border border-[#cfe3da] bg-[#fbfefd] px-3 py-1 text-sm font-bold text-[#47645a]"
+            className="rounded-full border border-[#cfe3da] bg-white px-3 py-1 text-sm font-bold text-[#47645a]"
             key={indicator}
           >
             {indicator}

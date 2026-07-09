@@ -18,7 +18,7 @@ export function RegionSelectField({
 }: RegionSelectFieldProps) {
   return (
     <label className="grid gap-3">
-      <span className="text-lg font-black">{label}</span>
+      <span className="text-lg font-semibold">{label}</span>
       <select
         className={controlStyles.select}
         disabled={disabled}
