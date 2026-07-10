@@ -263,6 +263,8 @@ def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
                 dong_name=str(row["행정동명"]),
                 display_name=f"{row['시군구명']} {row['행정동명']}",
                 area_km2=none_or_rounded_float(row.get("area_km2"), 3),
+                centroid_lon=none_or_rounded_float(row.get("centroid_lon"), 6),
+                centroid_lat=none_or_rounded_float(row.get("centroid_lat"), 6),
                 map_x=none_or_rounded_float(row.get("map_x"), 6),
                 map_y=none_or_rounded_float(row.get("map_y"), 6),
                 value=None if pd.isna(value) else round(float(value), 2),

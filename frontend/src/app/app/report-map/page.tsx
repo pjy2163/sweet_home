@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchHeatmap } from "@/lib/api";
 import { formatNumber } from "@/lib/format";
@@ -16,13 +16,51 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
 ];
 
 const LEVEL_COLORS: Record<string, string> = {
-  very_low: "#dfe8e1",
-  low: "#bdd0c3",
-  medium: "#8fa997",
-  high: "#476b59",
-  very_high: "#121d17",
-  no_data: "#edf1ec",
+  very_low: "#252829",
+  low: "#3f4041",
+  medium: "#6a6b6b",
+  high: "#00b3dd",
+  very_high: "#847dff",
+  no_data: "#191b1c",
 };
+
+type KakaoLatLng = {
+  getLat: () => number;
+  getLng: () => number;
+};
+
+type KakaoMap = {
+  setCenter: (position: KakaoLatLng) => void;
+  setLevel: (level: number) => void;
+  setBounds: (bounds: KakaoLatLngBounds) => void;
+};
+
+type KakaoLatLngBounds = {
+  extend: (position: KakaoLatLng) => void;
+};
+
+type KakaoMaps = {
+  LatLng: new (lat: number, lng: number) => KakaoLatLng;
+  LatLngBounds: new () => KakaoLatLngBounds;
+  Map: new (
+    container: HTMLElement,
+    options: { center: KakaoLatLng; level: number },
+  ) => KakaoMap;
+  Marker: new (options: {
+    map: KakaoMap;
+    position: KakaoLatLng;
+    title: string;
+  }) => unknown;
+  load: (callback: () => void) => void;
+};
+
+declare global {
+  interface Window {
+    kakao?: {
+      maps: KakaoMaps;
+    };
+  }
+}
 
 export default function ReportMapPage() {
   const [metric, setMetric] = useState<HeatmapMetric>("jeonse_ratio");
@@ -70,25 +108,24 @@ export default function ReportMapPage() {
   }, [heatmap]);
 
   return (
-    <main className="min-h-screen bg-[#e9eee9] p-4 text-[#121d17]">
-      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2rem] border border-[#cbd5cf] bg-[#fbfcf8] lg:grid-cols-[360px_1fr]">
-        <aside className="border-b border-[#d7e6df] p-8 lg:border-b-0 lg:border-r">
+    <main className="min-h-screen bg-[#090a0b] p-4 text-[#f5f5f7]">
+      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0f1011] lg:grid-cols-[360px_1fr]">
+        <aside className="border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
           <Link
-            className="text-xs font-bold uppercase tracking-[0.16em] text-[#607068]"
+            className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#9f9fa0]"
             href="/app"
           >
             ← Decision Workspace
           </Link>
-          <p className="mt-12 text-xs font-bold uppercase tracking-[0.18em] text-[#607068]">
-            Detailed Report
+          <p className="mt-12 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-[#6a6b6b]">
+            Kakao Map Report
           </p>
           <h1 className="mt-4 text-4xl font-normal leading-[1.05] tracking-[-0.055em]">
-            후보군을 지도에서 다시 보기
+            후보군을 실제 지도 위에서 확인합니다
           </h1>
-          <p className="mt-6 text-base leading-7 text-[#5e7069]">
-            현재는 내부 히트맵 좌표로 지표 분포를 보여줍니다. 이후 이 영역에
-            네이버 지도 또는 카카오 지도 SDK를 연결해 행정동 경계와 후보군을
-            함께 표시합니다.
+          <p className="mt-6 text-base leading-7 text-[#9f9fa0]">
+            메인 화면은 직접 구현한 데이터 히트맵이고, 상세 화면은 카카오 지도
+            위에 후보 행정동 중심점을 올려 실제 위치감을 확인하는 단계입니다.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-2">
@@ -97,10 +134,10 @@ export default function ReportMapPage() {
 
               return (
                 <button
-                  className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
                     selected
-                      ? "border-[#121d17] bg-[#121d17] text-[#f5f4ee]"
-                      : "border-[#d3ddd6] bg-[#f7faf6] text-[#52655a] hover:border-[#173d31]"
+                      ? "border-white bg-white text-black"
+                      : "border-white/12 bg-white/[0.06] text-[#cacaca] hover:border-white/35"
                   }`}
                   key={item.id}
                   onClick={() => setMetric(item.id)}
@@ -113,7 +150,7 @@ export default function ReportMapPage() {
           </div>
 
           {heatmap ? (
-            <div className="mt-10 grid gap-4 text-sm text-[#5e7069]">
+            <div className="mt-10 grid gap-4 text-sm text-[#9f9fa0]">
               <SummaryRow label="지표" value={heatmap.metadata.metric_label} />
               <SummaryRow
                 label="행정동"
@@ -124,18 +161,17 @@ export default function ReportMapPage() {
           ) : null}
         </aside>
 
-        <div className="relative min-h-[760px] bg-[#edf2ee]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_48%_42%,rgba(223,255,98,0.18),transparent_24%),linear-gradient(135deg,rgba(18,29,23,0.08),transparent_36%,rgba(18,29,23,0.06))]" />
-          <div className="absolute inset-6 rounded-[2rem] border border-[#c8d4cd]" />
-          <div className="absolute left-[8%] right-[8%] top-[46%] h-20 -rotate-6 rounded-full border-y border-[#bdd0c5] opacity-70" />
-          <div className="absolute bottom-[21%] left-[12%] right-[16%] h-14 rotate-7 rounded-full border-y border-[#cbd9d1] opacity-70" />
-
+        <div className="relative min-h-[760px] bg-[#090a0b] p-5 sm:p-8">
           {isLoading ? (
             <MapNotice text="지도 데이터를 불러오는 중입니다." />
           ) : errorMessage ? (
             <MapNotice text={errorMessage} />
           ) : heatmap ? (
-            <MapLayer regions={heatmap.regions} topRegions={topRegions} unit={heatmap.metadata.unit} />
+            <KakaoReportMap
+              regions={heatmap.regions}
+              topRegions={topRegions}
+              unit={heatmap.metadata.unit}
+            />
           ) : null}
         </div>
       </section>
@@ -145,9 +181,129 @@ export default function ReportMapPage() {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[5rem_1fr] gap-4 border-t border-[#d7e6df] pt-4">
-      <dt className="font-bold text-[#172019]">{label}</dt>
-      <dd>{value}</dd>
+    <div className="grid grid-cols-[5rem_1fr] gap-4 border-t border-white/10 pt-4">
+      <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
+        {label}
+      </dt>
+      <dd className="text-[#cacaca]">{value}</dd>
+    </div>
+  );
+}
+
+function KakaoReportMap({
+  regions,
+  topRegions,
+  unit,
+}: {
+  regions: HeatmapRegion[];
+  topRegions: HeatmapRegion[];
+  unit: string;
+}) {
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapStatus, setMapStatus] = useState<"ready" | "fallback" | "error">(
+    "ready",
+  );
+  const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
+
+  const mappedTopRegions = useMemo(
+    () =>
+      topRegions.filter(
+        (region) => region.centroid_lat !== null && region.centroid_lon !== null,
+      ),
+    [topRegions],
+  );
+
+  useEffect(() => {
+    if (!appKey || !mapRef.current || mappedTopRegions.length === 0) {
+      setMapStatus("fallback");
+      return;
+    }
+
+    let cancelled = false;
+
+    function drawMap() {
+      if (cancelled || !window.kakao?.maps || !mapRef.current) {
+        return;
+      }
+
+      const maps = window.kakao.maps;
+      const centerRegion = mappedTopRegions[0];
+      const center = new maps.LatLng(
+        centerRegion.centroid_lat ?? 37.5665,
+        centerRegion.centroid_lon ?? 126.978,
+      );
+      const map = new maps.Map(mapRef.current, {
+        center,
+        level: 8,
+      });
+      const bounds = new maps.LatLngBounds();
+
+      mappedTopRegions.forEach((region) => {
+        if (region.centroid_lat === null || region.centroid_lon === null) {
+          return;
+        }
+
+        const position = new maps.LatLng(region.centroid_lat, region.centroid_lon);
+        bounds.extend(position);
+        new maps.Marker({
+          map,
+          position,
+          title: `${region.display_name} ${formatMapValue(region.value, unit)}`,
+        });
+      });
+
+      if (mappedTopRegions.length > 1) {
+        map.setBounds(bounds);
+      } else {
+        map.setCenter(center);
+        map.setLevel(7);
+      }
+
+      setMapStatus("ready");
+    }
+
+    if (window.kakao?.maps) {
+      window.kakao.maps.load(drawMap);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+    script.onload = () => window.kakao?.maps.load(drawMap);
+    script.onerror = () => {
+      if (!cancelled) {
+        setMapStatus("error");
+      }
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appKey, mappedTopRegions, unit]);
+
+  if (mapStatus !== "ready" || !appKey) {
+    return (
+      <div className="relative h-full min-h-[700px] overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]">
+        <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9f9fa0] backdrop-blur">
+          {appKey ? "Map fallback" : "Kakao key required"}
+        </div>
+        <MapLayer regions={regions} topRegions={topRegions} unit={unit} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full min-h-[700px] overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]">
+      <div ref={mapRef} className="absolute inset-0" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,10,11,0.10),rgba(9,10,11,0.22))]" />
+      <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
+        Kakao map layer
+      </div>
+      <TopRegionCards topRegions={topRegions} unit={unit} />
     </div>
   );
 }
@@ -165,6 +321,7 @@ function MapLayer({
 
   return (
     <>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_48%_42%,rgba(132,125,255,0.12),transparent_24%),radial-gradient(circle_at_34%_70%,rgba(0,179,221,0.10),transparent_28%)]" />
       <div className="absolute inset-10">
         {visibleRegions.map((region) => {
           if (region.map_x === null || region.map_y === null) {
@@ -186,29 +343,41 @@ function MapLayer({
         })}
       </div>
 
-      <div className="absolute bottom-8 left-8 right-8 grid gap-4 md:grid-cols-4">
-        {topRegions.slice(0, 4).map((region, index) => (
-          <article
-            className="rounded-2xl border border-white/70 bg-white/90 p-4 shadow-[0_18px_50px_rgba(18,29,23,0.12)] backdrop-blur"
-            key={region.region_id}
-          >
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#607068]">
-              0{index + 1}
-            </p>
-            <h2 className="mt-2 text-xl font-semibold">{region.display_name}</h2>
-            <p className="mt-3 text-sm font-bold text-[#527367]">
-              {formatMapValue(region.value, unit)}
-            </p>
-          </article>
-        ))}
-      </div>
+      <TopRegionCards topRegions={topRegions} unit={unit} />
     </>
+  );
+}
+
+function TopRegionCards({
+  topRegions,
+  unit,
+}: {
+  topRegions: HeatmapRegion[];
+  unit: string;
+}) {
+  return (
+    <div className="absolute bottom-5 left-5 right-5 grid gap-3 md:grid-cols-4">
+      {topRegions.slice(0, 4).map((region, index) => (
+        <article
+          className="rounded-2xl border border-white/10 bg-black/45 p-4 text-[#f5f5f7] shadow-[0_18px_50px_rgba(0,0,0,0.16)] backdrop-blur"
+          key={region.region_id}
+        >
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
+            0{index + 1}
+          </p>
+          <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
+          <p className="mt-3 text-sm text-[#9f9fa0]">
+            {formatMapValue(region.value, unit)}
+          </p>
+        </article>
+      ))}
+    </div>
   );
 }
 
 function MapNotice({ text }: { text: string }) {
   return (
-    <div className="absolute left-1/2 top-1/2 w-[min(420px,calc(100%-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#d7e6df] bg-white p-6 text-center text-sm font-bold text-[#5e7069]">
+    <div className="absolute left-1/2 top-1/2 w-[min(420px,calc(100%_-_48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0f1011] p-6 text-center text-sm font-medium text-[#9f9fa0]">
       {text}
     </div>
   );

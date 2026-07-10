@@ -102,6 +102,8 @@ export type HeatmapRegion = {
   dong_name: string;
   display_name: string;
   area_km2: number | null;
+  centroid_lon: number | null;
+  centroid_lat: number | null;
   map_x: number | null;
   map_y: number | null;
   value: number | null;

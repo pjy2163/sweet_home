@@ -21,6 +21,11 @@ def test_heatmap_returns_regions_for_default_metric() -> None:
         for region in result["regions"]
         if region["map_x"] is not None and region["map_y"] is not None
     ) >= 400
+    assert sum(
+        1
+        for region in result["regions"]
+        if region["centroid_lon"] is not None and region["centroid_lat"] is not None
+    ) >= 400
 
     first_region = result["regions"][0]
     assert set(first_region) == {
@@ -29,6 +34,8 @@ def test_heatmap_returns_regions_for_default_metric() -> None:
         "dong_name",
         "display_name",
         "area_km2",
+        "centroid_lon",
+        "centroid_lat",
         "map_x",
         "map_y",
         "value",

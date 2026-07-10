@@ -116,6 +116,8 @@ class HeatmapRegion(BaseModel):
     dong_name: str
     display_name: str
     area_km2: Optional[float]
+    centroid_lon: Optional[float]
+    centroid_lat: Optional[float]
     map_x: Optional[float]
     map_y: Optional[float]
     value: Optional[float]
