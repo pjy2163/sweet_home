@@ -11,7 +11,6 @@ import {
   EntryMode,
   EntryModeSelector,
 } from "@/components/entry-mode-selector";
-import { SeoulHeatmap } from "@/components/seoul-heatmap";
 import { useCandidateExplorer } from "@/hooks/use-candidate-explorer";
 import { useRegionComparison } from "@/hooks/use-region-comparison";
 import { layoutStyles } from "@/styles/components";
@@ -67,9 +66,8 @@ export default function SweetHomeApp() {
         <nav aria-label="서비스 메뉴">
           <a className="active" href="#entry"><span />시작 단계<i>01</i></a>
           <a href="#explore"><span />후보 탐색<i>02</i></a>
-          <a href="#heatmap-report"><span />서울 히트맵<i>03</i></a>
-          <a href="#compare"><span />지역 비교<i>04</i></a>
-          <a href="#basis"><span />결과 리포트<i>05</i></a>
+          <a href="#compare"><span />지역 비교<i>03</i></a>
+          <a href="#basis"><span />결과 리포트<i>04</i></a>
         </nav>
         <Link className="rail-help" href="/" aria-label="랜딩으로 돌아가기">← 소개로 돌아가기</Link>
       </aside>
@@ -102,7 +100,6 @@ export default function SweetHomeApp() {
             regionGroups={regionGroups}
           />
         )}
-        <SeoulHeatmap />
         <ComparisonResult comparison={comparison} />
       </div>
     </main>

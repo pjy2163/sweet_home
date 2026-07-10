@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { fetchHeatmap } from "@/lib/api";
-import { formatNumber } from "@/lib/format";
-import type { HeatmapMetric, HeatmapRegion, HeatmapResponse } from "@/types/sweethome";
+import { formatNumber, formatRatio } from "@/lib/format";
+import type {
+  HeatmapLevel,
+  HeatmapMetric,
+  HeatmapRegion,
+  HeatmapResponse,
+} from "@/types/sweethome";
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "jeonse_ratio", label: "전세가" },
@@ -15,7 +20,7 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "living_population", label: "생활인구" },
 ];
 
-const LEVEL_COLORS: Record<string, string> = {
+const LEVEL_COLORS: Record<HeatmapLevel, string> = {
   very_low: "#252829",
   low: "#3f4041",
   medium: "#6a6b6b",
@@ -23,6 +28,17 @@ const LEVEL_COLORS: Record<string, string> = {
   very_high: "#847dff",
   no_data: "#191b1c",
 };
+
+const LEVEL_LABELS: Record<HeatmapLevel, string> = {
+  very_low: "매우 낮음",
+  low: "낮음",
+  medium: "보통",
+  high: "높음",
+  very_high: "매우 높음",
+  no_data: "데이터 없음",
+};
+
+type ReportView = "heatmap" | "map";
 
 type KakaoLatLng = {
   getLat: () => number;
@@ -64,6 +80,7 @@ declare global {
 
 export default function ReportMapPage() {
   const [metric, setMetric] = useState<HeatmapMetric>("jeonse_ratio");
+  const [reportView, setReportView] = useState<ReportView>("heatmap");
   const [heatmap, setHeatmap] = useState<HeatmapResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -118,17 +135,41 @@ export default function ReportMapPage() {
             ← Decision Workspace
           </Link>
           <p className="mt-12 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-[#6a6b6b]">
-            Kakao Map Report
+            Detailed Report
           </p>
           <h1 className="mt-4 text-4xl font-normal leading-[1.05] tracking-[-0.055em]">
-            후보군을 실제 지도 위에서 확인합니다
+            후보군을 한 창에서 다시 봅니다
           </h1>
           <p className="mt-6 text-base leading-7 text-[#9f9fa0]">
-            메인 화면은 직접 구현한 데이터 히트맵이고, 상세 화면은 카카오 지도
-            위에 후보 행정동 중심점을 올려 실제 위치감을 확인하는 단계입니다.
+            데이터 히트맵과 카카오 지도를 같은 리포트 안에서 전환합니다.
+            먼저 분포를 보고, 필요할 때 실제 지도 위치감을 확인합니다.
           </p>
 
-          <div className="mt-9 flex flex-wrap gap-2">
+          <div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+            {[
+              { id: "heatmap", label: "데이터 히트맵" },
+              { id: "map", label: "카카오 지도" },
+            ].map((item) => {
+              const selected = reportView === item.id;
+
+              return (
+                <button
+                  className={`rounded-lg px-3 py-3 text-sm font-medium transition ${
+                    selected
+                      ? "bg-white text-black"
+                      : "text-[#9f9fa0] hover:bg-white/[0.06] hover:text-[#f5f5f7]"
+                  }`}
+                  key={item.id}
+                  onClick={() => setReportView(item.id as ReportView)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-7 flex flex-wrap gap-2">
             {METRICS.map((item) => {
               const selected = metric === item.id;
 
@@ -167,10 +208,11 @@ export default function ReportMapPage() {
           ) : errorMessage ? (
             <MapNotice text={errorMessage} />
           ) : heatmap ? (
-            <KakaoReportMap
+            <ReportVisual
               regions={heatmap.regions}
               topRegions={topRegions}
               unit={heatmap.metadata.unit}
+              view={reportView}
             />
           ) : null}
         </div>
@@ -187,6 +229,33 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       </dt>
       <dd className="text-[#cacaca]">{value}</dd>
     </div>
+  );
+}
+
+function ReportVisual({
+  regions,
+  topRegions,
+  unit,
+  view,
+}: {
+  regions: HeatmapRegion[];
+  topRegions: HeatmapRegion[];
+  unit: string;
+  view: ReportView;
+}) {
+  if (view === "heatmap") {
+    return (
+      <div className="relative h-full min-h-[700px] overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]">
+        <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
+          Internal heatmap
+        </div>
+        <MapLayer regions={regions} topRegions={topRegions} unit={unit} />
+      </div>
+    );
+  }
+
+  return (
+    <KakaoReportMap regions={regions} topRegions={topRegions} unit={unit} />
   );
 }
 
@@ -344,6 +413,22 @@ function MapLayer({
       </div>
 
       <TopRegionCards topRegions={topRegions} unit={unit} />
+      <div className="absolute left-5 top-16 flex max-w-[calc(100%-40px)] flex-wrap gap-3 rounded-xl border border-white/10 bg-black/35 px-4 py-3 backdrop-blur">
+        {(["very_low", "medium", "high", "very_high"] as HeatmapLevel[]).map(
+          (level) => (
+            <span
+              className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#9f9fa0]"
+              key={level}
+            >
+              <i
+                className="h-2.5 w-2.5 rounded-[3px]"
+                style={{ background: LEVEL_COLORS[level] }}
+              />
+              {LEVEL_LABELS[level]}
+            </span>
+          ),
+        )}
+      </div>
     </>
   );
 }
@@ -389,8 +474,8 @@ function formatMapValue(value: number | null, unit: string) {
   }
 
   if (unit === "%") {
-    return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+    return formatRatio(value);
   }
 
-  return `${formatNumber(value)}${unit}`;
+  return formatNumber(value, unit);
 }
