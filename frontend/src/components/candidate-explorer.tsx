@@ -1,4 +1,4 @@
-import { FormEvent, useMemo } from "react";
+import { FormEvent, useEffect, useMemo, useRef } from "react";
 
 import {
   controlStyles,
@@ -77,6 +77,17 @@ export function CandidateExplorer({
   onToggleCondition,
   selectedConditions,
 }: CandidateExplorerProps) {
+  const resultRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!exploration || !resultRef.current) return;
+
+    resultRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [exploration]);
+
   return (
     <section className={`${layoutStyles.section} pb-20`} id="explore">
       <div className="mx-auto max-w-5xl">
@@ -138,7 +149,9 @@ export function CandidateExplorer({
             </button>
           </form>
         </div>
-        <CandidateMatchList exploration={exploration} />
+        <div className="scroll-mt-8" ref={resultRef}>
+          <CandidateMatchList exploration={exploration} />
+        </div>
       </div>
     </section>
   );
@@ -208,6 +221,10 @@ function CandidateBriefReport({
     topRegions.flatMap((region) => region.matched_indicators),
   ).size;
 
+  // 선택한 조건을 쿼리 파라미터로 전달
+  const conditionsParam = exploration.selected_conditions.join(",");
+  const reportMapUrl = `/app/report-map?conditions=${encodeURIComponent(conditionsParam)}`;
+
   return (
     <div className="mt-8 rounded-3xl border border-[#d7e6df] bg-[#fbfcf8] p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -221,7 +238,7 @@ function CandidateBriefReport({
         </div>
         <a
           className="inline-flex items-center gap-3 rounded-lg bg-[#121d17] px-4 py-3 text-sm font-bold text-[#f5f4ee] transition hover:bg-[#22352b]"
-          href="/app/report-map"
+          href={reportMapUrl}
           rel="noreferrer"
           target="_blank"
         >

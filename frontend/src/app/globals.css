@@ -20,6 +20,12 @@ body {
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 28px;
+}
+
+section,
+[id] {
+  scroll-margin-top: 28px;
 }
 
 @keyframes orbit {
@@ -33,6 +39,13 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .hero-orbit { animation: none; }
   html { scroll-behavior: auto; }
+  .landing [data-scroll-reveal],
+  .landing [data-scroll-reveal].is-visible,
+  .landing [data-scroll-float] {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
 }
 
 button,
@@ -58,6 +71,26 @@ select {
   overflow: clip;
   background: var(--paper);
   color: var(--ink);
+}
+
+.landing [data-scroll-reveal] {
+  transform: translateY(34px);
+  opacity: 0;
+  transition:
+    opacity .9s cubic-bezier(.2,.7,.2,1),
+    transform .9s cubic-bezier(.2,.7,.2,1);
+  will-change: opacity, transform;
+}
+
+.landing [data-scroll-reveal].is-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.landing [data-scroll-float] {
+  transform: translate3d(0, var(--scroll-float-y, 0), 0);
+  transition: transform .55s cubic-bezier(.2,.7,.2,1);
+  will-change: transform;
 }
 
 .landing-header {

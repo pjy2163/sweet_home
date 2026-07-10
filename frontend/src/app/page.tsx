@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
+import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 
 const APP_URL = "/app";
 
@@ -214,6 +215,7 @@ const STORY = [
 export default function LandingPage() {
   return (
     <main className="landing">
+      <LandingScrollEffects />
       <header className="landing-header">
         <a className="brand" href="#">
           <BrandLogo />
@@ -240,25 +242,27 @@ export default function LandingPage() {
         </p>
       </section>
 
-      <section className="insert-section" id="why">
+      <section className="insert-section" data-scroll-reveal id="why">
         <div className="insert-copy">
           <p>001 — Product Film</p>
           <h2>수많은 숫자를,<br />하나의 선택으로</h2>
         </div>
-        <ProductDemo />
+        <div data-scroll-float>
+          <ProductDemo />
+        </div>
         <div className="insert-meta">
           <p>조건을 고르고</p><span>→</span><p>후보를 발견하고</p><span>→</span><p>차이를 비교합니다</p>
         </div>
       </section>
 
       <section className="story-section" id="how">
-        <div className="story-intro">
+        <div className="story-intro" data-scroll-reveal>
           <p>002 — How it works</p>
           <h2>찾는 순간부터<br />결정하는 순간까지</h2>
         </div>
         <div className="story-stream">
           {STORY.map((item) => (
-            <article className="story-chapter" key={item.number}>
+            <article className="story-chapter" data-scroll-reveal key={item.number}>
               <div className="story-copy">
                 <p>{item.number} — {item.eyebrow}</p>
                 <h3>{item.title.split("\n").map((line) => <span key={line}>{line}</span>)}</h3>
@@ -275,7 +279,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="final-cta">
+      <section className="final-cta" data-scroll-reveal>
         <p>READY TO MOVE?</p>
         <h2>다음 동네를 선택할<br />준비가 되셨나요?</h2>
         <ExternalAppLink className="final-button">SweetHome 사용하러 가기</ExternalAppLink>
