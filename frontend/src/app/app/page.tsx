@@ -17,6 +17,7 @@ import { layoutStyles } from "@/styles/components";
 
 export default function SweetHomeApp() {
   const [entryMode, setEntryMode] = useState<EntryMode>("unknown");
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const {
     comparison,
     errorMessage,
@@ -40,8 +41,21 @@ export default function SweetHomeApp() {
   } = useCandidateExplorer();
 
   return (
-    <main className={`${layoutStyles.page} workspace`}>
+    <main
+      className={`${layoutStyles.page} workspace ${
+        railCollapsed ? "workspace-rail-collapsed" : ""
+      }`}
+    >
       <aside className="workspace-rail">
+        <button
+          aria-label={railCollapsed ? "메뉴 펼치기" : "메뉴 접기"}
+          aria-pressed={railCollapsed}
+          className="rail-toggle"
+          onClick={() => setRailCollapsed((collapsed) => !collapsed)}
+          type="button"
+        >
+          {railCollapsed ? ">" : "<"}
+        </button>
         <Link className="workspace-mark" href="/" aria-label="SweetHome 랜딩으로 이동">
           <BrandLogo markOnly />
         </Link>
@@ -52,18 +66,12 @@ export default function SweetHomeApp() {
         <nav aria-label="서비스 메뉴">
           <a className="active" href="#entry"><span />시작 단계<i>01</i></a>
           <a href="#explore"><span />후보 탐색<i>02</i></a>
-          <a href="#compare"><span />지역 비교<i>03</i></a>
-          <a href="#basis"><span />결과 리포트<i>04</i></a>
+          <a href="#heatmap-report"><span />상세 지도<i>03</i></a>
+          <a href="#compare"><span />지역 비교<i>04</i></a>
+          <a href="#basis"><span />결과 리포트<i>05</i></a>
         </nav>
         <Link className="rail-help" href="/" aria-label="랜딩으로 돌아가기">← 소개로 돌아가기</Link>
       </aside>
-      <header className="workspace-header">
-        <div className="workspace-lights" aria-hidden="true"><i /><i /><i /></div>
-        <div>
-          <p>SWEETHOME / SEOUL</p>
-        </div>
-        <div className="workspace-status"><i /> 데이터 연결됨</div>
-      </header>
       <div className="workspace-content">
         <div className="workspace-context">
           <p>DECISION WORKSPACE</p>

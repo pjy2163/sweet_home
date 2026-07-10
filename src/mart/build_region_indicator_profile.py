@@ -7,6 +7,7 @@ import pandas as pd
 
 BASE_DIR = Path(__file__).resolve().parents[2]
 SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
+GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
 OUTPUT_PATH = BASE_DIR / "data" / "processed" / "region_indicator_profile.csv"
 
 HIGH_QUANTILE = 0.8
@@ -18,17 +19,28 @@ OUTPUT_COLUMNS = [
     "시군구명",
     "행정동명",
     "display_name",
+    "area_km2",
+    "centroid_lon",
+    "centroid_lat",
+    "map_x",
+    "map_y",
     "가격_기준월",
     "생활인구_기준월",
     "안전_기준일자",
     "상권_기준일자",
     "안심시설수",
+    "안심시설수_면적당",
+    "안심시설수_면적당_상대수준",
     "안심시설수_상대수준",
     "유흥시설수",
+    "유흥시설수_면적당",
+    "유흥시설수_면적당_상대수준",
     "유흥시설수_상대수준",
     "업종수",
     "업종수_상대수준",
     "사업체수",
+    "사업체수_면적당",
+    "사업체수_면적당_상대수준",
     "사업체수_상대수준",
     "생활인구",
     "생활인구_상대수준",
@@ -55,6 +67,22 @@ def read_snapshot() -> pd.DataFrame:
     return pd.read_csv(SNAPSHOT_PATH, encoding="utf-8-sig", dtype={"region_id": str})
 
 
+def read_geometry() -> pd.DataFrame:
+    if not GEOMETRY_PATH.exists():
+        return pd.DataFrame(
+            columns=[
+                "region_id",
+                "area_km2",
+                "centroid_lon",
+                "centroid_lat",
+                "map_x",
+                "map_y",
+            ],
+        )
+
+    return pd.read_csv(GEOMETRY_PATH, encoding="utf-8-sig", dtype={"region_id": str})
+
+
 def relative_level(series: pd.Series) -> pd.Series:
     numeric = pd.to_numeric(series, errors="coerce")
     non_null = numeric.dropna()
@@ -77,15 +105,28 @@ def boolean_from_ratio_at_or_below_average(series: pd.Series) -> pd.Series:
     return numeric.le(0).where(numeric.notna(), pd.NA)
 
 
+def per_area(value: pd.Series, area: pd.Series) -> pd.Series:
+    numeric_value = pd.to_numeric(value, errors="coerce")
+    numeric_area = pd.to_numeric(area, errors="coerce")
+    return numeric_value.where(numeric_area.gt(0)) / numeric_area
+
+
 def count_matching_indicators(frame: pd.DataFrame, columns: list[str]) -> pd.Series:
     return frame[columns].eq("상대적으로높음").sum(axis=1)
 
 
 def build_indicator_profile() -> pd.DataFrame:
     snapshot = read_snapshot()
-    profile = snapshot.copy()
+    geometry = read_geometry()
+    profile = snapshot.merge(geometry, on="region_id", how="left")
 
     profile["display_name"] = profile["시군구명"] + " " + profile["행정동명"]
+    profile["안심시설수_면적당"] = per_area(profile["안심시설수"], profile["area_km2"])
+    profile["유흥시설수_면적당"] = per_area(profile["유흥시설수"], profile["area_km2"])
+    profile["사업체수_면적당"] = per_area(profile["사업체수"], profile["area_km2"])
+    profile["안심시설수_면적당_상대수준"] = relative_level(profile["안심시설수_면적당"])
+    profile["유흥시설수_면적당_상대수준"] = relative_level(profile["유흥시설수_면적당"])
+    profile["사업체수_면적당_상대수준"] = relative_level(profile["사업체수_면적당"])
     profile["안심시설수_상대수준"] = relative_level(profile["안심시설수"])
     profile["유흥시설수_상대수준"] = relative_level(profile["유흥시설수"])
     profile["업종수_상대수준"] = relative_level(profile["업종수"])
@@ -97,14 +138,17 @@ def build_indicator_profile() -> pd.DataFrame:
     profile["전세가_서울평균이하여부"] = boolean_from_ratio_at_or_below_average(
         profile["전세가_서울평균대비율"],
     )
+    low_volume = profile["거래량_해석주의"].fillna(True).astype(bool)
+    profile.loc[low_volume, "실거래가_서울평균이하여부"] = False
+    profile.loc[low_volume, "전세가_서울평균이하여부"] = False
 
     profile["안전_매칭지표수"] = count_matching_indicators(
         profile,
-        ["안심시설수_상대수준"],
+        ["안심시설수_면적당_상대수준"],
     )
     profile["편의_매칭지표수"] = count_matching_indicators(
         profile,
-        ["업종수_상대수준", "사업체수_상대수준"],
+        ["업종수_상대수준", "사업체수_면적당_상대수준"],
     )
     profile["가격_매칭지표수"] = profile[
         ["실거래가_서울평균이하여부", "전세가_서울평균이하여부"]

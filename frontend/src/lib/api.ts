@@ -2,6 +2,8 @@ import type {
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
+  HeatmapMetric,
+  HeatmapResponse,
   Metadata,
   RegionOption,
 } from "@/types/sweethome";
@@ -58,5 +60,15 @@ export async function fetchCandidateMatches(
   return parseJsonResponse<ExploreResponse>(
     response,
     "후보군을 불러오지 못했습니다.",
+  );
+}
+
+export async function fetchHeatmap(metric: HeatmapMetric) {
+  const params = new URLSearchParams({ metric });
+  const response = await fetch(`/api/backend/map/heatmap?${params.toString()}`);
+
+  return parseJsonResponse<HeatmapResponse>(
+    response,
+    "히트맵 데이터를 불러오지 못했습니다.",
   );
 }

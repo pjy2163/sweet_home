@@ -31,26 +31,30 @@ export function EntryModeSelector({
 }: EntryModeSelectorProps) {
   return (
     <section
-      className="mx-auto max-w-7xl px-6 py-24 lg:px-10 lg:py-32"
+      className="mx-auto max-w-5xl px-6 py-20 lg:px-10 lg:py-28"
       id="entry"
     >
-      <div className="mb-14 grid gap-6 border-b border-[#b8c3bd] pb-8 md:grid-cols-[1fr_2fr]">
+      <div className="mx-auto mb-12 max-w-3xl text-center">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#5e7069]">001 — Start</p>
-        <h2 className="text-3xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-5xl">
+        <h2 className="mt-5 text-3xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-5xl">
           지금 어디쯤 와 있나요?
         </h2>
+        <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[#5e7069]">
+          후보지가 정해졌다면 바로 비교하고, 아직 막막하다면 조건을 먼저
+          선택해 데이터상 관측 지표가 많은 후보군을 좁혀봅니다.
+        </p>
       </div>
-      <div className="grid gap-px overflow-hidden rounded-[2rem] bg-[#c9d2cc] md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
           {ENTRY_MODES.map((entryMode) => {
             const selected = mode === entryMode.id;
 
             return (
               <button
                 aria-pressed={selected}
-                className={`group min-h-80 p-8 text-left transition sm:p-12 ${
+                className={`group min-h-72 rounded-[1.5rem] border p-8 text-left shadow-[0_22px_60px_rgba(18,29,23,0.06)] transition sm:p-10 ${
                   selected
-                    ? "bg-[#121d17] text-[#f5f4ee]"
-                    : "bg-[#fbfcf8] text-[#172019] hover:bg-[#eef3ed]"
+                    ? "border-[#121d17] bg-[#121d17] text-[#f5f4ee]"
+                    : "border-[#d7e3dc] bg-[#fbfcf8] text-[#172019] hover:border-[#9fb4aa] hover:bg-[#f3f7f3]"
                 }`}
                 key={entryMode.id}
                 onClick={() => onModeChange(entryMode.id)}
@@ -63,7 +67,7 @@ export function EntryModeSelector({
                 >
                   {entryMode.eyebrow}
                 </span>
-                <span className="mt-20 block max-w-md text-2xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-4xl">
+                <span className="mt-16 block max-w-md text-2xl font-normal leading-[1.14] tracking-[-0.055em] sm:text-4xl">
                   {entryMode.title}
                 </span>
                 <span className={`mt-7 block max-w-sm leading-7 ${selected ? "text-white/65" : "text-[#5e7069]"}`}>

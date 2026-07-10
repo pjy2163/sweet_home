@@ -57,6 +57,13 @@ data/exports/**
 !data/exports/
 !data/exports/.gitkeep
 
+# Markdown docs are local/internal by default.
+*.md
+*.MD
+!README.md
+!**/README.md
+!**/README.MD
+
 # Private/internal operating docs
 AGENTS.md
 CLAUDE.md

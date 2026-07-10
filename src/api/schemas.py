@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -69,6 +69,11 @@ class CandidateMatchRegion(BaseModel):
     gu_name: str
     dong_name: str
     display_name: str
+    area_km2: Optional[float]
+    centroid_lon: Optional[float]
+    centroid_lat: Optional[float]
+    map_x: Optional[float]
+    map_y: Optional[float]
     match_count: int
     matched_indicators: list[str]
     indicator_summary: dict[str, str]
@@ -85,3 +90,54 @@ class ExploreResponse(BaseModel):
     selected_conditions: list[str]
     regions: list[CandidateMatchRegion]
     metadata: ExploreMetadata
+
+
+HeatmapMetric = Literal[
+    "deposit_ratio",
+    "jeonse_ratio",
+    "living_population",
+    "safe_facility_density",
+    "store_density",
+]
+
+HeatmapLevel = Literal[
+    "very_low",
+    "low",
+    "medium",
+    "high",
+    "very_high",
+    "no_data",
+]
+
+
+class HeatmapRegion(BaseModel):
+    region_id: str
+    gu_name: str
+    dong_name: str
+    display_name: str
+    area_km2: Optional[float]
+    map_x: Optional[float]
+    map_y: Optional[float]
+    value: Optional[float]
+    percentile: Optional[float]
+    level: HeatmapLevel
+    has_data: bool
+
+
+class HeatmapMetadata(BaseModel):
+    source: str
+    aggregation: str
+    limitation: str
+    metric_label: str
+    metric_description: str
+    unit: str
+    min_value: Optional[float]
+    max_value: Optional[float]
+    region_count: int
+    data_region_count: int
+
+
+class HeatmapResponse(BaseModel):
+    metric: HeatmapMetric
+    regions: list[HeatmapRegion]
+    metadata: HeatmapMetadata

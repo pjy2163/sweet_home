@@ -7,6 +7,7 @@ const ALLOWED_PATHS = new Set([
   "metadata",
   "compare",
   "explore",
+  "map",
 ]);
 const BACKEND_UNAVAILABLE_MESSAGE =
   "FastAPI 서버에 연결할 수 없습니다. 백엔드를 먼저 실행해 주세요: .venv/bin/uvicorn src.api.main:app --host 127.0.0.1 --port 8000";

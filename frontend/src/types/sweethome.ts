@@ -58,6 +58,11 @@ export type CandidateMatchRegion = {
   gu_name: string;
   dong_name: string;
   display_name: string;
+  area_km2: number | null;
+  centroid_lon: number | null;
+  centroid_lat: number | null;
+  map_x: number | null;
+  map_y: number | null;
   match_count: number;
   matched_indicators: string[];
   indicator_summary: Record<string, string>;
@@ -74,4 +79,52 @@ export type ExploreResponse = {
   selected_conditions: ExploreCondition[];
   regions: CandidateMatchRegion[];
   metadata: ExploreMetadata;
+};
+
+export type HeatmapMetric =
+  | "deposit_ratio"
+  | "jeonse_ratio"
+  | "living_population"
+  | "safe_facility_density"
+  | "store_density";
+
+export type HeatmapLevel =
+  | "very_low"
+  | "low"
+  | "medium"
+  | "high"
+  | "very_high"
+  | "no_data";
+
+export type HeatmapRegion = {
+  region_id: string;
+  gu_name: string;
+  dong_name: string;
+  display_name: string;
+  area_km2: number | null;
+  map_x: number | null;
+  map_y: number | null;
+  value: number | null;
+  percentile: number | null;
+  level: HeatmapLevel;
+  has_data: boolean;
+};
+
+export type HeatmapMetadata = {
+  source: string;
+  aggregation: string;
+  limitation: string;
+  metric_label: string;
+  metric_description: string;
+  unit: string;
+  min_value: number | null;
+  max_value: number | null;
+  region_count: number;
+  data_region_count: number;
+};
+
+export type HeatmapResponse = {
+  metric: HeatmapMetric;
+  regions: HeatmapRegion[];
+  metadata: HeatmapMetadata;
 };

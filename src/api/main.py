@@ -9,6 +9,8 @@ from src.api.errors import (
 from src.api.schemas import (
     CompareResponse,
     ExploreResponse,
+    HeatmapMetric,
+    HeatmapResponse,
     HealthResponse,
     MetadataResponse,
     RegionOption,
@@ -16,6 +18,7 @@ from src.api.schemas import (
 from src.api.services.comparison_service import (
     compare_region_snapshots,
     get_data_metadata,
+    get_heatmap,
     list_candidate_matches,
     list_region_options,
 )
@@ -66,3 +69,8 @@ def explore_regions(
         transport=transport,
         limit=limit,
     )
+
+
+@app.get("/map/heatmap", response_model=HeatmapResponse)
+def get_map_heatmap(metric: HeatmapMetric = "jeonse_ratio") -> HeatmapResponse:
+    return get_heatmap(metric)

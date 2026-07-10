@@ -20,13 +20,28 @@ def test_explore_regions_returns_candidate_matches() -> None:
     assert first_region["display_name"] == "강남구 논현1동"
     assert first_region["match_count"] == 3
     assert first_region["matched_indicators"] == [
-        "안심시설수",
+        "안심시설 밀도",
         "업종수",
-        "사업체수",
+        "점포 밀도",
     ]
+    assert first_region["area_km2"] is not None
+    assert first_region["map_x"] is not None
+    assert first_region["map_y"] is not None
     assert "score" not in first_region
     assert "recommend" not in result["metadata"]["limitation"].lower()
     assert "추천이나 우열 판단이 아닙니다" in result["metadata"]["limitation"]
+
+
+def test_explore_price_excludes_low_volume_price_matches() -> None:
+    client = TestClient(app)
+
+    response = client.get("/explore", params={"price": "true", "limit": "100"})
+
+    assert response.status_code == 200
+    result = response.json()
+    assert "송파구 잠실본동" not in [
+        region["display_name"] for region in result["regions"]
+    ]
 
 
 def test_explore_regions_requires_at_least_one_condition() -> None:

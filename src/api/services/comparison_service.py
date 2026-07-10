@@ -6,6 +6,7 @@ import pandas as pd
 
 from src.api.errors import (
     EXPLORE_CONDITION_REQUIRED,
+    HEATMAP_METRIC_NOT_SUPPORTED,
     ApiError,
     REGION_AMBIGUOUS,
     REGION_NOT_FOUND,
@@ -15,6 +16,10 @@ from src.api.schemas import (
     CompareResponse,
     ExploreMetadata,
     ExploreResponse,
+    HeatmapMetadata,
+    HeatmapMetric,
+    HeatmapRegion,
+    HeatmapResponse,
     MetadataResponse,
     RegionComparisonMetrics,
     RegionOption,
@@ -35,7 +40,41 @@ from src.report.generate_report import (
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
+GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
 TRANSPORT_STATUS = "교통 원천 데이터가 아직 추가되지 않아 후보군 매칭에는 반영하지 않습니다."
+
+HEATMAP_METRICS: dict[str, dict[str, str]] = {
+    "deposit_ratio": {
+        "column": "실거래가_서울평균대비율",
+        "label": "실거래가 서울 평균 대비",
+        "description": "전월세 전체 평균 보증금이 같은 월 서울 평균 대비 어느 수준인지 보여줍니다.",
+        "unit": "%",
+    },
+    "jeonse_ratio": {
+        "column": "전세가_서울평균대비율",
+        "label": "전세가 서울 평균 대비",
+        "description": "전세 평균 보증금이 같은 월 서울 평균 대비 어느 수준인지 보여줍니다.",
+        "unit": "%",
+    },
+    "living_population": {
+        "column": "생활인구",
+        "label": "생활인구",
+        "description": "행정동별 월 평균 생활인구 규모를 보여줍니다.",
+        "unit": "명",
+    },
+    "safe_facility_density": {
+        "column": "안심시설수_면적당",
+        "label": "안심시설 밀도",
+        "description": "행정동 면적 1㎢당 안심귀갓길 안전시설물 수를 보여줍니다.",
+        "unit": "개/㎢",
+    },
+    "store_density": {
+        "column": "사업체수_면적당",
+        "label": "생활편의 점포 밀도",
+        "description": "행정동 면적 1㎢당 생활편의 점포 수를 보여줍니다.",
+        "unit": "개/㎢",
+    },
+}
 
 
 def read_snapshot() -> pd.DataFrame:
@@ -44,6 +83,34 @@ def read_snapshot() -> pd.DataFrame:
         encoding="utf-8-sig",
         dtype={"region_id": str},
     )
+
+
+def read_geometry() -> pd.DataFrame:
+    if not GEOMETRY_PATH.exists():
+        return pd.DataFrame(
+            columns=[
+                "region_id",
+                "area_km2",
+                "centroid_lon",
+                "centroid_lat",
+                "map_x",
+                "map_y",
+            ],
+        )
+
+    return pd.read_csv(GEOMETRY_PATH, encoding="utf-8-sig", dtype={"region_id": str})
+
+
+def enrich_with_geometry(snapshot: pd.DataFrame) -> pd.DataFrame:
+    enriched = snapshot.merge(read_geometry(), on="region_id", how="left")
+    area = pd.to_numeric(enriched["area_km2"], errors="coerce")
+    enriched["안심시설수_면적당"] = (
+        pd.to_numeric(enriched["안심시설수"], errors="coerce").where(area.gt(0)) / area
+    )
+    enriched["사업체수_면적당"] = (
+        pd.to_numeric(enriched["사업체수"], errors="coerce").where(area.gt(0)) / area
+    )
+    return enriched
 
 
 def latest_text(snapshot: pd.DataFrame, column: str) -> str | None:
@@ -110,7 +177,7 @@ def strip_bullet_prefix(lines: list[str]) -> list[str]:
 
 
 def list_region_options() -> list[RegionOption]:
-    snapshot = read_snapshot()
+    snapshot = enrich_with_geometry(read_snapshot())
     regions = snapshot[
         [
             "region_id",
@@ -131,7 +198,7 @@ def list_region_options() -> list[RegionOption]:
 
 
 def get_data_metadata() -> MetadataResponse:
-    snapshot = read_snapshot()
+    snapshot = enrich_with_geometry(read_snapshot())
 
     return MetadataResponse(
         source=DATA_SOURCE_TEXT,
@@ -146,7 +213,7 @@ def get_data_metadata() -> MetadataResponse:
 
 
 def compare_region_snapshots(a: str, b: str) -> CompareResponse:
-    snapshot = read_snapshot()
+    snapshot = enrich_with_geometry(read_snapshot())
     region_a = resolve_region(snapshot, a)
     region_b = resolve_region(snapshot, b)
 
@@ -157,6 +224,97 @@ def compare_region_snapshots(a: str, b: str) -> CompareResponse:
         data_basis=strip_bullet_prefix(render_data_basis(region_a, region_b)[1:]),
         report_text=generate_report(region_a, region_b),
     )
+
+
+def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
+    metric_config = HEATMAP_METRICS.get(metric)
+    if metric_config is None:
+        raise ApiError(
+            status_code=400,
+            code=HEATMAP_METRIC_NOT_SUPPORTED,
+            message=f"지원하지 않는 히트맵 지표입니다: {metric}",
+        )
+
+    snapshot = enrich_with_geometry(read_snapshot())
+    column = metric_config["column"]
+    values = pd.to_numeric(snapshot[column], errors="coerce")
+    percentiles = values.rank(method="average", pct=True) * 100
+
+    data_values = values.dropna()
+    response_rows = []
+    heatmap_source = snapshot.assign(
+        _heatmap_value=values,
+        _heatmap_percentile=percentiles,
+    ).sort_values(
+        ["_heatmap_value", "시군구명", "행정동명", "region_id"],
+        ascending=[False, True, True, True],
+        na_position="last",
+    )
+
+    for row in heatmap_source.to_dict(orient="records"):
+        value = row["_heatmap_value"]
+        percentile = row["_heatmap_percentile"]
+        has_data = not pd.isna(value)
+
+        response_rows.append(
+            HeatmapRegion(
+                region_id=str(row["region_id"]),
+                gu_name=str(row["시군구명"]),
+                dong_name=str(row["행정동명"]),
+                display_name=f"{row['시군구명']} {row['행정동명']}",
+                area_km2=none_or_rounded_float(row.get("area_km2"), 3),
+                map_x=none_or_rounded_float(row.get("map_x"), 6),
+                map_y=none_or_rounded_float(row.get("map_y"), 6),
+                value=None if pd.isna(value) else round(float(value), 2),
+                percentile=None if pd.isna(percentile) else round(float(percentile), 2),
+                level=heatmap_level(percentile),
+                has_data=has_data,
+            )
+        )
+
+    return HeatmapResponse(
+        metric=metric,
+        regions=response_rows,
+        metadata=HeatmapMetadata(
+            source=DATA_SOURCE_TEXT,
+            aggregation="행정동 기준 최신 snapshot mart의 지표를 서울 내 상대 구간으로 변환",
+            limitation=(
+                "히트맵은 지역별 지표 분포를 보기 위한 시각화이며 추천, 우열, "
+                "투자 판단 또는 안전 단정을 의미하지 않습니다."
+            ),
+            metric_label=metric_config["label"],
+            metric_description=metric_config["description"],
+            unit=metric_config["unit"],
+            min_value=None if data_values.empty else round(float(data_values.min()), 2),
+            max_value=None if data_values.empty else round(float(data_values.max()), 2),
+            region_count=int(snapshot["region_id"].nunique()),
+            data_region_count=int(values.notna().sum()),
+        ),
+    )
+
+
+def heatmap_level(percentile: object) -> str:
+    if pd.isna(percentile):
+        return "no_data"
+
+    percentile_value = float(percentile)
+    if percentile_value <= 20:
+        return "very_low"
+    if percentile_value <= 40:
+        return "low"
+    if percentile_value <= 60:
+        return "medium"
+    if percentile_value <= 80:
+        return "high"
+
+    return "very_high"
+
+
+def none_or_rounded_float(value: object, digits: int = 2) -> float | None:
+    if pd.isna(value):
+        return None
+
+    return round(float(value), digits)
 
 
 def list_candidate_matches(
@@ -248,20 +406,25 @@ def row_to_candidate_match(
     indicator_summary = {}
     matched_indicators = []
 
-    if "safety" in selected_conditions and row["안심시설수_상대수준"] == "상대적으로높음":
-        matched_indicators.append("안심시설수")
-        indicator_summary["safety"] = "안전 대체 지표가 상대적으로 많이 관측됩니다."
+    if (
+        "safety" in selected_conditions
+        and row["안심시설수_면적당_상대수준"] == "상대적으로높음"
+    ):
+        matched_indicators.append("안심시설 밀도")
+        indicator_summary["safety"] = (
+            "면적 대비 안전 대체 지표가 상대적으로 많이 관측됩니다."
+        )
 
     convenience_indicators = []
     if "convenience" in selected_conditions:
         if row["업종수_상대수준"] == "상대적으로높음":
             convenience_indicators.append("업종수")
-        if row["사업체수_상대수준"] == "상대적으로높음":
-            convenience_indicators.append("사업체수")
+        if row["사업체수_면적당_상대수준"] == "상대적으로높음":
+            convenience_indicators.append("점포 밀도")
         if convenience_indicators:
             matched_indicators.extend(convenience_indicators)
             indicator_summary["convenience"] = (
-                "생활 편의 지표가 상대적으로 높은 편입니다."
+                "생활 편의 지표가 면적 대비 상대적으로 높은 편입니다."
             )
 
     price_indicators = []
@@ -293,6 +456,11 @@ def row_to_candidate_match(
         gu_name=str(row["시군구명"]),
         dong_name=str(row["행정동명"]),
         display_name=str(row["display_name"]),
+        area_km2=none_or_rounded_float(row.get("area_km2"), 3),
+        centroid_lon=none_or_rounded_float(row.get("centroid_lon"), 6),
+        centroid_lat=none_or_rounded_float(row.get("centroid_lat"), 6),
+        map_x=none_or_rounded_float(row.get("map_x"), 6),
+        map_y=none_or_rounded_float(row.get("map_y"), 6),
         match_count=int(row["match_count"]),
         matched_indicators=matched_indicators,
         indicator_summary=indicator_summary,
