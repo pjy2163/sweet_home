@@ -86,6 +86,7 @@ docs/data-inventory.xlsx
 scratch/
 local/
 README.local.md
+scripts/sync_notion_board.py
 
 # Local design image assets
 assets/sweethome-logo.svg
