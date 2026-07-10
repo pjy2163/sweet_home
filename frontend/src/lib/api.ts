@@ -49,11 +49,15 @@ export async function fetchComparison(regionA: string, regionB: string) {
 export async function fetchCandidateMatches(
   selectedConditions: ExploreCondition[],
   limit = 8,
+  options: { excludeLowVolumePrice?: boolean } = {},
 ) {
   const params = new URLSearchParams({ limit: String(limit) });
   selectedConditions.forEach((condition) => {
     params.set(condition, "true");
   });
+  if (options.excludeLowVolumePrice) {
+    params.set("exclude_low_volume_price", "true");
+  }
 
   const response = await fetch(`/api/backend/explore?${params.toString()}`);
 

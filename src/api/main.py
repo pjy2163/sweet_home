@@ -59,6 +59,7 @@ def explore_regions(
     price: bool = False,
     population: bool = False,
     transport: bool = False,
+    exclude_low_volume_price: bool = False,
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ExploreResponse:
     return list_candidate_matches(
@@ -67,6 +68,7 @@ def explore_regions(
         price=price,
         population=population,
         transport=transport,
+        exclude_low_volume_price=exclude_low_volume_price,
         limit=limit,
     )
 

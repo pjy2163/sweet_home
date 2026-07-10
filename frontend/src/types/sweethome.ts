@@ -66,6 +66,20 @@ export type CandidateMatchRegion = {
   match_count: number;
   matched_indicators: string[];
   indicator_summary: Record<string, string>;
+  evidence_metrics: CandidateEvidenceMetric[];
+};
+
+export type CandidateEvidenceMetric = {
+  condition: ExploreCondition;
+  label: string;
+  value: number | null;
+  unit: string;
+  display_value: string;
+  interpretation: string;
+  level: string;
+  is_matched: boolean;
+  data_date: string | null;
+  reliability: string;
 };
 
 export type ExploreMetadata = {

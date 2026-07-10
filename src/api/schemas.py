@@ -64,6 +64,19 @@ class CompareResponse(BaseModel):
     report_text: str
 
 
+class CandidateEvidenceMetric(BaseModel):
+    condition: str
+    label: str
+    value: Optional[float]
+    unit: str
+    display_value: str
+    interpretation: str
+    level: str
+    is_matched: bool
+    data_date: Optional[str]
+    reliability: str
+
+
 class CandidateMatchRegion(BaseModel):
     region_id: str
     gu_name: str
@@ -77,6 +90,7 @@ class CandidateMatchRegion(BaseModel):
     match_count: int
     matched_indicators: list[str]
     indicator_summary: dict[str, str]
+    evidence_metrics: list[CandidateEvidenceMetric]
 
 
 class ExploreMetadata(BaseModel):
