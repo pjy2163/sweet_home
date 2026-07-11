@@ -1,4 +1,6 @@
 import type {
+  AIReportEvidencePack,
+  AIReportPreviewRequest,
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
@@ -74,5 +76,18 @@ export async function fetchHeatmap(metric: HeatmapMetric) {
   return parseJsonResponse<HeatmapResponse>(
     response,
     "히트맵 데이터를 불러오지 못했습니다.",
+  );
+}
+
+export async function fetchAIReportPreview(request: AIReportPreviewRequest) {
+  const response = await fetch("/api/backend/ai/reports/preview", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  return parseJsonResponse<AIReportEvidencePack>(
+    response,
+    "후보 비교 근거를 불러오지 못했습니다.",
   );
 }

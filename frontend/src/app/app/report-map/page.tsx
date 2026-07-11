@@ -14,11 +14,17 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { fetchCandidateMatches, fetchHeatmap } from "@/lib/api";
+import {
+  fetchAIReportPreview,
+  fetchCandidateMatches,
+  fetchHeatmap,
+} from "@/lib/api";
 import { formatNumber, formatRatio } from "@/lib/format";
 import type {
+  AIReportEvidencePack,
   CandidateEvidenceMetric,
   CandidateMatchRegion,
+  EvidenceChartSpec,
   ExploreCondition,
   HeatmapLevel,
   HeatmapMetric,
@@ -532,7 +538,63 @@ function KakaoReportMap({
   const [mapReady, setMapReady] = useState(false);
   const [mapSize, setMapSize] = useState<MapSize>("standard");
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
+  const [comparisonEvidence, setComparisonEvidence] =
+    useState<AIReportEvidencePack | null>(null);
+  const [comparisonError, setComparisonError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
+
+  const comparisonRegionA = openReports[0]?.region.display_name;
+  const comparisonRegionB = openReports[1]?.region.display_name;
+  const comparisonKey = openReports
+    .map((report) => report.region.region_id)
+    .join("|");
+  const evidenceKey = comparisonEvidence?.regions
+    .map((region) => region.region_id)
+    .join("|");
+  const hasComparisonPair = Boolean(comparisonRegionA && comparisonRegionB);
+  const isComparisonLoading = hasComparisonPair && evidenceKey !== comparisonKey
+    && comparisonError?.key !== comparisonKey;
+  const currentComparisonError = comparisonError?.key === comparisonKey
+    ? comparisonError.message
+    : "";
+
+  useEffect(() => {
+    if (!comparisonRegionA || !comparisonRegionB) {
+      return;
+    }
+
+    let ignore = false;
+    const requestKey = comparisonKey;
+
+    fetchAIReportPreview({
+      region_a: comparisonRegionA,
+      region_b: comparisonRegionB,
+      comparison_basis: "seoul",
+    })
+      .then((result) => {
+        if (!ignore) {
+          setComparisonEvidence(result);
+          setComparisonError(null);
+        }
+      })
+      .catch((error) => {
+        if (!ignore) {
+          setComparisonError({
+            key: requestKey,
+            message: error instanceof Error
+              ? error.message
+              : "후보 비교 근거를 불러오지 못했습니다.",
+          });
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [comparisonKey, comparisonRegionA, comparisonRegionB]);
 
   const mappedTopRegions = useMemo(
     () =>
@@ -654,7 +716,7 @@ function KakaoReportMap({
         const scale = index === 0 ? 1.25 : index <= 2 ? 1.05 : 0.9;
         const fontSize = Math.round(13 * scale);
         const padding = index === 0 ? "8px 14px" : "6px 11px";
-        const valueText = formatMapValue(region.value, unit);
+        const valueText = formatRegionSummary(region, unit);
         const rank = index + 1;
 
         const rankBadge = rank <= 3
@@ -779,6 +841,12 @@ function KakaoReportMap({
           unit={unit}
           onSelectRegion={openRegionReport}
         />
+        <EvidenceComparisonReport
+          evidence={comparisonEvidence}
+          error={currentComparisonError}
+          isLoading={isComparisonLoading}
+          selectedCount={openReports.length}
+        />
       </div>
     );
   }
@@ -826,8 +894,204 @@ function KakaoReportMap({
         unit={unit}
         onSelectRegion={openRegionReport}
       />
+      <EvidenceComparisonReport
+        evidence={comparisonEvidence}
+        error={currentComparisonError}
+        isLoading={isComparisonLoading}
+        selectedCount={openReports.length}
+      />
     </div>
   );
+}
+
+function EvidenceComparisonReport({
+  evidence,
+  error,
+  isLoading,
+  selectedCount,
+}: {
+  evidence: AIReportEvidencePack | null;
+  error: string;
+  isLoading: boolean;
+  selectedCount: number;
+}) {
+  return (
+    <section className="border-t border-white/10 py-8" id="candidate-comparison-report">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
+            Evidence Comparison
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-[#f5f5f7]">
+            후보 2개 데이터 비교
+          </h2>
+        </div>
+        {evidence ? (
+          <p className="font-mono text-[10px] text-[#6a6b6b]">
+            DATA {evidence.data_version.replace("sha256:", "")}
+          </p>
+        ) : null}
+      </div>
+
+      {selectedCount < 2 ? (
+        <p className="mt-5 border-l-2 border-white/15 pl-4 text-sm leading-6 text-[#9f9fa0]">
+          지도나 후보 카드에서 지역 두 곳의 미니 리포트를 열면 같은 근거로 비교합니다.
+        </p>
+      ) : isLoading ? (
+        <p className="mt-5 text-sm text-[#9f9fa0]">비교 근거를 확인하는 중입니다.</p>
+      ) : error ? (
+        <p className="mt-5 border-l-2 border-[#ffcf70] pl-4 text-sm leading-6 text-[#ffcf70]">
+          {error}
+        </p>
+      ) : evidence ? (
+        <>
+          <div className="mt-7 border-y border-white/10">
+            {evidence.chart_specs.map((chart) => (
+              <EvidenceComparisonChart chart={chart} key={chart.chart_id} />
+            ))}
+          </div>
+          <EvidenceQualitySummary evidence={evidence} />
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceComparisonChart({ chart }: { chart: EvidenceChartSpec }) {
+  const position = (value: number) => {
+    const rawPosition =
+      ((value - chart.axis_min) / Math.max(chart.axis_max - chart.axis_min, 1)) * 100;
+    return Math.min(Math.max(rawPosition, 0), 100);
+  };
+  const validData = chart.data.filter(
+    (datum): datum is typeof datum & { value: number } => datum.value !== null,
+  );
+  const positions = validData.map((datum) => position(datum.value));
+  const connectorLeft = positions.length > 1 ? Math.min(...positions) : 0;
+  const connectorWidth = positions.length > 1
+    ? Math.max(...positions) - connectorLeft
+    : 0;
+  const hasCaution = chart.data.some((datum) => datum.quality_status !== "reliable");
+
+  return (
+    <article className="grid gap-5 border-b border-white/10 py-7 last:border-b-0 lg:grid-cols-[15rem_1fr] lg:items-center">
+      <div>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#f5f5f7]">{chart.title}</h3>
+          {hasCaution ? (
+            <span className="text-[10px] font-bold text-[#ffcf70]">주의</span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-xs text-[#6a6b6b]">
+          {chart.lower_label} · {chart.higher_label} / 서울 전체 관측 범위
+        </p>
+      </div>
+
+      {validData.length === 0 ? (
+        <p className="text-sm text-[#6a6b6b]">비교 가능한 데이터가 없습니다.</p>
+      ) : (
+        <div>
+          <div className="relative h-12" aria-label={`${chart.title} 비교 차트`}>
+            <div className="absolute left-0 right-0 top-5 h-px bg-white/15" />
+            {chart.reference ? (
+              <div
+                className="absolute top-2 h-7 w-px bg-white/30"
+                style={{ left: `${position(chart.reference.value)}%` }}
+                title={`${chart.reference.label}: ${formatEvidenceValue(chart.reference.value, chart.unit)}`}
+              />
+            ) : null}
+            {connectorWidth > 0 ? (
+              <div
+                className="absolute top-[18px] h-1 bg-[#847dff]/45"
+                style={{ left: `${connectorLeft}%`, width: `${connectorWidth}%` }}
+              />
+            ) : null}
+            {validData.map((datum, index) => (
+              <div
+                className={`absolute top-[13px] h-4 w-4 -translate-x-1/2 rounded-full border-2 border-[#0f1011] ${
+                  datum.quality_status === "reliable"
+                    ? index === 0
+                      ? "bg-[#f5f5f7]"
+                      : "bg-[#dfff62]"
+                    : "bg-[#ffcf70]"
+                }`}
+                key={datum.evidence_id}
+                style={{ left: `${position(datum.value)}%` }}
+                title={`${datum.label}: ${formatEvidenceValue(datum.value, chart.unit)}`}
+              />
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {chart.data.map((datum, index) => (
+              <div className="flex items-center justify-between gap-3 text-xs" key={datum.evidence_id}>
+                <span className="flex min-w-0 items-center gap-2 text-[#9f9fa0]">
+                  <span
+                    className={`h-2 w-2 shrink-0 rounded-full ${
+                      datum.quality_status === "reliable"
+                        ? index === 0
+                          ? "bg-[#f5f5f7]"
+                          : "bg-[#dfff62]"
+                        : datum.quality_status === "caution"
+                          ? "bg-[#ffcf70]"
+                          : "bg-[#6a6b6b]"
+                    }`}
+                  />
+                  <span className="truncate">{datum.label}</span>
+                </span>
+                <strong className="shrink-0 font-mono text-[#f5f5f7]">
+                  {formatEvidenceValue(datum.value, chart.unit)}
+                </strong>
+              </div>
+            ))}
+          </div>
+          {chart.reference ? (
+            <p className="mt-3 text-[10px] text-[#6a6b6b]">
+              기준선: {chart.reference.label} {formatEvidenceValue(chart.reference.value, chart.unit)}
+            </p>
+          ) : null}
+          <p className="mt-2 flex justify-between font-mono text-[9px] text-[#555758]">
+            <span>{formatEvidenceValue(chart.axis_min, chart.unit)}</span>
+            <span>{formatEvidenceValue(chart.axis_max, chart.unit)}</span>
+          </p>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function EvidenceQualitySummary({ evidence }: { evidence: AIReportEvidencePack }) {
+  const visibleFlags = evidence.quality_flags.filter((flag) =>
+    evidence.chart_specs.some((chart) =>
+      chart.related_quality_flag_codes.includes(flag.code),
+    ),
+  );
+
+  if (visibleFlags.length === 0) return null;
+
+  return (
+    <details className="mt-6 border-b border-white/10 pb-6">
+      <summary className="cursor-pointer text-sm font-semibold text-[#cacaca]">
+        데이터 주의사항 {visibleFlags.length}개
+      </summary>
+      <ul className="mt-4 grid gap-3 text-xs leading-5 text-[#9f9fa0]">
+        {visibleFlags.map((flag) => (
+          <li className="border-l-2 border-white/15 pl-3" key={`${flag.code}:${flag.region_id ?? "all"}`}>
+            {flag.message}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function formatEvidenceValue(value: number | null, unit: string) {
+  if (value === null) return "데이터 없음";
+  const digits = unit === "%" || unit.includes("/") ? 1 : 0;
+
+  return `${value.toLocaleString("ko-KR", {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: digits,
+  })}${unit}`;
 }
 
 function MapSizeControl({
@@ -1005,7 +1269,7 @@ function TopRegionCards({
             </p>
             <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
             <p className="mt-3 text-sm text-[#9f9fa0]">
-              {formatMapValue(region.value, unit)}
+              {formatRegionSummary(region, unit)}
             </p>
           </button>
         );
@@ -1382,4 +1646,12 @@ function formatMapValue(value: number | null, unit: string) {
   }
 
   return formatNumber(value, unit);
+}
+
+function formatRegionSummary(region: ReportRegion, unit: string) {
+  if (region.match_count !== undefined) {
+    return `조건 근거 ${region.match_count}개`;
+  }
+
+  return formatMapValue(region.value, unit);
 }

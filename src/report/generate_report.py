@@ -50,6 +50,10 @@ class RegionSnapshot:
     has_population_data: bool
     has_safety_data: bool
     has_commercial_data: bool
+    area_km2: float | None = None
+    safe_facility_density: float | None = None
+    nightlife_density: float | None = None
+    store_density: float | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -154,6 +158,10 @@ def to_region_snapshot(row: pd.Series) -> RegionSnapshot:
         has_population_data=to_bool(row["생활인구_데이터여부"]),
         has_safety_data=to_bool(row["안전_데이터여부"]),
         has_commercial_data=to_bool(row["상권_데이터여부"]),
+        area_km2=optional_float(row.get("area_km2")),
+        safe_facility_density=optional_float(row.get("안심시설수_면적당")),
+        nightlife_density=optional_float(row.get("유흥시설수_면적당")),
+        store_density=optional_float(row.get("사업체수_면적당")),
     )
 
 

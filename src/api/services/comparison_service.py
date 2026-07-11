@@ -111,6 +111,9 @@ def enrich_with_geometry(snapshot: pd.DataFrame) -> pd.DataFrame:
     enriched["사업체수_면적당"] = (
         pd.to_numeric(enriched["사업체수"], errors="coerce").where(area.gt(0)) / area
     )
+    enriched["유흥시설수_면적당"] = (
+        pd.to_numeric(enriched["유흥시설수"], errors="coerce").where(area.gt(0)) / area
+    )
     return enriched
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Query
 
+from src.ai_report.contracts import AIReportEvidencePack, AIReportPreviewRequest
+from src.ai_report.evidence import build_evidence_pack
 from src.api.errors import (
     ApiError,
     api_error_handler,
@@ -50,6 +52,11 @@ def get_metadata() -> MetadataResponse:
 @app.get("/compare", response_model=CompareResponse)
 def compare_regions(a: str, b: str) -> CompareResponse:
     return compare_region_snapshots(a, b)
+
+
+@app.post("/ai/reports/preview", response_model=AIReportEvidencePack)
+def preview_ai_report(request: AIReportPreviewRequest) -> AIReportEvidencePack:
+    return build_evidence_pack(request)
 
 
 @app.get("/explore", response_model=ExploreResponse)

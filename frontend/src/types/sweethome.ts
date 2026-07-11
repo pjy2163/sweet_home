@@ -144,3 +144,79 @@ export type HeatmapResponse = {
   regions: HeatmapRegion[];
   metadata: HeatmapMetadata;
 };
+
+export type AIReportPriority = Exclude<ExploreCondition, "transport">;
+
+export type AIReportPreviewRequest = {
+  region_a: string;
+  region_b: string;
+  priorities?: AIReportPriority[];
+  comparison_basis?: "seoul" | "direct";
+};
+
+export type EvidenceQualityStatus = "reliable" | "caution" | "missing";
+
+export type EvidenceRegion = {
+  region_id: string;
+  gu_name: string;
+  dong_name: string;
+  display_name: string;
+};
+
+export type EvidenceQualityFlag = {
+  code: string;
+  severity: "info" | "caution" | "unavailable";
+  domain: AIReportPriority | null;
+  region_id: string | null;
+  evidence_ids: string[];
+  message: string;
+};
+
+export type EvidenceChartDatum = {
+  evidence_id: string;
+  region_id: string;
+  label: string;
+  value: number | null;
+  quality_status: EvidenceQualityStatus;
+};
+
+export type EvidenceChartSpec = {
+  chart_id: string;
+  chart_type: "dumbbell" | "reference_dot";
+  semantic: "candidate_comparison" | "relative_to_reference";
+  title: string;
+  metric_key: string;
+  unit: string;
+  lower_label: string;
+  higher_label: string;
+  favorable_direction: "none";
+  axis_basis: "seoul_observed_range";
+  axis_min: number;
+  axis_max: number;
+  data: EvidenceChartDatum[];
+  reference: { label: string; value: number } | null;
+  related_quality_flag_codes: string[];
+};
+
+export type InterpretationPolicy = {
+  policy_id: string;
+  label: string;
+  kind: "data_quality" | "product_heuristic" | "distribution_band";
+  status: "active" | "review_required";
+  definition: string;
+  threshold_values: number[];
+  unit: string;
+  source: string;
+  rationale: string;
+  limitation: string;
+};
+
+export type AIReportEvidencePack = {
+  schema_version: string;
+  data_version: string;
+  request: AIReportPreviewRequest;
+  regions: EvidenceRegion[];
+  chart_specs: EvidenceChartSpec[];
+  quality_flags: EvidenceQualityFlag[];
+  interpretation_policies: InterpretationPolicy[];
+};
