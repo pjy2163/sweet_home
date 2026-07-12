@@ -299,9 +299,18 @@ function CandidateBoard({ exploration, profile, candidateStates, savedCandidates
   onUpdateCandidate: (regionId: string, state: CandidateState) => void; onCompare: () => void; onEditProfile: () => void;
 }) {
   if (!exploration) return <section><PageIntro eyebrow="Candidate board" title="조건을 먼저 확인해 주세요" description="Decision Profile을 바탕으로 후보군을 구성합니다." /><button className="mt-6 rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
+  const mapParams = new URLSearchParams({
+    conditions: profile.conditions.join(","),
+    contract_type: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
+    budget_max_krw_10k: profile.budget,
+  });
+  if (savedCandidates.length) {
+    mapParams.set("saved", savedCandidates.map((region) => region.region_id).join(","));
+  }
+  const mapUrl = `/app/report-map?${mapParams.toString()}`;
   return (
     <section>
-      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="Candidate board" title="살펴볼 후보를 압축해 보세요" description="포함 근거와 주의사항을 확인하고 최종 비교 후보 2곳을 저장하세요." /><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div>
+      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="Candidate board" title="살펴볼 후보를 압축해 보세요" description="포함 근거와 주의사항을 확인하고 최종 비교 후보 2곳을 저장하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
       <div className="mt-7 grid gap-4 sm:grid-cols-3"><SummaryCard label="탐색 후보" value={`${exploration.regions.length}곳`} /><SummaryCard label="저장한 후보" value={`${savedCandidates.length}/2`} accent /><SummaryCard label="의사결정 기준" value={`${profile.conditions.length}개`} /></div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {exploration.regions.map((region) => <CandidateCard key={region.region_id} region={region} state={candidateStates[region.region_id]} onUpdate={onUpdateCandidate} />)}

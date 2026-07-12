@@ -185,6 +185,20 @@ function ReportMapContent() {
     const valid: ExploreCondition[] = ["safety", "convenience", "price", "population", "transport"];
     return raw.split(",").filter((c): c is ExploreCondition => valid.includes(c as ExploreCondition));
   }, [searchParams]);
+  const contractType = useMemo<"monthly_rent" | "jeonse" | undefined>(() => {
+    const raw = searchParams.get("contract_type");
+    return raw === "monthly_rent" || raw === "jeonse" ? raw : undefined;
+  }, [searchParams]);
+  const budgetMaxKrw10k = useMemo<number | undefined>(() => {
+    const raw = searchParams.get("budget_max_krw_10k");
+    if (!raw) return undefined;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }, [searchParams]);
+  const savedRegionIds = useMemo(() => {
+    const raw = searchParams.get("saved");
+    return new Set(raw ? raw.split(",").filter(Boolean) : []);
+  }, [searchParams]);
   const [selectedConditions, setSelectedConditions] = useState<ExploreCondition[]>(
     initialConditions,
   );
@@ -205,15 +219,24 @@ function ReportMapContent() {
     let ignore = false;
     fetchCandidateMatches(selectedConditions, 20, {
       excludeLowVolumePrice,
+      contractType,
+      budgetMaxKrw10k,
     }).then((result) => {
       if (!ignore) setCandidateRegions(result.regions);
     }).catch(() => {});
     return () => { ignore = true; };
-  }, [excludeLowVolumePrice, selectedConditions]);
+  }, [budgetMaxKrw10k, contractType, excludeLowVolumePrice, selectedConditions]);
 
   const visibleCandidateRegions = useMemo(
-    () => (selectedConditions.length > 0 ? candidateRegions : []),
-    [candidateRegions, selectedConditions.length],
+    () => {
+      if (selectedConditions.length === 0) return [];
+      return [...candidateRegions].sort((a, b) => {
+        const savedDifference = Number(savedRegionIds.has(b.region_id))
+          - Number(savedRegionIds.has(a.region_id));
+        return savedDifference || b.match_count - a.match_count;
+      });
+    },
+    [candidateRegions, savedRegionIds, selectedConditions.length],
   );
 
   useEffect(() => {
@@ -298,6 +321,20 @@ function ReportMapContent() {
             지도에서 후보 위치를 먼저 확인하고, 지표 순위에서 서울 전체 분포를 함께 비교합니다.
           </p>
 
+          {contractType && budgetMaxKrw10k ? (
+            <div className="mt-5 rounded-xl border border-[#b9dcfb] bg-[#edf7ff] p-4 text-[#17203b]">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2475d0]">
+                Decision Profile
+              </p>
+              <p className="mt-2 text-sm font-semibold">
+                {contractType === "monthly_rent" ? "월세" : "전세 보증금"} {budgetMaxKrw10k.toLocaleString()}만원 이하
+              </p>
+              <p className="mt-1 text-xs text-[#6c7689]">
+                후보 보드와 동일한 예산 필터가 적용됐습니다.
+              </p>
+            </div>
+          ) : null}
+
           <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-4">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
               분석 기준
@@ -356,6 +393,7 @@ function ReportMapContent() {
               </div>
               <p className="mt-3 text-xs text-[#6a6b6b]">
                 후보군 {visibleCandidateRegions.length}곳이 지도에 표시됩니다
+                {savedRegionIds.size > 0 ? ` · 저장 후보 ${savedRegionIds.size}곳 우선 표시` : ""}
               </p>
             </div>
 
