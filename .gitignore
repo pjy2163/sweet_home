@@ -48,6 +48,7 @@ data/raw/**
 data/processed/*.parquet
 data/processed/*.xlsx
 data/processed/region_indicator_profile.csv
+data/processed/housing_rent_fact.csv
 
 # Keep small CSV schemas/results only when intentionally reviewed.
 # If a processed CSV becomes large or sensitive, move it to data/raw or add it here explicitly.
