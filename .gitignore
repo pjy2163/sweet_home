@@ -23,7 +23,6 @@ env/
 # Secrets / local config
 .env
 .env.*
-!.env.example
 *.pem
 *.key
 *.p12
@@ -33,6 +32,9 @@ env/
 secrets.*
 credentials.*
 service-account*.json
+
+# Local-only infrastructure drafts (publish after deployment validation)
+compose.yaml
 
 # Local runtime outputs
 logs/
@@ -68,6 +70,7 @@ data/exports/**
 !**/README.MD
 
 # Private/internal operating docs
+study/**
 AGENTS.md
 CLAUDE.md
 docs/agents/**
