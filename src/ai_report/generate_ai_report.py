@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import time
@@ -92,13 +93,35 @@ def validate_grounding(report: AIReportContent, evidence: AIReportEvidencePack) 
 
 
 def build_prompt(evidence: AIReportEvidencePack) -> str:
+    compact_context = {
+        "data_version": evidence.data_version,
+        "request": evidence.request.model_dump(),
+        "regions": [region.model_dump() for region in evidence.regions],
+        "metrics": [
+            {
+                "evidence_id": metric.evidence_id,
+                "region_id": metric.region_id,
+                "domain": metric.domain,
+                "metric_key": metric.metric_key,
+                "label": metric.label,
+                "value": metric.value,
+                "unit": metric.unit,
+                "data_date": metric.data_date,
+                "quality_status": metric.quality_status,
+            }
+            for metric in evidence.metrics
+        ],
+        "comparisons": [comparison.model_dump() for comparison in evidence.comparisons],
+        "quality_flags": [flag.model_dump() for flag in evidence.quality_flags],
+    }
     return (
         "당신은 주거 후보 비교 리포트 작성자입니다. 추천하거나 승자를 정하지 마세요. "
         "숫자는 화면의 백엔드 비교표가 표시하므로 어떤 숫자나 숫자 문자를 서술에 쓰지 마세요. "
         "각 섹션은 제공된 metric evidence_id만 인용하세요. 가격, 생활인구, 안전 대체 지표, "
-        "생활 편의의 상충 조건과 데이터 한계를 한국어로 구체적으로 설명하세요. "
+        "생활 편의에 대해 정확히 네 개의 섹션을 만들고 상충 조건과 데이터 한계를 "
+        "간결한 한국어로 설명하세요. "
         "안심시설과 유흥시설은 안전 또는 위험을 보장하지 않습니다.\n\nEVIDENCE:\n"
-        + evidence.model_dump_json()
+        + json.dumps(compact_context, ensure_ascii=False, separators=(",", ":"))
     )
 
 

@@ -2,11 +2,27 @@ from fastapi.testclient import TestClient
 
 from src.ai_report.contracts import AIReportContent, AIReportSection
 from src.ai_report.generate_ai_report import generate_ai_report
+from src.ai_report.generate_ai_report import build_prompt
+from src.ai_report.evidence import build_evidence_pack
 from src.ai_report.contracts import AIReportPreviewRequest
 from src.api.main import app
 
 
 client = TestClient(app)
+
+
+def test_prompt_uses_compact_evidence_context() -> None:
+    evidence = build_evidence_pack(
+        AIReportPreviewRequest(region_a="개포1동", region_b="개포4동")
+    )
+    prompt = build_prompt(evidence)
+
+    assert '"metrics"' in prompt
+    assert '"quality_flags"' in prompt
+    assert '"chart_specs"' not in prompt
+    assert '"interpretation_policies"' not in prompt
+    assert '"source_documents"' not in prompt
+    assert all(metric.evidence_id in prompt for metric in evidence.metrics)
 
 
 def test_report_endpoint_returns_deterministic_fallback_without_api_key(monkeypatch) -> None:
