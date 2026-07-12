@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
@@ -149,6 +150,26 @@ export default function LandingPage() {
             <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />사용자가 판단할 수 있도록 조건과 근거를 정리합니다.</p>
           </div>
           <div data-scroll-float><WorkspacePreview /></div>
+        </div>
+      </section>
+
+      <section className="bg-[#f7f8fa]">
+        <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:py-20" data-scroll-reveal>
+          <div className="overflow-hidden rounded-xl border border-[#dfe3ea] bg-[#eaf5ff]">
+            <Image
+              alt="서울 지도 위에서 두 후보 지역의 생활 데이터를 비교하는 SweetHome 집 캐릭터"
+              className="h-auto w-full"
+              height={941}
+              priority
+              src="/sweethome-brand-illustration.png"
+              width={1672}
+            />
+          </div>
+          <div className="lg:pl-6">
+            <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">A clearer place to start</p>
+            <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />후보를 비교할 기준은<br />선명할 수 있습니다.</h2>
+            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">가격, 생활 편의, 이동과 주거환경에 관한 데이터를 한곳에 모아 직접 확인할 지역부터 차근차근 좁혀갑니다.</p>
+          </div>
         </div>
       </section>
 
