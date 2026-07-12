@@ -1,296 +1,185 @@
 import Link from "next/link";
+
 import { BrandLogo } from "@/components/brand-logo";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 
 const APP_URL = "/app";
 
-function LivingDataGraph() {
-  return (
-    <div className="living-graph" aria-hidden="true">
-      <svg viewBox="0 0 900 620" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <linearGradient id="graph-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#dfff62" stopOpacity=".28" />
-            <stop offset="1" stopColor="#dfff62" stopOpacity="0" />
-          </linearGradient>
-          <filter id="graph-glow">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <g className="graph-guides">
-          {[90, 190, 290, 390, 490].map((y) => <line key={y} x1="0" x2="900" y1={y} y2={y} />)}
-          {[100, 260, 420, 580, 740].map((x) => <line key={x} x1={x} x2={x} y1="0" y2="620" />)}
-        </g>
-        <path
-          className="graph-area"
-          d="M0 485 C85 470 110 390 190 412 S310 505 385 390 S500 180 575 250 S690 415 760 270 S845 105 900 135 L900 620 L0 620 Z"
-        />
-        <path
-          className="graph-line graph-line-main"
-          d="M0 485 C85 470 110 390 190 412 S310 505 385 390 S500 180 575 250 S690 415 760 270 S845 105 900 135"
-        />
-        <path
-          className="graph-line graph-line-soft"
-          d="M0 350 C90 320 130 370 210 335 S350 205 430 270 S545 410 640 340 S780 225 900 245"
-        />
-        <g className="graph-node node-a"><circle cx="190" cy="412" r="6" /><circle cx="190" cy="412" r="16" /></g>
-        <g className="graph-node node-b"><circle cx="575" cy="250" r="6" /><circle cx="575" cy="250" r="16" /></g>
-        <g className="graph-node node-c"><circle cx="760" cy="270" r="6" /><circle cx="760" cy="270" r="16" /></g>
-      </svg>
-      <div className="graph-chip chip-price"><span>가격</span><strong>−8.2%</strong><small>서울 평균 대비</small></div>
-      <div className="graph-chip chip-safety"><span>안전</span><strong>82</strong><small>관측 지표</small></div>
-      <div className="graph-chip chip-life"><span>생활 편의</span><strong>94</strong><small>후보 지역</small></div>
-      <p className="graph-axis">SEOUL / 424 DONG</p>
-    </div>
-  );
-}
+const FLOW = [
+  {
+    number: "01",
+    label: "조건 정리",
+    title: "막연한 기준을\n비교 가능한 조건으로",
+    description:
+      "계약 유형과 예산, 생활에서 중요한 기준을 먼저 정리합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
+  },
+  {
+    number: "02",
+    label: "후보 압축",
+    title: "살펴볼 지역만\n후보 보드에 남기고",
+    description:
+      "후보가 포함된 근거와 데이터 주의사항을 확인하면서 저장하거나 제외합니다. 지역의 절대 순위는 매기지 않습니다.",
+  },
+  {
+    number: "03",
+    label: "근거 비교",
+    title: "최종 후보의 차이를\n같은 기준으로 비교합니다",
+    description:
+      "비용, 생활 편의, 생활인구, 안전 관련 대체 지표를 나란히 보고 무엇을 얻고 포기하는지 판단합니다.",
+  },
+];
 
-function ExternalAppLink({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className: string;
-}) {
+function ArrowLink({ children, className }: { children: React.ReactNode; className: string }) {
   return (
-    <Link
-      className={className}
-      href={APP_URL}
-    >
+    <Link className={className} href={APP_URL}>
       {children}
       <span aria-hidden="true">→</span>
     </Link>
   );
 }
 
-function ProductDemo() {
+function WorkspacePreview() {
   return (
-    <div className="product-demo" aria-label="SweetHome 서비스 화면 미리보기">
-      <div className="demo-bar">
-        <div className="flex items-center gap-2">
-          <span />
-          <span />
-          <span />
-        </div>
-        <p>SWEETHOME / SEOUL</p>
-        <p className="hidden sm:block">LIVE DATA</p>
+    <div className="overflow-hidden rounded-xl border border-[#dfe3ea] bg-white shadow-[0_24px_70px_rgba(23,32,59,.12)]" aria-label="SweetHome 후보 보드 미리보기">
+      <div className="flex h-12 items-center justify-between border-b border-[#e5e8ee] px-4 text-[10px] font-semibold uppercase tracking-[.14em] text-[#9097a6]">
+        <span>Decision workspace</span>
+        <span>Seoul · 2026</span>
       </div>
-      <div className="demo-grid">
-        <aside className="demo-sidebar">
-          <div>
-            <p className="demo-label">MY PRIORITY</p>
-            <h3>나에게 중요한<br />조건은?</h3>
-          </div>
-          <div className="grid gap-2">
-            {["안전", "생활 편의", "합리적 가격", "생활 인구"].map(
-              (condition, index) => (
-                <div
-                  className={`demo-condition demo-condition-${index + 1}`}
-                  key={condition}
-                >
-                  <span>{condition}</span>
-                  <span>0{index + 1}</span>
-                </div>
-              ),
-            )}
+      <div className="grid min-h-[430px] sm:grid-cols-[150px_1fr]">
+        <aside className="hidden border-r border-[#e5e8ee] bg-[#fafbfc] p-4 sm:block">
+          <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[#a0a6b3]">My decision</p>
+          <p className="mt-2 text-sm font-semibold text-[#17203b]">주거 의사결정</p>
+          <div className="mt-8 space-y-1 text-[11px]">
+            <div className="rounded-md px-3 py-2 text-[#747c8d]">01 내 조건</div>
+            <div className="rounded-md bg-[#eaf4ff] px-3 py-2 font-semibold text-[#1888e8]">02 후보 보드</div>
+            <div className="rounded-md px-3 py-2 text-[#747c8d]">03 지역 비교</div>
           </div>
         </aside>
-        <div
-          className="demo-map"
-          style={{ "--map-art": "url(/sweethome-map-background.png)" } as React.CSSProperties}
-        >
-          <svg className="seoul-map" viewBox="0 0 760 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-            <g className="districts">
-              <path d="M8 72 L151 30 239 92 216 180 91 198 15 141Z" />
-              <path d="M239 92 L354 42 449 110 421 203 296 225 216 180Z" />
-              <path d="M449 110 L603 61 749 132 706 241 565 225 421 203Z" />
-              <path d="M15 141 L91 198 111 304 25 372 -23 287Z" />
-              <path d="M91 198 L216 180 296 225 274 340 143 372 111 304Z" />
-              <path d="M296 225 L421 203 565 225 527 353 390 381 274 340Z" />
-              <path d="M565 225 L706 241 781 336 676 403 527 353Z" />
-              <path d="M25 372 L143 372 217 465 159 596 18 554 -28 452Z" />
-              <path d="M143 372 L274 340 390 381 372 509 217 465Z" />
-              <path d="M390 381 L527 353 676 403 619 526 477 566 372 509Z" />
-              <path d="M676 403 L781 336 785 553 619 526Z" />
-            </g>
-            <g className="map-river">
-              <path d="M-20 335 C105 290 185 354 294 332 S475 274 573 321 S681 385 790 337" />
-              <path d="M-20 362 C105 317 185 381 294 359 S475 301 573 348 S681 412 790 364" />
-            </g>
-            <g className="map-streets">
-              <path d="M68 0 C110 150 192 210 310 274 S490 390 540 620" />
-              <path d="M620 0 C560 121 520 190 441 257 S320 414 287 620" />
-              <path d="M0 234 C160 246 271 175 402 157 S626 173 760 225" />
-              <path d="M0 480 C164 421 309 461 455 471 S625 457 760 408" />
-            </g>
-          </svg>
-          <div className="map-road road-one" />
-          <div className="map-road road-two" />
-          <span className="map-dot dot-one" />
-          <span className="map-dot dot-two" />
-          <span className="map-dot dot-three" />
-          <div className="map-card card-one">
-            <p>01 성수1가1동</p>
-            <strong>86</strong>
-            <span>생활편의 · 생활인구</span>
+        <div className="bg-[#f7f8fa] p-5 sm:p-7">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[#1888e8]">Candidate board</p>
+              <h3 className="mt-2 text-xl font-semibold tracking-[-.03em] text-[#17203b]">살펴볼 후보를 압축해 보세요</h3>
+            </div>
+            <span className="rounded-md border border-[#dfe3ea] bg-white px-3 py-2 text-[10px] text-[#697184]">조건 수정</span>
           </div>
-          <div className="map-card card-two">
-            <p>02 공릉1동</p>
-            <strong>79</strong>
-            <span>가격 · 안전</span>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {[["탐색 후보", "8곳"], ["저장한 후보", "2/2"], ["판단 기준", "3개"]].map(([label, value], index) => (
+              <div className={`rounded-lg border p-3 ${index === 1 ? "border-[#b9dcfb] bg-[#edf7ff]" : "border-[#e1e4ea] bg-white"}`} key={label}>
+                <p className="text-[9px] text-[#8a91a0]">{label}</p>
+                <p className={`mt-1 text-lg font-semibold ${index === 1 ? "text-[#1888e8]" : "text-[#17203b]"}`}>{value}</p>
+              </div>
+            ))}
           </div>
-          <p className="map-caption">데이터가 발견한<br />당신의 다음 동네</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <PreviewCandidate district="마포구" dong="망원2동" reasons={["생활 편의 지표 확인", "가격 수준 비교 가능"]} />
+            <PreviewCandidate district="성동구" dong="성수1가1동" reasons={["최근 거래 데이터 확인", "생활인구 지표 확인"]} />
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-[#dfe3ea] bg-white px-4 py-3">
+            <p className="text-[11px] font-semibold text-[#17203b]">최종 후보 2곳 선택</p>
+            <span className="rounded-md bg-[#17203b] px-3 py-2 text-[10px] font-semibold text-white">최종 후보 비교</span>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-const STORY = [
-  {
-    number: "01",
-    eyebrow: "Discover",
-    title: "막연한 기준을\n선명한 조건으로",
-    body: "안전, 가격, 편의, 생활인구 중요하게 생각하는 조건을 고르면\n데이터가 탐색의 출발점을 만듭니다.",
-    visual: (
-      <div className="story-visual visual-priority">
-        <p>나에게 중요한 것</p>
-        {["안전한 귀갓길", "생활이 편리한 곳", "부담 없는 가격"].map(
-          (item, index) => (
-            <div key={item}>
-              <span>0{index + 1}</span>
-              <strong>{item}</strong>
-              <span className="check">✓</span>
-            </div>
-          ),
-        )}
+function PreviewCandidate({ district, dong, reasons }: { district: string; dong: string; reasons: string[] }) {
+  return (
+    <article className="rounded-lg border border-[#1888e8] bg-white p-4 ring-1 ring-[#1888e8]">
+      <div className="flex items-start justify-between gap-2">
+        <div><p className="text-[9px] text-[#8a91a0]">{district}</p><p className="mt-1 text-sm font-semibold text-[#17203b]">{dong}</p></div>
+        <span className="rounded-full bg-[#eaf4ff] px-2 py-1 text-[9px] font-semibold text-[#1888e8]">최종 후보</span>
       </div>
-    ),
-  },
-  {
-    number: "02",
-    eyebrow: "Explore",
-    title: "서울의 동네를\n데이터로 발견하고",
-    body: "선택한 조건과 연결된 지표가 관측되는 행정동을 찾아,\n미처 떠올리지 못했던 후보까지 넓혀봅니다.",
-    visual: (
-      <div className="story-visual visual-rank">
-        <p>조건 기준 후보군</p>
-        <div className="rank-head"><span>지역</span><span>매치</span></div>
-        {[
-          ["성수1가1동", "04", "92%"],
-          ["공릉1동", "03", "84%"],
-          ["망원2동", "03", "76%"],
-        ].map((item, index) => (
-          <div className="rank-row" key={item[0]}>
-            <span>0{index + 1}</span><strong>{item[0]}</strong><span>{item[1]}</span><em>{item[2]}</em>
-          </div>
+      <p className="mt-4 text-[9px] font-semibold uppercase tracking-[.1em] text-[#9299a8]">포함 근거</p>
+      <ul className="mt-2 space-y-1 text-[10px] text-[#687083]">{reasons.map((reason) => <li key={reason}>· {reason}</li>)}</ul>
+    </article>
+  );
+}
+
+function DecisionProfilePreview() {
+  return (
+    <div className="rounded-xl border border-[#e0e4eb] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,59,.06)]">
+      <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#1888e8]">Decision profile</p>
+      <h4 className="mt-3 text-lg font-semibold text-[#17203b]">현재 의사결정 기준</h4>
+      <dl className="mt-5 space-y-4 text-sm">
+        <div className="flex justify-between border-b border-[#eceef2] pb-3"><dt className="text-[#7c8495]">계약 유형</dt><dd className="font-semibold">월세</dd></div>
+        <div className="flex justify-between border-b border-[#eceef2] pb-3"><dt className="text-[#7c8495]">월 주거비</dt><dd className="font-semibold">80만원 이하</dd></div>
+        <div><dt className="text-[#7c8495]">우선 확인</dt><dd className="mt-3 flex flex-wrap gap-2">{["주거 비용", "생활 편의", "야간 환경"].map((item) => <span className="rounded-full bg-[#f0f4f8] px-3 py-1.5 text-xs text-[#566174]" key={item}>{item}</span>)}</dd></div>
+      </dl>
+    </div>
+  );
+}
+
+function ComparisonPreview() {
+  return (
+    <div className="rounded-xl border border-[#e0e4eb] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,59,.06)]">
+      <div className="grid grid-cols-[1fr_70px_1fr] items-end border-b border-[#eceef2] pb-4 text-center">
+        <strong>망원2동</strong><span className="text-[10px] font-semibold text-[#8b92a1]">비교 기준</span><strong>성수1가1동</strong>
+      </div>
+      <div className="divide-y divide-[#eceef2] text-sm">
+        {[["서울 평균보다 낮음", "가격", "서울 평균보다 높음"], ["데이터 확인", "생활 편의", "데이터 확인"], ["현장 확인 필요", "야간 환경", "현장 확인 필요"]].map((row) => (
+          <div className="grid grid-cols-[1fr_70px_1fr] items-center py-4 text-center" key={row[1]}><span>{row[0]}</span><span className="text-xs text-[#8b92a1]">{row[1]}</span><span>{row[2]}</span></div>
         ))}
       </div>
-    ),
-  },
-  {
-    number: "03",
-    eyebrow: "Compare",
-    title: "감이 아닌 근거로\n나란히 비교합니다",
-    body: "두 후보의 가격, 안전, 편의, 생활인구를 같은 기준 위에 놓고 차이를 빠르게 읽습니다.",
-    visual: (
-      <div className="story-visual visual-compare">
-        <div className="compare-head"><p>성수1가1동</p><span>VS</span><p>공릉1동</p></div>
-        {[
-          ["가격", "68", "88"],
-          ["안전", "82", "79"],
-          ["편의", "94", "73"],
-          ["생활인구", "89", "75"],
-        ].map((item) => (
-          <div className="compare-row" key={item[0]}>
-            <strong>{item[1]}</strong><span>{item[0]}</span><strong>{item[2]}</strong>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
-    <main className="landing">
+    <main className="landing !bg-[#f7f8fa] !text-[#17203b]">
       <LandingScrollEffects />
-      <header className="landing-header">
-        <a className="brand" href="#">
-          <BrandLogo />
-        </a>
-        <nav>
-          <a href="#why">소개</a>
-          <a href="#how">이용 방법</a>
-        </nav>
-        <ExternalAppLink className="header-cta">서비스 시작</ExternalAppLink>
+      <header className="relative z-20 border-b border-[#e1e4ea] bg-white">
+        <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
+          <a className="w-[164px] text-[#17203b]" href="#top" aria-label="SweetHome 홈"><BrandLogo /></a>
+          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">제품</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
+          <ArrowLink className="inline-flex items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453]">서비스 시작</ArrowLink>
+        </div>
       </header>
 
-      <section className="landing-hero">
-        <LivingDataGraph />
-        <p className="hero-kicker"><span /> Seoul Living Intelligence</p>
-        <div className="hero-title-group">
-          <h1>
-            데이터로 완성하는
-            <br />
-            <em>주거 의사결정</em>
-          </h1>
-        </div>
-        <p className="hero-note">
-          서울의 데이터를 읽고, 나에게 맞는 동네를 발견하세요
-        </p>
-      </section>
-
-      <section className="insert-section" data-scroll-reveal id="why">
-        <div className="insert-copy">
-          <p>001 — Product Film</p>
-          <h2>수많은 숫자를,<br />하나의 선택으로</h2>
-        </div>
-        <div data-scroll-float>
-          <ProductDemo />
-        </div>
-        <div className="insert-meta">
-          <p>조건을 고르고</p><span>→</span><p>후보를 발견하고</p><span>→</span><p>차이를 비교합니다</p>
+      <section className="border-b border-[#e1e4ea] bg-white" id="top">
+        <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[.85fr_1.15fr] lg:items-center lg:py-24">
+          <div data-scroll-reveal>
+            <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#1888e8]">Seoul housing decision support</p>
+            <h1 className="mt-6 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-.055em] sm:text-6xl">집을 찾기 전에,<br />살펴볼 지역부터<br />정리합니다.</h1>
+            <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 정리하고, 서울의 지역 데이터를 같은 기준으로 비교해 실제로 확인할 후보를 좁혀보세요.</p>
+            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 시작하기</ArrowLink><a className="text-sm font-semibold text-[#566074]" href="#product">제품 살펴보기 ↓</a></div>
+            <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />사용자가 판단할 수 있도록 조건과 근거를 정리합니다.</p>
+          </div>
+          <div data-scroll-float><WorkspacePreview /></div>
         </div>
       </section>
 
-      <section className="story-section" id="how">
-        <div className="story-intro" data-scroll-reveal>
-          <p>002 — How it works</p>
-          <h2>찾는 순간부터<br />결정하는 순간까지</h2>
-        </div>
-        <div className="story-stream">
-          {STORY.map((item) => (
-            <article className="story-chapter" data-scroll-reveal key={item.number}>
-              <div className="story-copy">
-                <p>{item.number} — {item.eyebrow}</p>
-                <h3>{item.title.split("\n").map((line) => <span key={line}>{line}</span>)}</h3>
-                <div className="story-line" />
-                <p className="story-body">
-                  {item.body.split("\n").map((line) => (
-                    <span key={line}>{line}</span>
-                  ))}
-                </p>
-              </div>
-              {item.visual}
-            </article>
-          ))}
+      <section className="bg-[#f7f8fa]" id="product">
+        <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
+          <div className="grid gap-8 border-b border-[#dfe3e9] pb-16 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#7f8797]">Product thesis</p><div><h2 className="max-w-4xl text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">정보를 더 보여주는 대신,<br />선택지를 줄여드립니다.</h2><p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">매물 수나 하나의 종합점수로 결론을 내리지 않습니다. 사용자의 조건과 지역 데이터를 연결해 후보가 남은 이유와 확인할 부분을 보여줍니다.</p></div></div>
+
+          <div className="mt-16 grid gap-6 lg:grid-cols-2" id="principles">
+            <DecisionProfilePreview />
+            <ComparisonPreview />
+          </div>
         </div>
       </section>
 
-      <section className="final-cta" data-scroll-reveal>
-        <p>READY TO MOVE?</p>
-        <h2>다음 동네를 선택할<br />준비가 되셨나요?</h2>
-        <ExternalAppLink className="final-button">SweetHome 사용하러 가기</ExternalAppLink>
-        <div className="final-orbit"><span /></div>
+      <section className="border-y border-[#e1e4ea] bg-white" id="process">
+        <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
+          <div className="grid gap-8 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#7f8797]">How it works</p><h2 className="text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">찾는 과정부터<br />결정하는 과정까지</h2></div>
+          <div className="mt-16 border-t border-[#dfe3e9]">
+            {FLOW.map((item) => <article className="grid gap-6 border-b border-[#dfe3e9] py-10 sm:grid-cols-[90px_1fr_1fr] sm:items-start" data-scroll-reveal key={item.number}><p className="text-xs font-semibold text-[#1888e8]">{item.number}</p><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8a91a0]">{item.label}</p><h3 className="mt-3 text-2xl font-medium leading-tight tracking-[-.035em]">{item.title.split("\n").map((line) => <span className="block" key={line}>{line}</span>)}</h3></div><p className="max-w-lg text-sm leading-7 text-[#656d7e] sm:pt-7">{item.description}</p></article>)}
+          </div>
+        </div>
       </section>
 
-      <footer>
-        <a className="brand" href="#"><BrandLogo /></a>
-        <p>Data for a better place to live</p>
-        <p>© 2026 SweetHome</p>
-      </footer>
+      <section className="bg-[#17203b] text-white">
+        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24" data-scroll-reveal>
+          <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#91cfff]">Start your decision</p><h2 className="mt-5 text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">어디부터 살펴볼지,<br />내 조건으로 정리해 보세요.</h2></div>
+          <ArrowLink className="inline-flex items-center justify-between gap-12 rounded-lg bg-white px-5 py-4 text-sm font-semibold text-[#17203b] transition hover:bg-[#edf4fb]">SweetHome 시작하기</ArrowLink>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 bg-[#17203b] text-white"><div className="mx-auto flex max-w-[1240px] flex-col gap-5 px-5 py-8 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between sm:px-8"><a className="w-[150px] text-white" href="#top"><BrandLogo /></a><p>Data for a better place to live</p><p>© 2026 SweetHome</p></div></footer>
     </main>
   );
 }
