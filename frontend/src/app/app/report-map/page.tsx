@@ -192,9 +192,7 @@ function ReportMapContent() {
   const [excludeLowVolumePrice, setExcludeLowVolumePrice] = useState(true);
   const [showCautionMetrics, setShowCautionMetrics] = useState(true);
   const [metric, setMetric] = useState<HeatmapMetric>("jeonse_ratio");
-  const [reportView, setReportView] = useState<ReportView>(() =>
-    initialConditions.length > 0 ? "map" : "heatmap",
-  );
+  const [reportView, setReportView] = useState<ReportView>("map");
   const [heatmap, setHeatmap] = useState<HeatmapResponse | null>(null);
   const [candidateRegions, setCandidateRegions] = useState<CandidateMatchRegion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -281,8 +279,8 @@ function ReportMapContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#090a0b] p-4 text-[#f5f5f7]">
-      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#0f1011] lg:grid-cols-[360px_1fr]">
+    <main className="min-h-screen bg-[#f6f6f8] p-4 text-[#111a4a]">
+      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-[#e3e4e8] bg-white shadow-[0_12px_40px_rgba(17,26,74,0.06)] lg:grid-cols-[360px_1fr]">
         <aside className="border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
           <Link
             className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#9f9fa0]"
@@ -297,8 +295,7 @@ function ReportMapContent() {
             지도로 보는 후보군 분포
           </h1>
           <p className="mt-6 text-base leading-7 text-[#9f9fa0]">
-            데이터 히트맵과 카카오 지도를 같은 리포트 안에서 전환합니다.
-            먼저 분포를 보고, 필요할 때 실제 지도 위치감을 확인합니다.
+            지도에서 후보 위치를 먼저 확인하고, 지표 순위에서 서울 전체 분포를 함께 비교합니다.
           </p>
 
           <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-4">
@@ -404,8 +401,8 @@ function ReportMapContent() {
 
           <div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
             {[
-              { id: "heatmap", label: "데이터 히트맵" },
-              { id: "map", label: "카카오 지도" },
+              { id: "map", label: "지도" },
+              { id: "heatmap", label: "지표 순위" },
             ].map((item) => {
               const selected = reportView === item.id;
 
@@ -459,7 +456,7 @@ function ReportMapContent() {
           ) : null}
         </aside>
 
-        <div className="relative min-h-[760px] bg-[#090a0b] p-5 sm:p-8">
+        <div className="relative min-h-[760px] bg-[#eef1f3] p-5 sm:p-8">
           {isLoading ? (
             <MapNotice text="지도 데이터를 불러오는 중입니다." />
           ) : errorMessage ? (
@@ -624,6 +621,12 @@ function KakaoReportMap({
       });
       if (result.evidence.regions.map((region) => region.region_id).join("|") === comparisonKey) {
         setComparisonReport(result);
+        window.sessionStorage.setItem("sweethome:ai-report", JSON.stringify(result));
+        const params = new URLSearchParams({
+          a: comparisonRegionA,
+          b: comparisonRegionB,
+        });
+        window.location.assign(`/app/ai-report?${params.toString()}`);
       }
     } catch (error) {
       setReportGenerationError({
@@ -809,7 +812,7 @@ function KakaoReportMap({
               font-size:${fontSize - 2}px;
               font-weight:400;
               opacity:0.75;
-            ">${valueText}</span>
+            ">${region.match_count === undefined ? valueText : ""}</span>
           </div>`;
 
         const overlay = new maps.CustomOverlay({
@@ -1059,9 +1062,6 @@ function DetailedAIAnalysis({ result }: { result: AIReportResponse }) {
           <section className="rounded-xl border border-white/10 bg-black/20 p-4" key={section.heading}>
             <h4 className="text-sm font-semibold text-white">{section.heading}</h4>
             <p className="mt-3 text-sm leading-6 text-[#b7b7bb]">{section.analysis}</p>
-            <p className="mt-4 font-mono text-[9px] text-[#6f70a0]">
-              {section.evidence_ids.join(" · ")}
-            </p>
           </section>
         ))}
       </div>
@@ -1395,7 +1395,7 @@ function TopRegionCards({
             </p>
             <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
             <p className="mt-3 text-sm text-[#9f9fa0]">
-              {formatRegionSummary(region, unit)}
+              {region.match_count === undefined ? formatRegionSummary(region, unit) : ""}
             </p>
           </button>
         );
@@ -1592,7 +1592,7 @@ function CandidateMiniReport({
             ))
           ) : (
             <span className="text-sm text-[#cacaca]">
-              현재 선택한 히트맵 지표 기준 상위 지역입니다.
+              현재 선택한 지표 기준 상위 지역입니다.
             </span>
           )}
         </div>
@@ -1602,7 +1602,7 @@ function CandidateMiniReport({
         {evidenceProfiles.length > 0 ? (
           <div className="rounded-xl border border-white/10 bg-black/20 p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-[#9f9fa0]">지역 근거 프로필</p>
+              <p className="text-xs font-semibold text-[#9f9fa0]">지역 데이터 프로필</p>
               <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#6a6b6b]">
                 Low · Mid · High
               </p>
@@ -1617,7 +1617,7 @@ function CandidateMiniReport({
           <div className="rounded-xl border border-white/10 bg-black/20 p-4">
             <p className="text-sm font-semibold">{formatMapValue(region.value, unit)}</p>
             <p className="mt-2 text-xs leading-5 text-[#cacaca]">
-              후보 조건 없이 연 지도에서는 선택한 히트맵 지표의 현재 값만 표시합니다.
+              후보 조건 없이 연 지도에서는 선택한 지표의 현재 값만 표시합니다.
             </p>
           </div>
         )}
@@ -1775,9 +1775,5 @@ function formatMapValue(value: number | null, unit: string) {
 }
 
 function formatRegionSummary(region: ReportRegion, unit: string) {
-  if (region.match_count !== undefined) {
-    return `조건 근거 ${region.match_count}개`;
-  }
-
   return formatMapValue(region.value, unit);
 }
