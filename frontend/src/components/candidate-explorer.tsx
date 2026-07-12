@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef } from "react";
+import { FormEvent, useMemo } from "react";
 
 import {
   controlStyles,
@@ -77,17 +77,6 @@ export function CandidateExplorer({
   onToggleCondition,
   selectedConditions,
 }: CandidateExplorerProps) {
-  const resultRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!exploration || !resultRef.current) return;
-
-    resultRef.current.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }, [exploration]);
-
   return (
     <section className={`${layoutStyles.section} pb-20`} id="explore">
       <div className="mx-auto max-w-5xl">
@@ -149,9 +138,7 @@ export function CandidateExplorer({
             </button>
           </form>
         </div>
-        <div className="scroll-mt-8" ref={resultRef}>
-          <CandidateMatchList exploration={exploration} />
-        </div>
+        <CandidateMatchList exploration={exploration} />
       </div>
     </section>
   );
@@ -221,7 +208,6 @@ function CandidateBriefReport({
     topRegions.flatMap((region) => region.matched_indicators),
   ).size;
 
-  // 선택한 조건을 쿼리 파라미터로 전달
   const conditionsParam = exploration.selected_conditions.join(",");
   const reportMapUrl = `/app/report-map?conditions=${encodeURIComponent(conditionsParam)}`;
 
