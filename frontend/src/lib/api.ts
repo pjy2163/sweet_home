@@ -52,7 +52,11 @@ export async function fetchComparison(regionA: string, regionB: string) {
 export async function fetchCandidateMatches(
   selectedConditions: ExploreCondition[],
   limit = 8,
-  options: { excludeLowVolumePrice?: boolean } = {},
+  options: {
+    excludeLowVolumePrice?: boolean;
+    contractType?: "monthly_rent" | "jeonse";
+    budgetMaxKrw10k?: number;
+  } = {},
 ) {
   const params = new URLSearchParams({ limit: String(limit) });
   selectedConditions.forEach((condition) => {
@@ -60,6 +64,12 @@ export async function fetchCandidateMatches(
   });
   if (options.excludeLowVolumePrice) {
     params.set("exclude_low_volume_price", "true");
+  }
+  if (options.contractType) {
+    params.set("contract_type", options.contractType);
+  }
+  if (options.budgetMaxKrw10k !== undefined) {
+    params.set("budget_max_krw_10k", String(options.budgetMaxKrw10k));
   }
 
   const response = await fetch(`/api/backend/explore?${params.toString()}`);

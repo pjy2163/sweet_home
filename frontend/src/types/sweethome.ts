@@ -90,6 +90,9 @@ export type ExploreMetadata = {
   aggregation: string;
   limitation: string;
   transport_status: string;
+  contract_type: "monthly_rent" | "jeonse" | null;
+  budget_max_krw_10k: number | null;
+  budget_filter_applied: boolean;
 };
 
 export type ExploreResponse = {

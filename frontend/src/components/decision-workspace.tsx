@@ -110,11 +110,17 @@ export function DecisionWorkspace() {
       setError("의사결정 기준을 하나 이상 선택해 주세요.");
       return;
     }
+    if (!profile.budget || Number(profile.budget) <= 0) {
+      setError("예산 상한을 0보다 큰 금액으로 입력해 주세요.");
+      return;
+    }
     setError("");
     setIsLoading(true);
     try {
       const result = await fetchCandidateMatches(profile.conditions, 8, {
         excludeLowVolumePrice: profile.conditions.includes("price"),
+        contractType: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
+        budgetMaxKrw10k: Number(profile.budget),
       });
       setExploration(result);
       setStep("candidates");
@@ -171,7 +177,11 @@ export function DecisionWorkspace() {
               error={error}
               isLoading={isLoading}
               onContinue={discoverCandidates}
-              onContractChange={(contractType) => setProfile((current) => ({ ...current, contractType }))}
+              onContractChange={(contractType) => setProfile((current) => ({
+                ...current,
+                contractType,
+                budget: contractType === "monthly" ? "80" : "20000",
+              }))}
               onBudgetChange={(budget) => setProfile((current) => ({ ...current, budget }))}
               onToggleCondition={toggleCondition}
               profile={profile}
@@ -259,7 +269,7 @@ function DecisionProfilePanel({ profile, error, isLoading, onContractChange, onB
               {(["monthly", "jeonse"] as const).map((type) => <button aria-pressed={profile.contractType === type} className={`rounded-lg border px-4 py-4 text-sm font-semibold ${profile.contractType === type ? "border-[#1888e8] bg-[#edf7ff] text-[#1479ca]" : "border-[#dfe3ea] text-[#5f6678]"}`} key={type} onClick={() => onContractChange(type)} type="button">{type === "monthly" ? "월세" : "전세"}</button>)}
             </div>
           </fieldset>
-          <label className="mt-7 block text-sm font-semibold" htmlFor="budget">{profile.contractType === "monthly" ? "월 고정 주거비 상한" : "보증금 상한"}</label>
+          <label className="mt-7 block text-sm font-semibold" htmlFor="budget">{profile.contractType === "monthly" ? "월세 상한 · 관리비 제외" : "전세 보증금 상한"}</label>
           <div className="mt-3 flex items-center rounded-lg border border-[#dfe3ea] bg-white px-4 focus-within:border-[#1888e8]">
             <input className="h-14 min-w-0 flex-1 outline-none" id="budget" inputMode="numeric" onChange={(event) => onBudgetChange(event.target.value.replace(/[^0-9]/g, ""))} value={profile.budget} />
             <span className="text-sm text-[#737b8d]">만원</span>
@@ -277,7 +287,7 @@ function DecisionProfilePanel({ profile, error, isLoading, onContractChange, onB
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Profile summary</p>
           <h3 className="mt-4 text-xl font-semibold">현재 의사결정 기준</h3>
           <dl className="mt-6 space-y-5 text-sm"><div><dt className="text-[#7b8292]">계약</dt><dd className="mt-1 font-semibold">{profile.contractType === "monthly" ? "월세" : "전세"}</dd></div><div><dt className="text-[#7b8292]">예산 상한</dt><dd className="mt-1 font-semibold">{profile.budget || "미입력"}만원</dd></div><div><dt className="text-[#7b8292]">우선 확인</dt><dd className="mt-2 flex flex-wrap gap-2">{profile.conditions.map((condition) => <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#52627b]" key={condition}>{CONDITION_LABELS[condition]}</span>)}</dd></div></dl>
-          <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">현재 예산은 의사결정 프로필에 기록되며, 가격 원천 고도화 전까지 후보 카드의 실제 관측 가격을 함께 확인합니다.</p>
+          <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 입력 예산은 비교 가능한 세부 주거유형의 중위값에 적용되며, 주택유형과 면적을 지정한 결과는 아니므로 후보 카드의 관측 근거를 함께 확인해 주세요.</p>
         </aside>
       </div>
     </section>
