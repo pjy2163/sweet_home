@@ -12,7 +12,7 @@ const FLOW = [
     label: "내 조건 정리",
     title: "예산과 생활 조건을\n먼저 정리합니다",
     description:
-      "계약 유형과 예산, 이동 조건, 생활에서 중요하게 생각하는 기준을 입력합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
+      "계약 유형과 예산, 주택유형과 면적, 생활에서 중요하게 생각하는 기준을 입력합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
   },
   {
     number: "02",
@@ -26,7 +26,7 @@ const FLOW = [
     label: "근거 비교",
     title: "최종 후보의 차이를\n같은 기준으로 비교합니다",
     description:
-      "비용, 생활 편의, 이동과 주거환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
+      "비용, 생활 편의, 생활인구와 주거환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
   },
 ];
 
@@ -168,7 +168,7 @@ export default function LandingPage() {
           <div className="lg:pl-6">
             <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">A clearer place to start</p>
             <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />내게 맞는 동네를 찾는<br />기준은 만들 수 있습니다.</h2>
-            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 이동과 주거환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
+            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 생활인구와 주거환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
           </div>
         </div>
       </section>

@@ -5,20 +5,26 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { ComparisonResult } from "@/components/comparison-result";
-import { fetchCandidateMatches, fetchComparison } from "@/lib/api";
+import { fetchCandidateMatches, fetchComparison, fetchRegions } from "@/lib/api";
 import type {
   CandidateMatchRegion,
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
+  HousingAreaBand,
+  HousingBuildingType,
+  RegionOption,
 } from "@/types/sweethome";
 
-type WorkspaceStep = "profile" | "candidates" | "comparison";
+type WorkspaceStep = "entry" | "profile" | "candidates" | "comparison";
 type CandidateState = "saved" | "excluded";
+type EntryMode = "known" | "unknown";
 
 type DecisionProfile = {
   contractType: "monthly" | "jeonse";
   budget: string;
+  buildingType: HousingBuildingType | "any";
+  areaBand: HousingAreaBand | "any";
   conditions: ExploreCondition[];
 };
 
@@ -26,6 +32,8 @@ const STORAGE_KEY = "sweethome.decision-workspace.v1";
 const DEFAULT_PROFILE: DecisionProfile = {
   contractType: "monthly",
   budget: "80",
+  buildingType: "any",
+  areaBand: "any",
   conditions: ["price", "convenience"],
 };
 
@@ -49,8 +57,11 @@ const CONDITION_LABELS: Record<ExploreCondition, string> = {
 };
 
 export function DecisionWorkspace() {
-  const [step, setStep] = useState<WorkspaceStep>("profile");
+  const [step, setStep] = useState<WorkspaceStep>("entry");
+  const [entryMode, setEntryMode] = useState<EntryMode>("unknown");
   const [profile, setProfile] = useState<DecisionProfile>(DEFAULT_PROFILE);
+  const [regions, setRegions] = useState<RegionOption[]>([]);
+  const [directRegionIds, setDirectRegionIds] = useState<[string, string]>(["", ""]);
   const [exploration, setExploration] = useState<ExploreResponse | null>(null);
   const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>({});
   const [comparison, setComparison] = useState<CompareResponse | null>(null);
@@ -88,6 +99,10 @@ export function DecisionWorkspace() {
     );
   }, [candidateStates, hasRestored, profile]);
 
+  useEffect(() => {
+    fetchRegions().then(setRegions).catch(() => setRegions([]));
+  }, []);
+
   const savedCandidates = useMemo(
     () =>
       exploration?.regions.filter(
@@ -114,6 +129,14 @@ export function DecisionWorkspace() {
       setError("예산 상한을 0보다 큰 금액으로 입력해 주세요.");
       return;
     }
+    if (entryMode === "known" && (!directRegionIds[0] || !directRegionIds[1])) {
+      setError("비교할 후보 지역 두 곳을 선택해 주세요.");
+      return;
+    }
+    if (entryMode === "known" && directRegionIds[0] === directRegionIds[1]) {
+      setError("서로 다른 후보 지역을 선택해 주세요.");
+      return;
+    }
     setError("");
     setIsLoading(true);
     try {
@@ -121,7 +144,14 @@ export function DecisionWorkspace() {
         excludeLowVolumePrice: profile.conditions.includes("price"),
         contractType: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
         budgetMaxKrw10k: Number(profile.budget),
+        buildingType: profile.buildingType === "any" ? undefined : profile.buildingType,
+        areaBand: profile.areaBand === "any" ? undefined : profile.areaBand,
+        regionIds: entryMode === "known" ? directRegionIds : undefined,
       });
+      if (entryMode === "known" && result.regions.length < 2) {
+        setError("선택한 후보 중 현재 예산과 주거 조건을 통과한 지역이 두 곳보다 적습니다. 조건을 조정해 주세요.");
+        return;
+      }
       setExploration(result);
       setStep("candidates");
     } catch (caught) {
@@ -172,8 +202,13 @@ export function DecisionWorkspace() {
         </header>
 
         <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+          {step === "entry" ? (
+            <EntryPanel onSelect={(mode) => { setEntryMode(mode); setError(""); setStep("profile"); }} />
+          ) : null}
           {step === "profile" ? (
             <DecisionProfilePanel
+              directRegionIds={directRegionIds}
+              entryMode={entryMode}
               error={error}
               isLoading={isLoading}
               onContinue={discoverCandidates}
@@ -183,8 +218,13 @@ export function DecisionWorkspace() {
                 budget: contractType === "monthly" ? "80" : "20000",
               }))}
               onBudgetChange={(budget) => setProfile((current) => ({ ...current, budget }))}
+              onBuildingTypeChange={(buildingType) => setProfile((current) => ({ ...current, buildingType }))}
+              onAreaBandChange={(areaBand) => setProfile((current) => ({ ...current, areaBand }))}
+              onDirectRegionChange={(index, regionId) => setDirectRegionIds((current) => index === 0 ? [regionId, current[1]] : [current[0], regionId])}
+              onEntryBack={() => setStep("entry")}
               onToggleCondition={toggleCondition}
               profile={profile}
+              regions={regions}
             />
           ) : null}
           {step === "candidates" ? (
@@ -217,9 +257,10 @@ export function DecisionWorkspace() {
 
 function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepChange: (step: WorkspaceStep) => void }) {
   const items: Array<{ id: WorkspaceStep; label: string; number: string }> = [
-    { id: "profile", label: "내 조건", number: "01" },
-    { id: "candidates", label: "후보 보드", number: "02" },
-    { id: "comparison", label: "지역 비교", number: "03" },
+    { id: "entry", label: "시작", number: "01" },
+    { id: "profile", label: "내 조건", number: "02" },
+    { id: "candidates", label: "후보 보드", number: "03" },
+    { id: "comparison", label: "지역 비교", number: "04" },
   ];
   return (
     <aside className="hidden border-r border-[#e2e5eb] bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[260px] lg:flex-col">
@@ -247,22 +288,62 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
   );
 }
 
+function EntryPanel({ onSelect }: { onSelect: (mode: EntryMode) => void }) {
+  return (
+    <section>
+      <PageIntro eyebrow="Start" title="지금 어떤 단계에 있나요?" description="후보가 있다면 직접 추가하고, 아직 없다면 내 조건으로 서울의 후보 지역을 찾아보세요." />
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("known")} type="button">
+          <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">I have candidates</span>
+          <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">고민 중인 지역이 있어요</strong>
+          <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">후보 지역 두 곳을 직접 추가하고 내 예산과 주거 조건에서 비교합니다.</span>
+        </button>
+        <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("unknown")} type="button">
+          <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">Discover candidates</span>
+          <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">어디부터 볼지 모르겠어요</strong>
+          <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">예산과 생활 조건을 입력해 살펴볼 행정동 후보를 좁힙니다.</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function PageIntro({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1888e8]">{eyebrow}</p><h2 className="mt-3 text-3xl font-medium tracking-[-0.035em] sm:text-4xl">{title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-[#6d7485] sm:text-base">{description}</p></div>;
 }
 
-function DecisionProfilePanel({ profile, error, isLoading, onContractChange, onBudgetChange, onToggleCondition, onContinue }: {
-  profile: DecisionProfile; error: string; isLoading: boolean;
+function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, error, isLoading, onContractChange, onBudgetChange, onBuildingTypeChange, onAreaBandChange, onDirectRegionChange, onEntryBack, onToggleCondition, onContinue }: {
+  profile: DecisionProfile; entryMode: EntryMode; regions: RegionOption[]; directRegionIds: [string, string]; error: string; isLoading: boolean;
   onContractChange: (value: DecisionProfile["contractType"]) => void;
   onBudgetChange: (value: string) => void;
+  onBuildingTypeChange: (value: DecisionProfile["buildingType"]) => void;
+  onAreaBandChange: (value: DecisionProfile["areaBand"]) => void;
+  onDirectRegionChange: (index: 0 | 1, regionId: string) => void;
+  onEntryBack: () => void;
   onToggleCondition: (value: ExploreCondition) => void;
   onContinue: () => void;
 }) {
   return (
     <section>
-      <PageIntro eyebrow="Decision profile" title="어떤 집을 찾고 계신가요?" description="조건을 구조화하면 동일한 기준으로 살펴볼 지역을 좁힐 수 있습니다." />
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageIntro eyebrow="Decision profile" title="어떤 집을 찾고 계신가요?" description="조건을 구조화하면 동일한 기준으로 살펴볼 지역을 좁힐 수 있습니다." />
+        <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#596174]" onClick={onEntryBack} type="button">← 시작 방식 변경</button>
+      </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
         <div className="rounded-xl border border-[#e0e4eb] bg-white p-6 shadow-[0_6px_20px_rgba(25,39,74,.04)] sm:p-8">
+          {entryMode === "known" ? (
+            <fieldset className="mb-8 border-b border-[#eceef2] pb-8">
+              <legend className="text-sm font-semibold">직접 비교할 후보 지역</legend>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {[0, 1].map((index) => (
+                  <select className="h-14 rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm outline-none focus:border-[#1888e8]" key={index} onChange={(event) => onDirectRegionChange(index as 0 | 1, event.target.value)} value={directRegionIds[index]}>
+                    <option value="">{index + 1}번째 후보 선택</option>
+                    {regions.map((region) => <option key={region.region_id} value={region.region_id}>{region.display_name}</option>)}
+                  </select>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
           <fieldset>
             <legend className="text-sm font-semibold">계약 유형</legend>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -273,6 +354,18 @@ function DecisionProfilePanel({ profile, error, isLoading, onContractChange, onB
           <div className="mt-3 flex items-center rounded-lg border border-[#dfe3ea] bg-white px-4 focus-within:border-[#1888e8]">
             <input className="h-14 min-w-0 flex-1 outline-none" id="budget" inputMode="numeric" onChange={(event) => onBudgetChange(event.target.value.replace(/[^0-9]/g, ""))} value={profile.budget} />
             <span className="text-sm text-[#737b8d]">만원</span>
+          </div>
+          <div className="mt-7 grid gap-5 sm:grid-cols-2">
+            <label className="text-sm font-semibold">주택유형
+              <select className="mt-3 h-14 w-full rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm font-normal outline-none focus:border-[#1888e8]" onChange={(event) => onBuildingTypeChange(event.target.value as DecisionProfile["buildingType"])} value={profile.buildingType}>
+                <option value="any">전체 유형</option><option value="apartment">아파트</option><option value="officetel">오피스텔</option><option value="multi_family">연립·다세대</option><option value="detached_multiunit">단독·다가구</option>
+              </select>
+            </label>
+            <label className="text-sm font-semibold">면적구간
+              <select className="mt-3 h-14 w-full rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm font-normal outline-none focus:border-[#1888e8]" onChange={(event) => onAreaBandChange(event.target.value as DecisionProfile["areaBand"])} value={profile.areaBand}>
+                <option value="any">전체 면적</option><option value="compact">소형</option><option value="mid_size">중형</option><option value="large">대형</option>
+              </select>
+            </label>
           </div>
           <fieldset className="mt-8">
             <legend className="text-sm font-semibold">중요하게 볼 조건 <span className="font-normal text-[#8b92a1]">· 복수 선택</span></legend>
@@ -286,8 +379,8 @@ function DecisionProfilePanel({ profile, error, isLoading, onContractChange, onB
         <aside className="rounded-xl border border-[#dce5ef] bg-[#f1f8ff] p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Profile summary</p>
           <h3 className="mt-4 text-xl font-semibold">현재 의사결정 기준</h3>
-          <dl className="mt-6 space-y-5 text-sm"><div><dt className="text-[#7b8292]">계약</dt><dd className="mt-1 font-semibold">{profile.contractType === "monthly" ? "월세" : "전세"}</dd></div><div><dt className="text-[#7b8292]">예산 상한</dt><dd className="mt-1 font-semibold">{profile.budget || "미입력"}만원</dd></div><div><dt className="text-[#7b8292]">우선 확인</dt><dd className="mt-2 flex flex-wrap gap-2">{profile.conditions.map((condition) => <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#52627b]" key={condition}>{CONDITION_LABELS[condition]}</span>)}</dd></div></dl>
-          <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 입력 예산은 비교 가능한 세부 주거유형의 중위값에 적용되며, 주택유형과 면적을 지정한 결과는 아니므로 후보 카드의 관측 근거를 함께 확인해 주세요.</p>
+          <dl className="mt-6 space-y-5 text-sm"><div><dt className="text-[#7b8292]">계약</dt><dd className="mt-1 font-semibold">{profile.contractType === "monthly" ? "월세" : "전세"}</dd></div><div><dt className="text-[#7b8292]">예산 상한</dt><dd className="mt-1 font-semibold">{profile.budget || "미입력"}만원</dd></div><div><dt className="text-[#7b8292]">주거 조건</dt><dd className="mt-1 font-semibold">{profile.buildingType === "any" ? "전체 유형" : { apartment: "아파트", officetel: "오피스텔", multi_family: "연립·다세대", detached_multiunit: "단독·다가구" }[profile.buildingType]} · {profile.areaBand === "any" ? "전체 면적" : { compact: "소형", mid_size: "중형", large: "대형" }[profile.areaBand]}</dd></div><div><dt className="text-[#7b8292]">우선 확인</dt><dd className="mt-2 flex flex-wrap gap-2">{profile.conditions.map((condition) => <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#52627b]" key={condition}>{CONDITION_LABELS[condition]}</span>)}</dd></div></dl>
+          <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 전체 유형이나 전체 면적을 선택하면 비교 가능한 세부 주거유형 중 예산 이내 사례가 있는 지역을 보여줍니다.</p>
         </aside>
       </div>
     </section>
@@ -304,6 +397,8 @@ function CandidateBoard({ exploration, profile, candidateStates, savedCandidates
     contract_type: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
     budget_max_krw_10k: profile.budget,
   });
+  if (profile.buildingType !== "any") mapParams.set("building_type", profile.buildingType);
+  if (profile.areaBand !== "any") mapParams.set("area_band", profile.areaBand);
   if (savedCandidates.length) {
     mapParams.set("saved", savedCandidates.map((region) => region.region_id).join(","));
   }

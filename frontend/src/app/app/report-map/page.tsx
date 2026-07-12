@@ -32,6 +32,8 @@ import type {
   HeatmapMetric,
   HeatmapRegion,
   HeatmapResponse,
+  HousingAreaBand,
+  HousingBuildingType,
 } from "@/types/sweethome";
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
@@ -190,6 +192,16 @@ function ReportMapContent() {
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
   }, [searchParams]);
+  const buildingType = useMemo<HousingBuildingType | undefined>(() => {
+    const raw = searchParams.get("building_type");
+    const valid: HousingBuildingType[] = ["apartment", "officetel", "multi_family", "detached_multiunit"];
+    return valid.includes(raw as HousingBuildingType) ? raw as HousingBuildingType : undefined;
+  }, [searchParams]);
+  const areaBand = useMemo<HousingAreaBand | undefined>(() => {
+    const raw = searchParams.get("area_band");
+    const valid: HousingAreaBand[] = ["compact", "mid_size", "large"];
+    return valid.includes(raw as HousingAreaBand) ? raw as HousingAreaBand : undefined;
+  }, [searchParams]);
   const savedRegionIds = useMemo(() => {
     const raw = searchParams.get("saved");
     return new Set(raw ? raw.split(",").filter(Boolean) : []);
@@ -215,11 +227,13 @@ function ReportMapContent() {
       excludeLowVolumePrice,
       contractType,
       budgetMaxKrw10k,
+      buildingType,
+      areaBand,
     }).then((result) => {
       if (!ignore) setCandidateRegions(result.regions);
     }).catch(() => {});
     return () => { ignore = true; };
-  }, [budgetMaxKrw10k, contractType, excludeLowVolumePrice, selectedConditions]);
+  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, excludeLowVolumePrice, selectedConditions]);
 
   const visibleCandidateRegions = useMemo(
     () => {
@@ -324,7 +338,7 @@ function ReportMapContent() {
                 {contractType === "monthly_rent" ? "월세" : "전세 보증금"} {budgetMaxKrw10k.toLocaleString()}만원 이하
               </p>
               <p className="mt-1 text-xs text-[#6c7689]">
-                후보 보드와 동일한 예산 필터가 적용됐습니다.
+                후보 보드와 동일한 예산{buildingType || areaBand ? "·주거 조건" : ""} 필터가 적용됐습니다.
               </p>
             </div>
           ) : null}

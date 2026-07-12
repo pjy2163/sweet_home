@@ -56,6 +56,14 @@ export type ExploreCondition =
   | "population"
   | "transport";
 
+export type HousingBuildingType =
+  | "apartment"
+  | "officetel"
+  | "multi_family"
+  | "detached_multiunit";
+
+export type HousingAreaBand = "compact" | "mid_size" | "large";
+
 export type CandidateMatchRegion = {
   region_id: string;
   gu_name: string;
@@ -93,6 +101,9 @@ export type ExploreMetadata = {
   contract_type: "monthly_rent" | "jeonse" | null;
   budget_max_krw_10k: number | null;
   budget_filter_applied: boolean;
+  building_type: HousingBuildingType | null;
+  area_band: HousingAreaBand | null;
+  direct_candidate_count: number;
 };
 
 export type ExploreResponse = {

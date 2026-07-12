@@ -5,6 +5,8 @@ import type {
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
+  HousingAreaBand,
+  HousingBuildingType,
   HeatmapMetric,
   HeatmapResponse,
   Metadata,
@@ -56,6 +58,9 @@ export async function fetchCandidateMatches(
     excludeLowVolumePrice?: boolean;
     contractType?: "monthly_rent" | "jeonse";
     budgetMaxKrw10k?: number;
+    buildingType?: HousingBuildingType;
+    areaBand?: HousingAreaBand;
+    regionIds?: string[];
   } = {},
 ) {
   const params = new URLSearchParams({ limit: String(limit) });
@@ -71,6 +76,9 @@ export async function fetchCandidateMatches(
   if (options.budgetMaxKrw10k !== undefined) {
     params.set("budget_max_krw_10k", String(options.budgetMaxKrw10k));
   }
+  if (options.buildingType) params.set("building_type", options.buildingType);
+  if (options.areaBand) params.set("area_band", options.areaBand);
+  options.regionIds?.forEach((regionId) => params.append("region_ids", regionId));
 
   const response = await fetch(`/api/backend/explore?${params.toString()}`);
 
