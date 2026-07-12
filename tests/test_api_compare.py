@@ -18,6 +18,20 @@ def test_compare_regions_returns_structured_report() -> None:
     assert "[SweetHome 지역 비교 리포트]" in comparison["report_text"]
 
 
+def test_compare_regions_accepts_region_ids_from_candidate_board() -> None:
+    client = TestClient(app)
+
+    response = client.get(
+        "/compare",
+        params={"a": "1168052100", "b": "1168053100"},
+    )
+
+    assert response.status_code == 200
+    comparison = response.json()
+    assert comparison["region_a"]["display_name"] == "강남구 논현1동"
+    assert comparison["region_b"]["display_name"] == "강남구 논현2동"
+
+
 def test_compare_regions_returns_404_for_unknown_region() -> None:
     client = TestClient(app)
 

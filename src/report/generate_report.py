@@ -91,7 +91,10 @@ def find_region(df: pd.DataFrame, query: str) -> pd.DataFrame:
     normalized = normalize_query(query)
     parts = normalized.split()
 
-    if len(parts) >= 2:
+    region_id_match = df["region_id"].astype(str).eq(normalized)
+    if region_id_match.any():
+        matched = df[region_id_match]
+    elif len(parts) >= 2:
         gu_name = parts[0]
         dong_name = parts[1]
         matched = df[(df["시군구명"] == gu_name) & (df["행정동명"] == dong_name)]
