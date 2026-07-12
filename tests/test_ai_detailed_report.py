@@ -85,3 +85,30 @@ def test_ai_narrative_cannot_reproduce_numbers(monkeypatch) -> None:
 
     assert result.generation_mode == "deterministic_fallback"
     assert "10" not in result.report.model_dump_json()
+
+
+def test_grounding_allows_digits_that_are_part_of_official_region_names(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def region_name_provider(evidence, openai_token, model):
+        evidence_id = evidence.metrics[0].evidence_id
+        return AIReportContent(
+            executive_summary="개포1동과 개포4동의 조건을 비교했습니다.",
+            sections=[
+                AIReportSection(
+                    heading="분석",
+                    analysis="개포1동의 관측값은 비교표에서 확인할 수 있습니다.",
+                    evidence_ids=[evidence_id],
+                )
+                for _ in range(3)
+            ],
+            cautions=["기준일을 확인해야 합니다."],
+            next_checks=["현장을 확인하세요."],
+        )
+
+    result = generate_ai_report(
+        AIReportPreviewRequest(region_a="개포1동", region_b="개포4동"),
+        provider=region_name_provider,
+    )
+
+    assert result.generation_mode == "openai"

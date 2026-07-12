@@ -81,7 +81,11 @@ def validate_grounding(report: AIReportContent, evidence: AIReportEvidencePack) 
         [report.executive_summary]
         + [section.analysis for section in report.sections]
     )
-    if NUMBER_PATTERN.search(narrative):
+    numeric_check_text = narrative
+    for region in evidence.regions:
+        for region_name in (region.display_name, region.dong_name, region.gu_name):
+            numeric_check_text = numeric_check_text.replace(region_name, "")
+    if NUMBER_PATTERN.search(numeric_check_text):
         raise ValueError("AI narrative must not reproduce or calculate numeric values")
     if any(phrase in narrative for phrase in PROHIBITED_PHRASES):
         raise ValueError("AI narrative crossed a product safety boundary")
