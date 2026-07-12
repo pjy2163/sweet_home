@@ -104,6 +104,9 @@ class ExploreMetadata(BaseModel):
     contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
     budget_max_krw_10k: Optional[float] = None
     budget_filter_applied: bool = False
+    building_type: Optional[str] = None
+    area_band: Optional[str] = None
+    direct_candidate_count: int = 0
 
 
 class ExploreResponse(BaseModel):

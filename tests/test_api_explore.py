@@ -14,6 +14,8 @@ def mock_housing_rent_snapshot(monkeypatch) -> None:
                 {
                     "region_id": region_id,
                     "lease_type": "monthly_rent",
+                    "building_type": "officetel" if index % 2 == 0 else "multi_family",
+                    "area_band": "compact" if index % 2 == 0 else "mid_size",
                     "is_comparable": True,
                     "median_monthly_rent_krw_10k": 40 if index % 2 == 0 else 60,
                     "median_deposit_krw_10k": 1000,
@@ -24,6 +26,8 @@ def mock_housing_rent_snapshot(monkeypatch) -> None:
                 {
                     "region_id": region_id,
                     "lease_type": "jeonse",
+                    "building_type": "officetel" if index % 2 == 0 else "multi_family",
+                    "area_band": "compact" if index % 2 == 0 else "mid_size",
                     "is_comparable": True,
                     "median_monthly_rent_krw_10k": 0,
                     "median_deposit_krw_10k": 10000 if index % 2 == 0 else 13000,
@@ -212,3 +216,52 @@ def test_explore_rejects_non_positive_budget() -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_explore_filters_by_building_type_and_area_band(monkeypatch) -> None:
+    mock_housing_rent_snapshot(monkeypatch)
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "convenience": "true",
+            "contract_type": "monthly_rent",
+            "budget_max_krw_10k": "50",
+            "building_type": "officetel",
+            "area_band": "compact",
+            "limit": "20",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["regions"]
+    assert result["metadata"]["building_type"] == "officetel"
+    assert result["metadata"]["area_band"] == "compact"
+
+
+def test_explore_preserves_direct_candidate_order(monkeypatch) -> None:
+    mock_housing_rent_snapshot(monkeypatch)
+    client = TestClient(app)
+    affordable_ids = comparison_service.build_indicator_profile()["region_id"].tolist()[::2]
+    selected_ids = affordable_ids[:2]
+
+    response = client.get(
+        "/explore",
+        params=[
+            ("convenience", "true"),
+            ("contract_type", "monthly_rent"),
+            ("budget_max_krw_10k", "50"),
+            ("region_ids", selected_ids[1]),
+            ("region_ids", selected_ids[0]),
+        ],
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert [region["region_id"] for region in result["regions"]] == [
+        selected_ids[1],
+        selected_ids[0],
+    ]
+    assert result["metadata"]["direct_candidate_count"] == 2

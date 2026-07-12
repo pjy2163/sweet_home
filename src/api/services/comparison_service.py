@@ -350,6 +350,9 @@ def list_candidate_matches(
     exclude_low_volume_price: bool = False,
     contract_type: str | None = None,
     budget_max_krw_10k: float | None = None,
+    building_type: str | None = None,
+    area_band: str | None = None,
+    region_ids: list[str] | None = None,
     limit: int = 20,
 ) -> ExploreResponse:
     selected_conditions = selected_condition_names(
@@ -373,6 +376,8 @@ def list_candidate_matches(
         affordability = build_affordability_matches(
             contract_type=contract_type,
             budget_max_krw_10k=budget_max_krw_10k,
+            building_type=building_type,
+            area_band=area_band,
         )
         matched = matched.merge(affordability, on="region_id", how="inner")
     matched["match_count"] = 0
@@ -386,16 +391,25 @@ def list_candidate_matches(
     if population:
         matched["match_count"] += matched["인구_매칭지표수"]
 
-    candidate_rows = matched[matched["match_count"] > 0].copy()
+    direct_region_ids = [str(region_id) for region_id in (region_ids or [])]
+    if direct_region_ids:
+        candidate_rows = matched[matched["region_id"].isin(direct_region_ids)].copy()
+    else:
+        candidate_rows = matched[matched["match_count"] > 0].copy()
     if exclude_low_volume_price:
         candidate_rows = candidate_rows[
             ~candidate_rows["거래량_해석주의"].fillna(True).astype(bool)
         ].copy()
 
-    candidate_rows = candidate_rows.sort_values(
-        ["match_count", "시군구명", "행정동명", "region_id"],
-        ascending=[False, True, True, True],
-    ).head(limit)
+    if direct_region_ids:
+        direct_order = {region_id: index for index, region_id in enumerate(direct_region_ids)}
+        candidate_rows["_direct_order"] = candidate_rows["region_id"].map(direct_order)
+        candidate_rows = candidate_rows.sort_values("_direct_order").head(limit)
+    else:
+        candidate_rows = candidate_rows.sort_values(
+            ["match_count", "시군구명", "행정동명", "region_id"],
+            ascending=[False, True, True, True],
+        ).head(limit)
 
     return ExploreResponse(
         selected_conditions=selected_conditions,
@@ -418,6 +432,9 @@ def list_candidate_matches(
             contract_type=contract_type if budget_filter_applied else None,
             budget_max_krw_10k=budget_max_krw_10k if budget_filter_applied else None,
             budget_filter_applied=budget_filter_applied,
+            building_type=building_type if budget_filter_applied else None,
+            area_band=area_band if budget_filter_applied else None,
+            direct_candidate_count=len(direct_region_ids),
         ),
     )
 
@@ -426,6 +443,8 @@ def build_affordability_matches(
     *,
     contract_type: str,
     budget_max_krw_10k: float,
+    building_type: str | None = None,
+    area_band: str | None = None,
 ) -> pd.DataFrame:
     if contract_type not in {"monthly_rent", "jeonse"}:
         raise ValueError(f"unsupported contract_type: {contract_type}")
@@ -435,6 +454,10 @@ def build_affordability_matches(
         housing["lease_type"].eq(contract_type)
         & housing["is_comparable"].fillna(False).astype(bool)
     ].copy()
+    if building_type is not None:
+        comparable = comparable[comparable["building_type"].eq(building_type)].copy()
+    if area_band is not None:
+        comparable = comparable[comparable["area_band"].eq(area_band)].copy()
     cost_column = (
         "median_monthly_rent_krw_10k"
         if contract_type == "monthly_rent"
