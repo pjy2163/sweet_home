@@ -41,6 +41,9 @@ from src.report.generate_report import (
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
+HOUSING_RENT_SNAPSHOT_PATH = (
+    BASE_DIR / "data" / "processed" / "housing_rent_snapshot.csv"
+)
 GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
 TRANSPORT_STATUS = "교통 원천 데이터가 아직 추가되지 않아 후보군 매칭에는 반영하지 않습니다."
 
@@ -81,6 +84,14 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
 def read_snapshot() -> pd.DataFrame:
     return pd.read_csv(
         SNAPSHOT_PATH,
+        encoding="utf-8-sig",
+        dtype={"region_id": str},
+    )
+
+
+def read_housing_rent_snapshot() -> pd.DataFrame:
+    return pd.read_csv(
+        HOUSING_RENT_SNAPSHOT_PATH,
         encoding="utf-8-sig",
         dtype={"region_id": str},
     )
@@ -337,6 +348,8 @@ def list_candidate_matches(
     population: bool = False,
     transport: bool = False,
     exclude_low_volume_price: bool = False,
+    contract_type: str | None = None,
+    budget_max_krw_10k: float | None = None,
     limit: int = 20,
 ) -> ExploreResponse:
     selected_conditions = selected_condition_names(
@@ -355,6 +368,13 @@ def list_candidate_matches(
 
     profile = build_indicator_profile()
     matched = profile.copy()
+    budget_filter_applied = contract_type is not None and budget_max_krw_10k is not None
+    if budget_filter_applied:
+        affordability = build_affordability_matches(
+            contract_type=contract_type,
+            budget_max_krw_10k=budget_max_krw_10k,
+        )
+        matched = matched.merge(affordability, on="region_id", how="inner")
     matched["match_count"] = 0
 
     if safety:
@@ -387,12 +407,84 @@ def list_candidate_matches(
             source=DATA_SOURCE_TEXT,
             aggregation="행정동 기준 최신 지표 profile mart",
             limitation=(
-                "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 "
+                "후보군은 입력 예산을 충족하는 비교 가능한 세부 주거유형이 "
+                "관측된 지역 중 선택 조건과 관련된 지표를 함께 확인한 결과입니다. "
+                "추천이나 지역의 우열 판단이 아닙니다."
+                if budget_filter_applied
+                else "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 "
                 "관측된 지역이며 추천이나 우열 판단이 아닙니다."
             ),
             transport_status=TRANSPORT_STATUS,
+            contract_type=contract_type if budget_filter_applied else None,
+            budget_max_krw_10k=budget_max_krw_10k if budget_filter_applied else None,
+            budget_filter_applied=budget_filter_applied,
         ),
     )
+
+
+def build_affordability_matches(
+    *,
+    contract_type: str,
+    budget_max_krw_10k: float,
+) -> pd.DataFrame:
+    if contract_type not in {"monthly_rent", "jeonse"}:
+        raise ValueError(f"unsupported contract_type: {contract_type}")
+
+    housing = read_housing_rent_snapshot()
+    comparable = housing[
+        housing["lease_type"].eq(contract_type)
+        & housing["is_comparable"].fillna(False).astype(bool)
+    ].copy()
+    cost_column = (
+        "median_monthly_rent_krw_10k"
+        if contract_type == "monthly_rent"
+        else "median_deposit_krw_10k"
+    )
+    comparable["_budget_value"] = pd.to_numeric(
+        comparable[cost_column],
+        errors="coerce",
+    )
+    affordable = comparable[
+        comparable["_budget_value"].notna()
+        & comparable["_budget_value"].le(budget_max_krw_10k)
+    ].copy()
+
+    if affordable.empty:
+        return pd.DataFrame(
+            columns=[
+                "region_id",
+                "budget_contract_type",
+                "budget_observed_value",
+                "budget_matching_segment_count",
+                "budget_reference_month",
+                "budget_sample_confidence",
+            ],
+        )
+
+    affordable = affordable.sort_values(
+        ["region_id", "_budget_value", "weighted_record_count"],
+        ascending=[True, True, False],
+    )
+    representative = affordable.groupby("region_id", as_index=False).first()
+    counts = affordable.groupby("region_id").size().rename(
+        "budget_matching_segment_count",
+    )
+    representative = representative.join(counts, on="region_id")
+    return representative[
+        [
+            "region_id",
+            "_budget_value",
+            "budget_matching_segment_count",
+            "reference_month",
+            "sample_confidence",
+        ]
+    ].rename(
+        columns={
+            "_budget_value": "budget_observed_value",
+            "reference_month": "budget_reference_month",
+            "sample_confidence": "budget_sample_confidence",
+        },
+    ).assign(budget_contract_type=contract_type)
 
 
 def selected_condition_names(
@@ -423,6 +515,19 @@ def row_to_candidate_match(
 ) -> CandidateMatchRegion:
     indicator_summary = {}
     matched_indicators = []
+
+    if row.get("budget_contract_type") in {"monthly_rent", "jeonse"}:
+        contract_label = "월세" if row["budget_contract_type"] == "monthly_rent" else "전세 보증금"
+        observed_value = format_metric_value(
+            row.get("budget_observed_value"),
+            "만원",
+            0,
+        )
+        matched_indicators.append(f"{contract_label} 예산 이내")
+        indicator_summary["budget"] = (
+            f"비교 가능한 세부 주거유형 중 {contract_label} 중위값 "
+            f"{observed_value} 사례가 확인됩니다."
+        )
 
     if (
         "safety" in selected_conditions
@@ -495,6 +600,30 @@ def build_candidate_evidence(
     selected_conditions: list[str],
 ) -> list[CandidateEvidenceMetric]:
     evidence = []
+
+    if row.get("budget_contract_type") in {"monthly_rent", "jeonse"}:
+        contract_label = "월세" if row["budget_contract_type"] == "monthly_rent" else "전세 보증금"
+        evidence.append(
+            CandidateEvidenceMetric(
+                condition="price",
+                label=f"예산 이내 {contract_label} 중위값",
+                value=none_or_rounded_float(row.get("budget_observed_value"), 1),
+                unit="만원",
+                display_value=format_metric_value(
+                    row.get("budget_observed_value"),
+                    "만원",
+                    0,
+                ),
+                interpretation=(
+                    "비교 가능한 세부 주거유형 중 입력 예산 이내인 관측값입니다. "
+                    "주택유형과 면적을 지정한 결과는 아닙니다."
+                ),
+                level="예산 이내",
+                is_matched=True,
+                data_date=none_or_text(row.get("budget_reference_month")),
+                reliability=str(row.get("budget_sample_confidence", "확인 필요")),
+            ),
+        )
 
     if "price" in selected_conditions:
         evidence.extend(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, Query
+from typing import Literal, Optional
 
 from src.ai_report.contracts import (
     AIReportEvidencePack,
@@ -77,6 +78,8 @@ def explore_regions(
     population: bool = False,
     transport: bool = False,
     exclude_low_volume_price: bool = False,
+    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None,
+    budget_max_krw_10k: Optional[float] = Query(default=None, gt=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ExploreResponse:
     return list_candidate_matches(
@@ -86,6 +89,8 @@ def explore_regions(
         population=population,
         transport=transport,
         exclude_low_volume_price=exclude_low_volume_price,
+        contract_type=contract_type,
+        budget_max_krw_10k=budget_max_krw_10k,
         limit=limit,
     )
 

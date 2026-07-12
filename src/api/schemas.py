@@ -101,6 +101,9 @@ class ExploreMetadata(BaseModel):
     aggregation: str
     limitation: str
     transport_status: str
+    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
+    budget_max_krw_10k: Optional[float] = None
+    budget_filter_applied: bool = False
 
 
 class ExploreResponse(BaseModel):

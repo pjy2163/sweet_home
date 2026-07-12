@@ -1,6 +1,43 @@
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.services import comparison_service
+
+
+def mock_housing_rent_snapshot(monkeypatch) -> None:
+    region_ids = comparison_service.build_indicator_profile()["region_id"].tolist()
+    rows = []
+    for index, region_id in enumerate(region_ids):
+        rows.extend(
+            [
+                {
+                    "region_id": region_id,
+                    "lease_type": "monthly_rent",
+                    "is_comparable": True,
+                    "median_monthly_rent_krw_10k": 40 if index % 2 == 0 else 60,
+                    "median_deposit_krw_10k": 1000,
+                    "weighted_record_count": 10,
+                    "reference_month": "2025-12",
+                    "sample_confidence": "moderate",
+                },
+                {
+                    "region_id": region_id,
+                    "lease_type": "jeonse",
+                    "is_comparable": True,
+                    "median_monthly_rent_krw_10k": 0,
+                    "median_deposit_krw_10k": 10000 if index % 2 == 0 else 13000,
+                    "weighted_record_count": 10,
+                    "reference_month": "2025-12",
+                    "sample_confidence": "moderate",
+                },
+            ],
+        )
+    monkeypatch.setattr(
+        comparison_service,
+        "read_housing_rent_snapshot",
+        lambda: pd.DataFrame(rows),
+    )
 
 
 def test_explore_regions_returns_candidate_matches() -> None:
@@ -101,3 +138,77 @@ def test_explore_regions_accepts_transport_as_unavailable_condition() -> None:
     assert "교통 원천 데이터가 아직 추가되지 않아" in result["metadata"][
         "transport_status"
     ]
+
+
+def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None:
+    mock_housing_rent_snapshot(monkeypatch)
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "convenience": "true",
+            "contract_type": "monthly_rent",
+            "budget_max_krw_10k": "50",
+            "limit": "20",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["metadata"]["budget_filter_applied"] is True
+    assert result["metadata"]["contract_type"] == "monthly_rent"
+    assert result["metadata"]["budget_max_krw_10k"] == 50
+    assert result["regions"]
+    for region in result["regions"]:
+        assert "월세 예산 이내" in region["matched_indicators"]
+        budget_evidence = next(
+            metric
+            for metric in region["evidence_metrics"]
+            if metric["label"] == "예산 이내 월세 중위값"
+        )
+        assert budget_evidence["value"] <= 50
+        assert "주택유형과 면적을 지정한 결과는 아닙니다" in budget_evidence[
+            "interpretation"
+        ]
+
+
+def test_explore_applies_jeonse_budget_as_hard_filter(monkeypatch) -> None:
+    mock_housing_rent_snapshot(monkeypatch)
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "price": "true",
+            "contract_type": "jeonse",
+            "budget_max_krw_10k": "12000",
+            "limit": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["regions"]
+    for region in result["regions"]:
+        budget_evidence = next(
+            metric
+            for metric in region["evidence_metrics"]
+            if metric["label"] == "예산 이내 전세 보증금 중위값"
+        )
+        assert budget_evidence["value"] <= 12000
+
+
+def test_explore_rejects_non_positive_budget() -> None:
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "price": "true",
+            "contract_type": "monthly_rent",
+            "budget_max_krw_10k": "0",
+        },
+    )
+
+    assert response.status_code == 422
