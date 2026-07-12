@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Query
 
-from src.ai_report.contracts import AIReportEvidencePack, AIReportPreviewRequest
+from src.ai_report.contracts import (
+    AIReportEvidencePack,
+    AIReportPreviewRequest,
+    AIReportResponse,
+)
 from src.ai_report.evidence import build_evidence_pack
+from src.ai_report.generate_ai_report import generate_ai_report
 from src.api.errors import (
     ApiError,
     api_error_handler,
@@ -57,6 +62,11 @@ def compare_regions(a: str, b: str) -> CompareResponse:
 @app.post("/ai/reports/preview", response_model=AIReportEvidencePack)
 def preview_ai_report(request: AIReportPreviewRequest) -> AIReportEvidencePack:
     return build_evidence_pack(request)
+
+
+@app.post("/ai/reports", response_model=AIReportResponse)
+def create_ai_report(request: AIReportPreviewRequest) -> AIReportResponse:
+    return generate_ai_report(request)
 
 
 @app.get("/explore", response_model=ExploreResponse)

@@ -1,5 +1,6 @@
 import type {
   AIReportEvidencePack,
+  AIReportResponse,
   AIReportPreviewRequest,
   CompareResponse,
   ExploreCondition,
@@ -89,5 +90,18 @@ export async function fetchAIReportPreview(request: AIReportPreviewRequest) {
   return parseJsonResponse<AIReportEvidencePack>(
     response,
     "후보 비교 근거를 불러오지 못했습니다.",
+  );
+}
+
+export async function fetchAIReport(request: AIReportPreviewRequest) {
+  const response = await fetch("/api/backend/ai/reports", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  return parseJsonResponse<AIReportResponse>(
+    response,
+    "상세 AI 리포트를 생성하지 못했습니다.",
   );
 }

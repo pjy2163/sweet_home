@@ -223,3 +223,28 @@ export type AIReportEvidencePack = {
   quality_flags: EvidenceQualityFlag[];
   interpretation_policies: InterpretationPolicy[];
 };
+
+export type AIReportSection = {
+  heading: string;
+  analysis: string;
+  evidence_ids: string[];
+};
+
+export type AIReportResponse = {
+  schema_version: string;
+  report_id: string;
+  generation_mode: "openai" | "deterministic_fallback";
+  model: string | null;
+  prompt_version: string;
+  latency_ms: number;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  fallback_reason: string | null;
+  evidence: AIReportEvidencePack;
+  report: {
+    executive_summary: string;
+    sections: AIReportSection[];
+    cautions: string[];
+    next_checks: string[];
+  };
+};

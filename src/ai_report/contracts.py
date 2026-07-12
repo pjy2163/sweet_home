@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 ReportPriority = Literal["price", "population", "safety", "convenience"]
@@ -141,3 +141,34 @@ class AIReportEvidencePack(BaseModel):
     source_documents: list[EvidenceSourceDocument]
     allowed_use: list[str]
     prohibited_use: list[str]
+
+
+class AIReportSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    heading: str = Field(min_length=1, max_length=80)
+    analysis: str = Field(min_length=1, max_length=700)
+    evidence_ids: list[str] = Field(min_length=1, max_length=8)
+
+
+class AIReportContent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    executive_summary: str = Field(min_length=1, max_length=500)
+    sections: list[AIReportSection] = Field(min_length=3, max_length=6)
+    cautions: list[str] = Field(min_length=1, max_length=8)
+    next_checks: list[str] = Field(min_length=1, max_length=5)
+
+
+class AIReportResponse(BaseModel):
+    schema_version: str
+    report_id: str
+    generation_mode: Literal["openai", "deterministic_fallback"]
+    model: Optional[str]
+    prompt_version: str
+    latency_ms: int = Field(ge=0)
+    input_tokens: Optional[int] = Field(default=None, ge=0)
+    output_tokens: Optional[int] = Field(default=None, ge=0)
+    fallback_reason: Optional[str]
+    evidence: AIReportEvidencePack
+    report: AIReportContent

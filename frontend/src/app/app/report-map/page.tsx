@@ -15,12 +15,14 @@ import {
 import { useSearchParams } from "next/navigation";
 
 import {
+  fetchAIReport,
   fetchAIReportPreview,
   fetchCandidateMatches,
   fetchHeatmap,
 } from "@/lib/api";
 import { formatNumber, formatRatio } from "@/lib/format";
 import type {
+  AIReportResponse,
   AIReportEvidencePack,
   CandidateEvidenceMetric,
   CandidateMatchRegion,
@@ -538,8 +540,15 @@ function KakaoReportMap({
   const [mapReady, setMapReady] = useState(false);
   const [mapSize, setMapSize] = useState<MapSize>("standard");
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
+  const [comparisonReport, setComparisonReport] =
+    useState<AIReportResponse | null>(null);
   const [comparisonEvidence, setComparisonEvidence] =
     useState<AIReportEvidencePack | null>(null);
+  const [isReportGenerating, setIsReportGenerating] = useState(false);
+  const [reportGenerationError, setReportGenerationError] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
   const [comparisonError, setComparisonError] = useState<{
     key: string;
     message: string;
@@ -554,6 +563,13 @@ function KakaoReportMap({
   const evidenceKey = comparisonEvidence?.regions
     .map((region) => region.region_id)
     .join("|");
+  const reportKey = comparisonReport?.evidence.regions
+    .map((region) => region.region_id)
+    .join("|");
+  const activeComparisonReport = reportKey === comparisonKey ? comparisonReport : null;
+  const activeReportGenerationError = reportGenerationError?.key === comparisonKey
+    ? reportGenerationError.message
+    : "";
   const hasComparisonPair = Boolean(comparisonRegionA && comparisonRegionB);
   const isComparisonLoading = hasComparisonPair && evidenceKey !== comparisonKey
     && comparisonError?.key !== comparisonKey;
@@ -595,6 +611,29 @@ function KakaoReportMap({
       ignore = true;
     };
   }, [comparisonKey, comparisonRegionA, comparisonRegionB]);
+
+  async function generateDetailedReport() {
+    if (!comparisonRegionA || !comparisonRegionB || isReportGenerating) return;
+    setIsReportGenerating(true);
+    setReportGenerationError(null);
+    try {
+      const result = await fetchAIReport({
+        region_a: comparisonRegionA,
+        region_b: comparisonRegionB,
+        comparison_basis: "seoul",
+      });
+      if (result.evidence.regions.map((region) => region.region_id).join("|") === comparisonKey) {
+        setComparisonReport(result);
+      }
+    } catch (error) {
+      setReportGenerationError({
+        key: comparisonKey,
+        message: error instanceof Error ? error.message : "상세 AI 리포트를 생성하지 못했습니다.",
+      });
+    } finally {
+      setIsReportGenerating(false);
+    }
+  }
 
   const mappedTopRegions = useMemo(
     () =>
@@ -843,9 +882,13 @@ function KakaoReportMap({
         />
         <EvidenceComparisonReport
           evidence={comparisonEvidence}
+          result={activeComparisonReport}
           error={currentComparisonError}
           isLoading={isComparisonLoading}
+          isReportGenerating={isReportGenerating}
+          reportGenerationError={activeReportGenerationError}
           selectedCount={openReports.length}
+          onGenerateReport={generateDetailedReport}
         />
       </div>
     );
@@ -896,9 +939,13 @@ function KakaoReportMap({
       />
       <EvidenceComparisonReport
         evidence={comparisonEvidence}
+        result={activeComparisonReport}
         error={currentComparisonError}
         isLoading={isComparisonLoading}
+        isReportGenerating={isReportGenerating}
+        reportGenerationError={activeReportGenerationError}
         selectedCount={openReports.length}
+        onGenerateReport={generateDetailedReport}
       />
     </div>
   );
@@ -906,14 +953,22 @@ function KakaoReportMap({
 
 function EvidenceComparisonReport({
   evidence,
+  result,
   error,
   isLoading,
+  isReportGenerating,
+  reportGenerationError,
   selectedCount,
+  onGenerateReport,
 }: {
   evidence: AIReportEvidencePack | null;
+  result: AIReportResponse | null;
   error: string;
   isLoading: boolean;
+  isReportGenerating: boolean;
+  reportGenerationError: string;
   selectedCount: number;
+  onGenerateReport: () => void;
 }) {
   return (
     <section className="border-t border-white/10 py-8" id="candidate-comparison-report">
@@ -945,6 +1000,31 @@ function EvidenceComparisonReport({
         </p>
       ) : evidence ? (
         <>
+          {result ? (
+            <DetailedAIAnalysis result={result} />
+          ) : (
+            <div className="mt-7 rounded-2xl border border-[#847dff]/25 bg-[#847dff]/[0.07] p-6">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#aaa6ff]">
+                Grounded AI Analysis
+              </p>
+              <h3 className="mt-2 text-xl font-semibold text-white">AI 상세 분석 생성</h3>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#b7b7bb]">
+                아래 검증된 비교 근거를 바탕으로 가격과 생활환경의 차이, 데이터 주의사항과
+                직접 확인할 항목을 정리합니다. 지역 선택이나 투자 판단을 대신하지 않습니다.
+              </p>
+              <button
+                className="mt-5 rounded-full bg-[#847dff] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#716ae8] disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isReportGenerating}
+                onClick={onGenerateReport}
+                type="button"
+              >
+                {isReportGenerating ? "상세 분석 생성 중..." : "AI 상세 분석 생성"}
+              </button>
+              {reportGenerationError ? (
+                <p className="mt-4 text-sm text-[#ffcf70]">{reportGenerationError}</p>
+              ) : null}
+            </div>
+          )}
           <div className="mt-7 border-y border-white/10">
             {evidence.chart_specs.map((chart) => (
               <EvidenceComparisonChart chart={chart} key={chart.chart_id} />
@@ -954,6 +1034,52 @@ function EvidenceComparisonReport({
         </>
       ) : null}
     </section>
+  );
+}
+
+function DetailedAIAnalysis({ result }: { result: AIReportResponse }) {
+  return (
+    <article className="mt-7 rounded-2xl border border-[#847dff]/25 bg-[#847dff]/[0.07] p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#aaa6ff]">
+            Grounded AI Analysis
+          </p>
+          <h3 className="mt-2 text-xl font-semibold text-white">데이터 근거 기반 상세 분석</h3>
+        </div>
+        <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] text-[#9f9fa0]">
+          {result.generation_mode === "openai" ? "AI 해석" : "검증 규칙 리포트"}
+        </span>
+      </div>
+      <p className="mt-5 text-sm leading-7 text-[#d8d8dc]">
+        {result.report.executive_summary}
+      </p>
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+        {result.report.sections.map((section) => (
+          <section className="rounded-xl border border-white/10 bg-black/20 p-4" key={section.heading}>
+            <h4 className="text-sm font-semibold text-white">{section.heading}</h4>
+            <p className="mt-3 text-sm leading-6 text-[#b7b7bb]">{section.analysis}</p>
+            <p className="mt-4 font-mono text-[9px] text-[#6f70a0]">
+              {section.evidence_ids.join(" · ")}
+            </p>
+          </section>
+        ))}
+      </div>
+      <div className="mt-6 grid gap-5 border-t border-white/10 pt-5 lg:grid-cols-2">
+        <div>
+          <h4 className="text-xs font-semibold text-[#ffcf70]">해석 시 주의사항</h4>
+          <ul className="mt-3 space-y-2 text-xs leading-5 text-[#9f9fa0]">
+            {result.report.cautions.map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-xs font-semibold text-[#9ed8c5]">추가 확인 사항</h4>
+          <ul className="mt-3 space-y-2 text-xs leading-5 text-[#9f9fa0]">
+            {result.report.next_checks.map((item) => <li key={item}>• {item}</li>)}
+          </ul>
+        </div>
+      </div>
+    </article>
   );
 }
 
