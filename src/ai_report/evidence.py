@@ -573,14 +573,14 @@ def build_evidence_pack(request: AIReportPreviewRequest) -> AIReportEvidencePack
             EvidenceSourceDocument(
                 source_id="doc:report-spec",
                 title="SweetHome MVP Report Spec",
-                source="docs/report-spec.md",
+                source="docs/backend/report-spec.md",
                 effective_date=None,
                 purpose="지표 해석 규칙과 금지 표현",
             ),
             EvidenceSourceDocument(
                 source_id="doc:data-dictionary",
                 title="SweetHome Data Dictionary",
-                source="docs/data-dictionary.md",
+                source="docs/data-engineering/data-dictionary.md",
                 effective_date=None,
                 purpose="지표 정의, 단위, 데이터 grain",
             ),
