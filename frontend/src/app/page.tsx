@@ -9,24 +9,24 @@ const APP_URL = "/app";
 const FLOW = [
   {
     number: "01",
-    label: "조건 정리",
-    title: "막연한 기준을\n비교 가능한 조건으로",
+    label: "내 조건 정리",
+    title: "예산과 생활 조건을\n먼저 정리합니다",
     description:
-      "계약 유형과 예산, 생활에서 중요한 기준을 먼저 정리합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
+      "계약 유형과 예산, 이동 조건, 생활에서 중요하게 생각하는 기준을 입력합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
   },
   {
     number: "02",
-    label: "후보 압축",
-    title: "살펴볼 지역만\n후보 보드에 남기고",
+    label: "후보 지역 압축",
+    title: "조건에 맞는 지역만\n후보로 남깁니다",
     description:
-      "후보가 포함된 근거와 데이터 주의사항을 확인하면서 저장하거나 제외합니다. 지역의 절대 순위는 매기지 않습니다.",
+      "후보가 포함된 이유와 데이터 주의사항을 확인하고, 직접 살펴볼 지역을 저장하거나 제외합니다. 지역의 절대 순위는 매기지 않습니다.",
   },
   {
     number: "03",
     label: "근거 비교",
     title: "최종 후보의 차이를\n같은 기준으로 비교합니다",
     description:
-      "비용, 생활 편의, 생활인구, 안전 관련 대체 지표를 나란히 보고 무엇을 얻고 포기하는지 판단합니다.",
+      "비용, 생활 편의, 이동과 주거환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
   },
 ];
 
@@ -135,8 +135,8 @@ export default function LandingPage() {
       <header className="relative z-20 border-b border-[#e1e4ea] bg-white">
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
           <a className="w-[164px] text-[#17203b]" href="#top" aria-label="SweetHome 홈"><BrandLogo /></a>
-          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">제품</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
-          <ArrowLink className="inline-flex items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453]">서비스 시작</ArrowLink>
+          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
+          <ArrowLink className="inline-flex items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건 입력하기</ArrowLink>
         </div>
       </header>
 
@@ -144,10 +144,10 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[.85fr_1.15fr] lg:items-center lg:py-24">
           <div data-scroll-reveal>
             <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#1888e8]">Seoul housing decision support</p>
-            <h1 className="mt-6 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-.055em] sm:text-6xl">집을 찾기 전에,<br />살펴볼 지역부터<br />정리합니다.</h1>
-            <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 정리하고, 서울의 지역 데이터를 같은 기준으로 비교해 실제로 확인할 후보를 좁혀보세요.</p>
-            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 시작하기</ArrowLink><a className="text-sm font-semibold text-[#566074]" href="#product">제품 살펴보기 ↓</a></div>
-            <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />사용자가 판단할 수 있도록 조건과 근거를 정리합니다.</p>
+            <h1 className="mt-6 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-.055em] sm:text-6xl">내 조건에 맞는 동네,<br />어디부터 살펴봐야<br />할까요?</h1>
+            <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 입력하면 서울의 후보 지역을 좁혀드립니다. 후보가 남은 이유와 지역별 차이를 확인하고, 직접 살펴볼 동네를 결정해 보세요.</p>
+            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 후보 찾기</ArrowLink><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
+            <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />조건에 맞는 후보와 비교 근거를 제공하고, 최종 선택은 사용자가 합니다.</p>
           </div>
           <div data-scroll-float><WorkspacePreview /></div>
         </div>
@@ -167,15 +167,15 @@ export default function LandingPage() {
           </div>
           <div className="lg:pl-6">
             <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">A clearer place to start</p>
-            <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />후보를 비교할 기준은<br />선명할 수 있습니다.</h2>
-            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">가격, 생활 편의, 이동과 주거환경에 관한 데이터를 한곳에 모아 직접 확인할 지역부터 차근차근 좁혀갑니다.</p>
+            <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />내게 맞는 동네를 찾는<br />기준은 만들 수 있습니다.</h2>
+            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 이동과 주거환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
           </div>
         </div>
       </section>
 
       <section className="bg-[#f7f8fa]" id="product">
         <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
-          <div className="grid gap-8 border-b border-[#dfe3e9] pb-16 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#7f8797]">Product thesis</p><div><h2 className="max-w-4xl text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">정보를 더 보여주는 대신,<br />선택지를 줄여드립니다.</h2><p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">매물 수나 하나의 종합점수로 결론을 내리지 않습니다. 사용자의 조건과 지역 데이터를 연결해 후보가 남은 이유와 확인할 부분을 보여줍니다.</p></div></div>
+          <div className="grid gap-8 border-b border-[#dfe3e9] pb-16 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#7f8797]">Service positioning</p><div><h2 className="max-w-4xl text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">정보를 더 보여주는 대신,<br />선택지를 줄여드립니다.</h2><p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">SweetHome은 매물을 추천하거나 지역의 순위를 매기지 않습니다. 사용자의 예산과 생활 조건을 기준으로 후보 지역을 좁히고, 각 후보가 남은 이유와 선택할 때 고려할 차이를 보여줍니다.</p></div></div>
 
           <div className="mt-16 grid gap-6 lg:grid-cols-2" id="principles">
             <DecisionProfilePreview />
@@ -195,8 +195,8 @@ export default function LandingPage() {
 
       <section className="bg-[#17203b] text-white">
         <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24" data-scroll-reveal>
-          <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#91cfff]">Start your decision</p><h2 className="mt-5 text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">어디부터 살펴볼지,<br />내 조건으로 정리해 보세요.</h2></div>
-          <ArrowLink className="inline-flex items-center justify-between gap-12 rounded-lg bg-white px-5 py-4 text-sm font-semibold text-[#17203b] transition hover:bg-[#edf4fb]">SweetHome 시작하기</ArrowLink>
+          <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-[#91cfff]">Start your decision</p><h2 className="mt-5 text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">집을 보러 가기 전에,<br />살펴볼 동네부터 정리해 보세요.</h2></div>
+          <ArrowLink className="inline-flex items-center justify-between gap-12 rounded-lg bg-white px-5 py-4 text-sm font-semibold text-[#17203b] transition hover:bg-[#edf4fb]">내 조건으로 후보 찾기</ArrowLink>
         </div>
       </section>
 
