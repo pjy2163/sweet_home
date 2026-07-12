@@ -45,8 +45,9 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
 type ReportView = "heatmap" | "map";
 
 type MapSize = "compact" | "standard" | "expanded";
+type CandidateState = "saved" | "excluded";
 
-type AnalysisBasis = "seoul" | "district" | "candidates";
+const DECISION_STORAGE_KEY = "sweethome.decision-workspace.v1";
 
 type ReportRegion = HeatmapRegion & {
   match_count?: number;
@@ -100,12 +101,6 @@ const CONDITION_LABELS: Record<ExploreCondition, string> = {
   population: "생활인구",
   transport: "교통",
 };
-
-const ANALYSIS_BASIS_OPTIONS: Array<{ id: AnalysisBasis; label: string }> = [
-  { id: "seoul", label: "서울 평균" },
-  { id: "district", label: "같은 구" },
-  { id: "candidates", label: "후보군" },
-];
 
 const CONDITION_OPTIONS: ExploreCondition[] = [
   "price",
@@ -202,7 +197,6 @@ function ReportMapContent() {
   const [selectedConditions, setSelectedConditions] = useState<ExploreCondition[]>(
     initialConditions,
   );
-  const [analysisBasis, setAnalysisBasis] = useState<AnalysisBasis>("seoul");
   const [excludeLowVolumePrice, setExcludeLowVolumePrice] = useState(true);
   const [showCautionMetrics, setShowCautionMetrics] = useState(true);
   const [metric, setMetric] = useState<HeatmapMetric>("jeonse_ratio");
@@ -302,9 +296,9 @@ function ReportMapContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f6f8] p-4 text-[#111a4a]">
+    <main className="min-h-screen bg-[#f6f7f9] p-4 text-[#17203b]">
       <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-[#e3e4e8] bg-white shadow-[0_12px_40px_rgba(17,26,74,0.06)] lg:grid-cols-[360px_1fr]">
-        <aside className="border-b border-white/10 p-8 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-[#e3e6ed] bg-white p-8 lg:border-b-0 lg:border-r">
           <Link
             className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#9f9fa0]"
             href="/app"
@@ -335,38 +329,12 @@ function ReportMapContent() {
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-              분석 기준
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-black/20 p-1">
-              {ANALYSIS_BASIS_OPTIONS.map((option) => {
-                const selected = analysisBasis === option.id;
-
-                return (
-                  <button
-                    className={`rounded-md px-2 py-2 text-xs font-semibold transition ${
-                      selected
-                        ? "bg-white text-black"
-                        : "text-[#9f9fa0] hover:bg-white/[0.06] hover:text-[#f5f5f7]"
-                    }`}
-                    key={option.id}
-                    onClick={() => setAnalysisBasis(option.id)}
-                    type="button"
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+          <div className="mt-6 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
+            <div className="rounded-lg border border-[#dce5ef] bg-white p-3">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Evidence basis</p>
+              <p className="mt-2 text-sm font-semibold text-[#17203b]">서울 전체 분포 기준</p>
+              <p className="mt-1 text-xs leading-5 text-[#748095]">모든 후보는 동일한 서울 기준 데이터로 비교합니다.</p>
             </div>
-            <p className="mt-3 text-xs leading-5 text-[#6a6b6b]">
-              {analysisBasis === "seoul"
-                ? "현재 데이터 근거는 서울 전체 분포를 기준으로 해석합니다."
-                : analysisBasis === "district"
-                  ? "같은 구 안에서 비교해 볼 기준입니다. 후보 근거는 서울 기준 데이터와 함께 확인합니다."
-                  : "현재 후보군끼리 다시 살펴볼 기준입니다. 추천 점수화 없이 근거만 정리합니다."}
-            </p>
-
             <div className="mt-5">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
                 지표 카테고리
@@ -379,8 +347,8 @@ function ReportMapContent() {
                     <button
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         selected
-                          ? "border-[#847dff]/50 bg-[#847dff]/20 text-[#d8d6ff]"
-                          : "border-white/15 bg-white/[0.04] text-[#9f9fa0] hover:border-white/30"
+                          ? "border-[#9bcdf7] bg-[#eaf4ff] text-[#1479ca]"
+                          : "border-[#dce1e8] bg-white text-[#6f7788] hover:border-[#aeb7c5]"
                       }`}
                       key={condition}
                       onClick={() => toggleCondition(condition)}
@@ -397,8 +365,8 @@ function ReportMapContent() {
               </p>
             </div>
 
-            <div className="mt-5 grid gap-3 border-t border-white/10 pt-4">
-              <label className="flex items-start gap-3 text-xs leading-5 text-[#cacaca]">
+            <div className="mt-5 grid gap-3 border-t border-[#e1e5eb] pt-4">
+              <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
                 <input
                   checked={excludeLowVolumePrice}
                   className="mt-1"
@@ -407,7 +375,7 @@ function ReportMapContent() {
                 />
                 <span>거래량 적은 가격 지표 제외</span>
               </label>
-              <label className="flex items-start gap-3 text-xs leading-5 text-[#cacaca]">
+              <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
                 <input
                   checked={showCautionMetrics}
                   className="mt-1"
@@ -420,7 +388,7 @@ function ReportMapContent() {
           </div>
 
           {selectedConditions.length > 0 && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="mt-4 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
                 선택 조건
               </p>
@@ -428,7 +396,7 @@ function ReportMapContent() {
                 {selectedConditions.map((c) => (
                   <span
                     key={c}
-                    className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs font-semibold text-[#cacaca]"
+                    className="rounded-full border border-[#dce1e8] bg-white px-3 py-1 text-xs font-semibold text-[#626b7d]"
                   >
                     {CONDITION_LABELS[c]}
                   </span>
@@ -437,7 +405,7 @@ function ReportMapContent() {
             </div>
           )}
 
-          <div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+          <div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-[#e0e4eb] bg-[#f2f4f7] p-1">
             {[
               { id: "map", label: "지도" },
               { id: "heatmap", label: "지표 순위" },
@@ -448,8 +416,8 @@ function ReportMapContent() {
                 <button
                   className={`rounded-lg px-3 py-3 text-sm font-medium transition ${
                     selected
-                      ? "bg-white text-black"
-                      : "text-[#9f9fa0] hover:bg-white/[0.06] hover:text-[#f5f5f7]"
+                      ? "bg-white text-[#17203b] shadow-sm"
+                      : "text-[#747d8f] hover:bg-white/70"
                   }`}
                   key={item.id}
                   onClick={() => setReportView(item.id as ReportView)}
@@ -469,8 +437,8 @@ function ReportMapContent() {
                 <button
                   className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
                     selected
-                      ? "border-white bg-white text-black"
-                      : "border-white/12 bg-white/[0.06] text-[#cacaca] hover:border-white/35"
+                      ? "border-[#17203b] bg-[#17203b] text-white"
+                      : "border-[#dce1e8] bg-white text-[#626b7d] hover:border-[#aeb7c5]"
                   }`}
                   key={item.id}
                   onClick={() => setMetric(item.id)}
@@ -502,6 +470,7 @@ function ReportMapContent() {
           ) : heatmap ? (
             <ReportVisual
               regions={heatmap.regions}
+              savedRegionIds={savedRegionIds}
               showCautionMetrics={showCautionMetrics}
               topRegions={topRegions}
               unit={heatmap.metadata.unit}
@@ -527,12 +496,14 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function ReportVisual({
   regions,
+  savedRegionIds,
   showCautionMetrics,
   topRegions,
   unit,
   view,
 }: {
   regions: HeatmapRegion[];
+  savedRegionIds: Set<string>;
   showCautionMetrics: boolean;
   topRegions: ReportRegion[];
   unit: string;
@@ -552,6 +523,7 @@ function ReportVisual({
   return (
     <KakaoReportMap
       regions={regions}
+      savedRegionIds={savedRegionIds}
       showCautionMetrics={showCautionMetrics}
       topRegions={topRegions}
       unit={unit}
@@ -561,11 +533,13 @@ function ReportVisual({
 
 function KakaoReportMap({
   regions,
+  savedRegionIds,
   showCautionMetrics,
   topRegions,
   unit,
 }: {
   regions: HeatmapRegion[];
+  savedRegionIds: Set<string>;
   showCautionMetrics: boolean;
   topRegions: ReportRegion[];
   unit: string;
@@ -573,6 +547,9 @@ function KakaoReportMap({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapShellRef = useRef<HTMLDivElement | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>(
+    () => Object.fromEntries([...savedRegionIds].map((regionId) => [regionId, "saved"])),
+  );
   const [mapSize, setMapSize] = useState<MapSize>("standard");
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
   const [comparisonReport, setComparisonReport] =
@@ -589,6 +566,26 @@ function KakaoReportMap({
     message: string;
   } | null>(null);
   const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
+
+  function updateCandidateState(regionId: string, nextState: CandidateState) {
+    setCandidateStates((current) => {
+      const next = { ...current };
+      if (next[regionId] === nextState) delete next[regionId];
+      else next[regionId] = nextState;
+
+      try {
+        const stored = window.localStorage.getItem(DECISION_STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) as Record<string, unknown> : {};
+        window.localStorage.setItem(
+          DECISION_STORAGE_KEY,
+          JSON.stringify({ ...parsed, candidateStates: next }),
+        );
+      } catch {
+        // Candidate state still works for the current map session.
+      }
+      return next;
+    });
+  }
 
   const comparisonRegionA = openReports[0]?.region.display_name;
   const comparisonRegionB = openReports[1]?.region.display_name;
@@ -792,14 +789,23 @@ function KakaoReportMap({
         const position = new maps.LatLng(region.centroid_lat, region.centroid_lon);
         bounds.extend(position);
 
-        const color = overlayColors[region.level] ?? overlayColors.medium;
+        const candidateState = candidateStates[region.region_id];
+        const metricColor = overlayColors[region.level] ?? overlayColors.medium;
+        const color = candidateState === "saved"
+          ? { bg: "#1888e8", text: "#fff", border: "#0f6fbe" }
+          : candidateState === "excluded"
+            ? { bg: "#a8afb9", text: "#fff", border: "#858c97" }
+            : metricColor;
         const scale = index === 0 ? 1.25 : index <= 2 ? 1.05 : 0.9;
         const fontSize = Math.round(13 * scale);
         const padding = index === 0 ? "8px 14px" : "6px 11px";
         const valueText = formatRegionSummary(region, unit);
         const rank = index + 1;
-
-        const rankBadge = rank <= 3
+        const rankBadge = candidateState === "saved"
+          ? `<span style="display:inline-block;margin-right:5px;font-size:10px">★</span>`
+          : candidateState === "excluded"
+            ? `<span style="display:inline-block;margin-right:5px;font-size:11px">×</span>`
+            : rank <= 3
           ? `<span style="
               display:inline-block;
               margin-right:5px;
@@ -811,7 +817,7 @@ function KakaoReportMap({
               padding:1px 5px;
               line-height:1.4;
             ">${rank}</span>`
-          : "";
+            : "";
 
         const overlayId = `sh-overlay-${region.region_id}`;
 
@@ -883,7 +889,7 @@ function KakaoReportMap({
     }
 
     window.kakao?.maps.load(drawMap);
-  }, [mapReady, mapSize, mappedTopRegions, openRegionReport, unit]);
+  }, [candidateStates, mapReady, mapSize, mappedTopRegions, openRegionReport, unit]);
 
   if (!appKey) {
     return (
@@ -899,6 +905,7 @@ function KakaoReportMap({
           <MapLayer regions={regions} topRegions={topRegions} unit={unit} />
           {openReports.map((report, index) => (
             <CandidateMiniReport
+              candidateState={candidateStates[report.region.region_id]}
               containerRef={mapShellRef}
               key={report.region.region_id}
               position={report.position}
@@ -907,6 +914,7 @@ function KakaoReportMap({
               showCautionMetrics={showCautionMetrics}
               size={report.size}
               unit={unit}
+              onCandidateStateChange={(state) => updateCandidateState(report.region.region_id, state)}
               onClose={() => closeRegionReport(report.region.region_id)}
               onPositionChange={(position) =>
                 updateReportPosition(report.region.region_id, position)
@@ -916,9 +924,11 @@ function KakaoReportMap({
           ))}
         </div>
         <TopRegionCards
+          candidateStates={candidateStates}
           selectedRegionIds={openReports.map((report) => report.region.region_id)}
           topRegions={topRegions}
           unit={unit}
+          onCandidateStateChange={updateCandidateState}
           onSelectRegion={openRegionReport}
         />
         <EvidenceComparisonReport
@@ -956,6 +966,7 @@ function KakaoReportMap({
         <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
         {openReports.map((report, index) => (
           <CandidateMiniReport
+            candidateState={candidateStates[report.region.region_id]}
             containerRef={mapShellRef}
             key={report.region.region_id}
             position={report.position}
@@ -964,6 +975,7 @@ function KakaoReportMap({
             showCautionMetrics={showCautionMetrics}
             size={report.size}
             unit={unit}
+            onCandidateStateChange={(state) => updateCandidateState(report.region.region_id, state)}
             onClose={() => closeRegionReport(report.region.region_id)}
             onPositionChange={(position) =>
               updateReportPosition(report.region.region_id, position)
@@ -973,9 +985,11 @@ function KakaoReportMap({
         ))}
       </div>
       <TopRegionCards
+        candidateStates={candidateStates}
         selectedRegionIds={openReports.map((report) => report.region.region_id)}
         topRegions={topRegions}
         unit={unit}
+        onCandidateStateChange={updateCandidateState}
         onSelectRegion={openRegionReport}
       />
       <EvidenceComparisonReport
@@ -1402,40 +1416,50 @@ function MapLayer({
 }
 
 function TopRegionCards({
+  candidateStates,
   selectedRegionIds,
   topRegions,
   unit,
+  onCandidateStateChange,
   onSelectRegion,
 }: {
+  candidateStates: Record<string, CandidateState>;
   selectedRegionIds: string[];
   topRegions: ReportRegion[];
   unit: string;
+  onCandidateStateChange: (regionId: string, state: CandidateState) => void;
   onSelectRegion: (region: ReportRegion) => void;
 }) {
   return (
     <div className="grid gap-3 md:grid-cols-4">
       {topRegions.slice(0, 4).map((region, index) => {
         const selected = selectedRegionIds.includes(region.region_id);
+        const candidateState = candidateStates[region.region_id];
 
         return (
-          <button
-            className={`rounded-2xl border p-4 text-left text-[#f5f5f7] shadow-[0_18px_50px_rgba(0,0,0,0.16)] transition ${
+          <article
+            className={`rounded-xl border bg-white p-4 text-[#17203b] shadow-[0_8px_24px_rgba(23,32,59,0.06)] transition ${
               selected
-                ? "border-[#847dff] bg-[#171633]"
-                : "border-white/10 bg-[#0f1011] hover:border-white/25"
+                ? "border-[#1888e8] ring-1 ring-[#1888e8]"
+                : candidateState === "excluded"
+                  ? "border-[#e0e4eb] opacity-55"
+                  : "border-[#e0e4eb] hover:border-[#aeb7c5]"
             }`}
             key={region.region_id}
-            onClick={() => onSelectRegion(region)}
-            type="button"
           >
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-              0{index + 1}
-            </p>
-            <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
-            <p className="mt-3 text-sm text-[#9f9fa0]">
-              {region.match_count === undefined ? formatRegionSummary(region, unit) : ""}
-            </p>
-          </button>
+            <button className="w-full text-left" onClick={() => onSelectRegion(region)} type="button">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a91a0]">0{index + 1}</p>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${candidateState === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : candidateState === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{candidateState === "saved" ? "저장됨" : candidateState === "excluded" ? "제외됨" : "후보"}</span>
+              </div>
+              <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
+              <p className="mt-3 text-sm text-[#7a8292]">{region.match_count === undefined ? formatRegionSummary(region, unit) : "근거 보기"}</p>
+            </button>
+            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#eceef2] pt-3">
+              <button className={`rounded-lg px-3 py-2 text-xs font-semibold ${candidateState === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : "border border-[#dce1e8] text-[#596174]"}`} onClick={() => onCandidateStateChange(region.region_id, "saved")} type="button">{candidateState === "saved" ? "저장 취소" : "후보 저장"}</button>
+              <button className={`rounded-lg px-3 py-2 text-xs font-semibold ${candidateState === "excluded" ? "bg-[#f0f1f3] text-[#777e8c]" : "border border-[#dce1e8] text-[#747b89]"}`} onClick={() => onCandidateStateChange(region.region_id, "excluded")} type="button">{candidateState === "excluded" ? "제외 취소" : "제외"}</button>
+            </div>
+          </article>
         );
       })}
     </div>
@@ -1443,6 +1467,7 @@ function TopRegionCards({
 }
 
 function CandidateMiniReport({
+  candidateState,
   containerRef,
   position,
   reportIndex,
@@ -1450,10 +1475,12 @@ function CandidateMiniReport({
   showCautionMetrics,
   size,
   unit,
+  onCandidateStateChange,
   onClose,
   onPositionChange,
   onSizeChange,
 }: {
+  candidateState?: CandidateState;
   containerRef: RefObject<HTMLDivElement | null>;
   position: ReportPanelPosition | null;
   reportIndex: number;
@@ -1461,6 +1488,7 @@ function CandidateMiniReport({
   showCautionMetrics: boolean;
   size: ReportPanelSize;
   unit: string;
+  onCandidateStateChange: (state: CandidateState) => void;
   onClose: () => void;
   onPositionChange: (position: ReportPanelPosition) => void;
   onSizeChange: (size: ReportPanelSize) => void;
@@ -1634,6 +1662,11 @@ function CandidateMiniReport({
             </span>
           )}
         </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button className={`rounded-lg px-3 py-2.5 text-xs font-semibold ${candidateState === "saved" ? "bg-[#1888e8] text-white" : "border border-white/15 text-[#d8d8dc]"}`} onClick={() => onCandidateStateChange("saved")} type="button">{candidateState === "saved" ? "저장 취소" : "후보 저장"}</button>
+        <button className={`rounded-lg px-3 py-2.5 text-xs font-semibold ${candidateState === "excluded" ? "bg-white/15 text-white" : "border border-white/15 text-[#d8d8dc]"}`} onClick={() => onCandidateStateChange("excluded")} type="button">{candidateState === "excluded" ? "제외 취소" : "후보 제외"}</button>
       </div>
 
       <div className="mt-4">
