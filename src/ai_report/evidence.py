@@ -287,6 +287,23 @@ def build_quality_flags(
 
     for region in regions:
         region_metrics = metrics_by_region[region.region_id]
+        if region.price_month_lag and region.price_month_lag > 0:
+            price_ids = [
+                metric.evidence_id for metric in region_metrics if metric.domain == "price"
+            ]
+            flags.append(
+                EvidenceQualityFlag(
+                    code="EARLIER_RELIABLE_PRICE_MONTH_SELECTED",
+                    severity="info",
+                    domain="price",
+                    region_id=region.region_id,
+                    evidence_ids=price_ids,
+                    message=(
+                        f"{region.dong_name}은 최신 가용월 {region.price_latest_available_month}보다 "
+                        f"거래량을 확인할 수 있는 {region.price_month} 가격을 사용합니다."
+                    ),
+                )
+            )
         if region.low_volume:
             price_ids = [
                 metric.evidence_id for metric in region_metrics if metric.domain == "price"
@@ -418,8 +435,8 @@ def build_interpretation_policies() -> list[InterpretationPolicy]:
             source="src/real_estate/build_price_comparison.py",
             rationale="소수 거래 평균을 지역 대표 가격으로 단정하지 않기 위한 품질 방어",
             limitation=(
-                "현재 snapshot에서 135개 행정동(31.2%)에 적용되어 대표 가격월 선택 정책과 "
-                "함께 재검토해야 합니다."
+                "원천의 지역별 최신월 기준 135개 행정동(31.2%)에 적용됐으며, snapshot은 "
+                "신뢰 가능한 이전 월을 우선 선택하고 없을 때만 최신월로 fallback합니다."
             ),
         ),
         InterpretationPolicy(

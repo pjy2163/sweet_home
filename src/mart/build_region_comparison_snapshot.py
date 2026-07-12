@@ -19,6 +19,9 @@ OUTPUT_COLUMNS = [
     "시군구명",
     "행정동명",
     "가격_기준월",
+    "가격_최신가용월",
+    "가격_선택정책",
+    "가격_최신월대비개월차",
     "실거래가",
     "서울평균_실거래가",
     "실거래가_서울평균대비율",
@@ -61,6 +64,41 @@ def latest_per_region(
 ) -> pd.DataFrame:
     sorted_frame = frame.sort_values(["region_id", date_column])
     return sorted_frame.drop_duplicates("region_id", keep="last").copy()
+
+
+def month_distance(latest_month: object, selected_month: object) -> int | None:
+    if pd.isna(latest_month) or pd.isna(selected_month):
+        return None
+
+    latest = pd.Period(str(latest_month), freq="M")
+    selected = pd.Period(str(selected_month), freq="M")
+    return (latest.year - selected.year) * 12 + latest.month - selected.month
+
+
+def latest_reliable_price_per_region(price: pd.DataFrame) -> pd.DataFrame:
+    latest_available = latest_per_region(price)[["region_id", "기준일자"]].rename(
+        columns={"기준일자": "가격_최신가용월"},
+    )
+    low_volume = price["거래량_해석주의"].fillna(True).astype(bool)
+    reliable = price[(~low_volume) & price["전세가"].notna()].copy()
+    selected = latest_per_region(reliable)
+
+    missing_region_ids = set(price["region_id"].dropna()) - set(selected["region_id"])
+    if missing_region_ids:
+        fallback = latest_per_region(price[price["region_id"].isin(missing_region_ids)])
+        selected = pd.concat([selected, fallback], ignore_index=True)
+
+    selected = selected.merge(latest_available, on="region_id", how="left")
+    selected["가격_선택정책"] = "신뢰가능최신월"
+    selected.loc[
+        selected["거래량_해석주의"].fillna(True).astype(bool),
+        "가격_선택정책",
+    ] = "최신월_fallback"
+    selected["가격_최신월대비개월차"] = selected.apply(
+        lambda row: month_distance(row["가격_최신가용월"], row["기준일자"]),
+        axis=1,
+    )
+    return selected
 
 
 def latest_safety_snapshot(safety: pd.DataFrame) -> pd.DataFrame:
@@ -138,7 +176,7 @@ def validate_snapshot(snapshot: pd.DataFrame) -> None:
 
 def build_snapshot() -> pd.DataFrame:
     region_master = read_csv(REGION_MASTER_PATH)
-    price = latest_per_region(read_csv(PRICE_PATH))
+    price = latest_reliable_price_per_region(read_csv(PRICE_PATH))
     population = latest_per_region(read_csv(POPULATION_PATH))
     safety = latest_safety_snapshot(read_csv(SAFETY_PATH))
     commercial = latest_per_region(read_csv(COMMERCIAL_PATH))
@@ -203,6 +241,10 @@ def print_validation(snapshot: pd.DataFrame) -> None:
     print(f"safety missing rows: {int((~snapshot['안전_데이터여부']).sum()):,}")
     print(f"commercial missing rows: {int((~snapshot['상권_데이터여부']).sum()):,}")
     print(f"price latest month: {snapshot['가격_기준월'].dropna().max()}")
+    print(
+        "price rows using an earlier reliable month: "
+        f"{int(snapshot['가격_최신월대비개월차'].fillna(0).gt(0).sum()):,}",
+    )
     print(f"population latest month: {snapshot['생활인구_기준월'].dropna().max()}")
     print(f"safety latest date: {snapshot['안전_기준일자'].dropna().max()}")
     print(f"commercial latest quarter: {snapshot['상권_기준일자'].dropna().max()}")

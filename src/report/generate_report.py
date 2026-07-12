@@ -54,6 +54,9 @@ class RegionSnapshot:
     safe_facility_density: float | None = None
     nightlife_density: float | None = None
     store_density: float | None = None
+    price_latest_available_month: str | None = None
+    price_selection_policy: str | None = None
+    price_month_lag: float | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -162,6 +165,9 @@ def to_region_snapshot(row: pd.Series) -> RegionSnapshot:
         safe_facility_density=optional_float(row.get("안심시설수_면적당")),
         nightlife_density=optional_float(row.get("유흥시설수_면적당")),
         store_density=optional_float(row.get("사업체수_면적당")),
+        price_latest_available_month=optional_str(row.get("가격_최신가용월")),
+        price_selection_policy=optional_str(row.get("가격_선택정책")),
+        price_month_lag=optional_float(row.get("가격_최신월대비개월차")),
     )
 
 

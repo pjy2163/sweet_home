@@ -62,7 +62,7 @@ def test_preview_has_unique_traceable_evidence_ids() -> None:
     )
 
 
-def test_preview_marks_low_volume_price_as_caution() -> None:
+def test_preview_uses_earlier_reliable_price_for_low_volume_latest_month() -> None:
     response = client.post(
         "/ai/reports/preview",
         json={"region_a": "잠실본동", "region_b": "개포1동"},
@@ -77,9 +77,10 @@ def test_preview_marks_low_volume_price_as_caution() -> None:
         if metric["region_id"] == jamsil_id and metric["domain"] == "price"
     ]
 
-    assert all(metric["quality_status"] == "caution" for metric in price_metrics)
+    assert all(metric["quality_status"] == "reliable" for metric in price_metrics)
     assert any(
-        flag["code"] == "LOW_PRICE_VOLUME" and flag["region_id"] == jamsil_id
+        flag["code"] == "EARLIER_RELIABLE_PRICE_MONTH_SELECTED"
+        and flag["region_id"] == jamsil_id
         for flag in payload["quality_flags"]
     )
 
@@ -171,7 +172,9 @@ def test_chart_specs_reuse_evidence_and_never_declare_a_winner() -> None:
         for datum in chart["data"]
     )
     assert charts["jeonse_ratio"]["reference"] == {"label": "서울 평균", "value": 0.0}
-    assert "LOW_PRICE_VOLUME" in charts["jeonse_ratio"]["related_quality_flag_codes"]
+    assert "EARLIER_RELIABLE_PRICE_MONTH_SELECTED" in (
+        charts["jeonse_ratio"]["related_quality_flag_codes"]
+    )
     assert charts["safe_facility_density"]["unit"] == "개/㎢"
     assert charts["store_density"]["unit"] == "개/㎢"
     assert charts["jeonse_ratio"]["axis_min"] <= -37.79

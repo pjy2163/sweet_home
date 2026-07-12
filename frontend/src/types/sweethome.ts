@@ -18,6 +18,9 @@ export type Metadata = {
 
 export type RegionMetrics = {
   display_name: string;
+  price_latest_available_month: string | null;
+  price_selection_policy: string | null;
+  price_month_lag: number | null;
   deposit: number | null;
   seoul_deposit: number | null;
   deposit_ratio: number | null;

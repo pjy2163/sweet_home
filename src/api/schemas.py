@@ -34,6 +34,9 @@ class RegionComparisonMetrics(BaseModel):
     dong_name: str
     display_name: str
     price_month: Optional[str]
+    price_latest_available_month: Optional[str]
+    price_selection_policy: Optional[str]
+    price_month_lag: Optional[float]
     deposit: Optional[float]
     seoul_deposit: Optional[float]
     deposit_ratio: Optional[float]

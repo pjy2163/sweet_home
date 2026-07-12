@@ -132,6 +132,9 @@ def region_to_response(region: RegionSnapshot) -> RegionComparisonMetrics:
         dong_name=region.dong_name,
         display_name=f"{region.gu_name} {region.dong_name}",
         price_month=region.price_month,
+        price_latest_available_month=region.price_latest_available_month,
+        price_selection_policy=region.price_selection_policy,
+        price_month_lag=region.price_month_lag,
         deposit=region.deposit,
         seoul_deposit=region.seoul_deposit,
         deposit_ratio=region.deposit_ratio,
@@ -203,13 +206,16 @@ def list_region_options() -> list[RegionOption]:
 
 def get_data_metadata() -> MetadataResponse:
     snapshot = enrich_with_geometry(read_snapshot())
+    price_latest_column = (
+        "가격_최신가용월" if "가격_최신가용월" in snapshot.columns else "가격_기준월"
+    )
 
     return MetadataResponse(
         source=DATA_SOURCE_TEXT,
         aggregation=AGGREGATION_TEXT,
         limitation=LIMITATION_TEXT,
         region_count=int(snapshot["region_id"].nunique()),
-        price_latest_month=latest_text(snapshot, "가격_기준월"),
+        price_latest_month=latest_text(snapshot, price_latest_column),
         population_latest_month=latest_text(snapshot, "생활인구_기준월"),
         safety_latest_date=latest_text(snapshot, "안전_기준일자"),
         commercial_latest_quarter=latest_text(snapshot, "상권_기준일자"),
