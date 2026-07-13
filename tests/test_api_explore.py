@@ -309,3 +309,30 @@ def test_explore_preserves_direct_candidate_order(monkeypatch) -> None:
         selected_ids[0],
     ]
     assert result["metadata"]["direct_candidate_count"] == 2
+
+
+def test_explore_returns_all_evidence_for_map_clicked_region() -> None:
+    client = TestClient(app)
+    region_id = comparison_service.build_indicator_profile().iloc[0]["region_id"]
+
+    response = client.get(
+        "/explore",
+        params=[
+            ("price", "true"),
+            ("convenience", "true"),
+            ("safety", "true"),
+            ("population", "true"),
+            ("transport", "true"),
+            ("region_ids", region_id),
+            ("limit", "1"),
+        ],
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert len(result["regions"]) == 1
+    assert result["regions"][0]["region_id"] == region_id
+    assert {
+        metric["condition"]
+        for metric in result["regions"][0]["evidence_metrics"]
+    } == {"price", "convenience", "safety", "population", "transport"}

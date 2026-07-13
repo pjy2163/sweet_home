@@ -56,6 +56,7 @@ type ReportRegion = HeatmapRegion & {
   matched_indicators?: string[];
   indicator_summary?: Record<string, string>;
   evidence_metrics?: CandidateEvidenceMetric[];
+  selection_source?: "candidate" | "map_click";
 };
 
 type ReportPanelPosition = {
@@ -133,6 +134,24 @@ type KakaoCustomOverlay = {
   setMap: (map: KakaoMap | null) => void;
 };
 
+type KakaoMarker = {
+  setMap: (map: KakaoMap | null) => void;
+};
+
+type KakaoRegionResult = {
+  address_name: string;
+  code: string;
+  region_type: "B" | "H";
+};
+
+type KakaoGeocoder = {
+  coord2RegionCode: (
+    longitude: number,
+    latitude: number,
+    callback: (result: KakaoRegionResult[], status: string) => void,
+  ) => void;
+};
+
 type KakaoMaps = {
   LatLng: new (lat: number, lng: number) => KakaoLatLng;
   LatLngBounds: new () => KakaoLatLngBounds;
@@ -144,7 +163,7 @@ type KakaoMaps = {
     map: KakaoMap;
     position: KakaoLatLng;
     title: string;
-  }) => unknown;
+  }) => KakaoMarker;
   CustomOverlay: new (options: {
     map: KakaoMap;
     position: KakaoLatLng;
@@ -152,6 +171,17 @@ type KakaoMaps = {
     yAnchor: number;
     zIndex?: number;
   }) => KakaoCustomOverlay;
+  event: {
+    addListener: (
+      target: KakaoMap,
+      eventName: "click",
+      callback: (event: { latLng: KakaoLatLng }) => void,
+    ) => void;
+  };
+  services?: {
+    Geocoder: new () => KakaoGeocoder;
+    Status: { OK: string };
+  };
   load: (callback: () => void) => void;
 };
 
@@ -330,7 +360,7 @@ function ReportMapContent() {
             지도로 보는 후보군 분포
           </h1>
           <p className="mt-6 text-base leading-7 text-[#9f9fa0]">
-            지도에서 후보 위치를 먼저 확인하고, 지표 순위에서 서울 전체 분포를 함께 비교합니다.
+            후보 위치를 확인하거나 궁금한 지점을 직접 클릭해 해당 행정동의 데이터 근거를 살펴봅니다.
           </p>
 
           {contractType && budgetMaxKrw10k ? (
@@ -564,12 +594,17 @@ function KakaoReportMap({
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapShellRef = useRef<HTMLDivElement | null>(null);
+  const mapClickRequestRef = useRef(0);
   const [mapReady, setMapReady] = useState(false);
   const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>(
     () => Object.fromEntries([...savedRegionIds].map((regionId) => [regionId, "saved"])),
   );
   const [mapSize, setMapSize] = useState<MapSize>("standard");
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
+  const [mapClickNotice, setMapClickNotice] = useState({
+    tone: "guide" as "guide" | "loading" | "success" | "error",
+    text: "지도에서 궁금한 위치를 클릭해 행정동 데이터를 확인하세요.",
+  });
   const [comparisonReport, setComparisonReport] =
     useState<AIReportResponse | null>(null);
   const [comparisonEvidence, setComparisonEvidence] =
@@ -697,7 +732,11 @@ function KakaoReportMap({
   const openRegionReport = useCallback((region: ReportRegion) => {
     setOpenReports((reports) => {
       if (reports.some((report) => report.region.region_id === region.region_id)) {
-        return reports;
+        return reports.map((report) =>
+          report.region.region_id === region.region_id
+            ? { ...report, region }
+            : report,
+        );
       }
 
       return [
@@ -710,6 +749,48 @@ function KakaoReportMap({
       ].slice(-2);
     });
   }, []);
+
+  const analyzeClickedRegion = useCallback(async (
+    regionId: string,
+    addressName: string,
+  ) => {
+    const requestId = mapClickRequestRef.current + 1;
+    mapClickRequestRef.current = requestId;
+    setMapClickNotice({
+      tone: "loading",
+      text: `${addressName}의 행정동 데이터를 불러오는 중입니다.`,
+    });
+
+    try {
+      const result = await fetchCandidateMatches(CONDITION_OPTIONS, 1, {
+        regionIds: [regionId],
+      });
+      if (requestId !== mapClickRequestRef.current) return;
+
+      const clickedRegion = result.regions[0];
+      if (!clickedRegion) {
+        setMapClickNotice({
+          tone: "error",
+          text: "현재 SweetHome이 지원하는 서울 행정동 데이터가 없는 위치입니다.",
+        });
+        return;
+      }
+
+      openRegionReport(toReportRegion(clickedRegion, "map_click"));
+      setMapClickNotice({
+        tone: "success",
+        text: `${clickedRegion.display_name} · 행정동 단위 분석을 열었습니다.`,
+      });
+    } catch (error) {
+      if (requestId !== mapClickRequestRef.current) return;
+      setMapClickNotice({
+        tone: "error",
+        text: error instanceof Error
+          ? error.message
+          : "클릭한 위치의 데이터를 불러오지 못했습니다.",
+      });
+    }
+  }, [openRegionReport]);
 
   const closeRegionReport = useCallback((regionId: string) => {
     setOpenReports((reports) =>
@@ -782,6 +863,59 @@ function KakaoReportMap({
       );
       const map = new maps.Map(mapRef.current, { center, level: 8 });
       const bounds = new maps.LatLngBounds();
+      const services = maps.services;
+      const geocoder = services ? new services.Geocoder() : null;
+      let clickMarker: KakaoMarker | null = null;
+
+      if (!geocoder || !services) {
+        setMapClickNotice({
+          tone: "error",
+          text: "위치 분석 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해 주세요.",
+        });
+      } else {
+        maps.event.addListener(map, "click", ({ latLng }) => {
+          if (clickMarker) clickMarker.setMap(null);
+          clickMarker = new maps.Marker({
+            map,
+            position: latLng,
+            title: "분석할 위치",
+          });
+
+          setMapClickNotice({
+            tone: "loading",
+            text: "클릭한 위치의 행정동을 확인하는 중입니다.",
+          });
+          geocoder.coord2RegionCode(
+            latLng.getLng(),
+            latLng.getLat(),
+            (result, status) => {
+              if (status !== services.Status.OK) {
+                setMapClickNotice({
+                  tone: "error",
+                  text: "클릭한 위치의 행정동을 확인하지 못했습니다.",
+                });
+                return;
+              }
+
+              const administrativeRegion = result.find(
+                (region) => region.region_type === "H",
+              );
+              if (!administrativeRegion) {
+                setMapClickNotice({
+                  tone: "error",
+                  text: "이 위치에서는 행정동 정보를 찾을 수 없습니다.",
+                });
+                return;
+              }
+
+              void analyzeClickedRegion(
+                administrativeRegion.code,
+                administrativeRegion.address_name,
+              );
+            },
+          );
+        });
+      }
 
       // 레벨별 오버레이 색상
       const overlayColors: Record<HeatmapLevel, { bg: string; text: string; border: string }> = {
@@ -902,7 +1036,7 @@ function KakaoReportMap({
     }
 
     window.kakao?.maps.load(drawMap);
-  }, [candidateStates, mapReady, mapSize, mappedTopRegions, openRegionReport, unit]);
+  }, [analyzeClickedRegion, candidateStates, mapReady, mapSize, mappedTopRegions, openRegionReport, unit]);
 
   if (!appKey) {
     return (
@@ -962,7 +1096,7 @@ function KakaoReportMap({
     <div className="grid h-full min-h-[700px] content-start gap-4">
       {/* Next.js Script 컴포넌트로 SDK 로드 — CORB 방지 */}
       <Script
-        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`}
+        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=services`}
         strategy="afterInteractive"
         onReady={() => setMapReady(true)}
         onError={() => setMapReady(false)}
@@ -976,6 +1110,7 @@ function KakaoReportMap({
         <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
           Kakao map layer
         </div>
+        <MapClickNotice notice={mapClickNotice} />
         <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
         {openReports.map((report, index) => (
           <CandidateMiniReport
@@ -1639,7 +1774,7 @@ function CandidateMiniReport({
       >
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-            Mini Report 0{reportIndex + 1}
+            {region.selection_source === "map_click" ? "Map click analysis" : `Mini Report 0${reportIndex + 1}`}
           </p>
           <h2 className="mt-1 text-xl font-semibold">{region.display_name}</h2>
         </div>
@@ -1658,9 +1793,15 @@ function CandidateMiniReport({
       </div>
 
       <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="text-xs font-semibold text-[#9f9fa0]">후보로 잡힌 이유</p>
+        <p className="text-xs font-semibold text-[#9f9fa0]">
+          {region.selection_source === "map_click" ? "클릭 위치 분석 기준" : "후보로 잡힌 이유"}
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {(region.matched_indicators ?? []).length > 0 ? (
+          {region.selection_source === "map_click" ? (
+            <span className="text-sm leading-6 text-[#cacaca]">
+              클릭한 좌표가 속한 행정동의 데이터입니다. 개별 주소나 건물을 분석한 결과는 아닙니다.
+            </span>
+          ) : (region.matched_indicators ?? []).length > 0 ? (
             region.matched_indicators?.map((indicator) => (
               <span
                 className="rounded-full border border-[#847dff]/30 bg-[#847dff]/15 px-3 py-1 text-xs font-semibold text-[#d8d6ff]"
@@ -1744,6 +1885,55 @@ function CandidateMiniReport({
       </button>
     </aside>
   );
+}
+
+function MapClickNotice({
+  notice,
+}: {
+  notice: {
+    tone: "guide" | "loading" | "success" | "error";
+    text: string;
+  };
+}) {
+  const toneClass = {
+    guide: "border-white/10 bg-black/55 text-[#d8d8dc]",
+    loading: "border-[#847dff]/35 bg-[#17152b]/90 text-[#d8d6ff]",
+    success: "border-[#5bc89a]/35 bg-[#10251d]/90 text-[#b8f0d8]",
+    error: "border-[#e8988f]/35 bg-[#2a1716]/90 text-[#ffc7c2]",
+  }[notice.tone];
+
+  return (
+    <div className={`absolute bottom-5 left-5 z-20 max-w-[28rem] rounded-xl border px-4 py-3 text-xs leading-5 shadow-lg backdrop-blur ${toneClass}`}>
+      <p className="font-semibold">위치 선택 분석</p>
+      <p className="mt-1 opacity-85">{notice.text}</p>
+    </div>
+  );
+}
+
+function toReportRegion(
+  region: CandidateMatchRegion,
+  selectionSource: ReportRegion["selection_source"] = "candidate",
+): ReportRegion {
+  return {
+    region_id: region.region_id,
+    gu_name: region.gu_name,
+    dong_name: region.dong_name,
+    display_name: region.display_name,
+    area_km2: region.area_km2,
+    centroid_lon: region.centroid_lon,
+    centroid_lat: region.centroid_lat,
+    map_x: region.map_x,
+    map_y: region.map_y,
+    value: region.match_count,
+    percentile: null,
+    level: "very_high",
+    has_data: true,
+    match_count: region.match_count,
+    matched_indicators: region.matched_indicators,
+    indicator_summary: region.indicator_summary,
+    evidence_metrics: region.evidence_metrics,
+    selection_source: selectionSource,
+  };
 }
 
 function EvidenceProfileRow({ profile }: { profile: EvidenceProfile }) {
