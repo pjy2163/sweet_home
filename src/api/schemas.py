@@ -26,6 +26,7 @@ class MetadataResponse(BaseModel):
     population_latest_month: Optional[str]
     safety_latest_date: Optional[str]
     commercial_latest_quarter: Optional[str]
+    transport_latest_date: Optional[str]
 
 
 class RegionComparisonMetrics(BaseModel):
@@ -56,10 +57,18 @@ class RegionComparisonMetrics(BaseModel):
     commercial_date: Optional[str]
     industry_count: Optional[float]
     store_count: Optional[float]
+    transport_date: Optional[str]
+    subway_station_count: Optional[float]
+    subway_line_count: Optional[float]
+    nearest_subway_station_name: Optional[str]
+    nearest_subway_distance_m: Optional[float]
+    bus_stop_count: Optional[float]
+    bus_stop_density: Optional[float]
     has_price_data: bool
     has_population_data: bool
     has_safety_data: bool
     has_commercial_data: bool
+    has_transport_data: bool
 
 
 class CompareResponse(BaseModel):
@@ -126,6 +135,7 @@ HeatmapMetric = Literal[
     "nighttime_living_population",
     "safe_facility_density",
     "store_density",
+    "bus_stop_density",
 ]
 
 HeatmapLevel = Literal[

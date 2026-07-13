@@ -28,6 +28,9 @@ OUTPUT_COLUMNS = [
     "생활인구_기준월",
     "안전_기준일자",
     "상권_기준일자",
+    "교통_기준일자",
+    "지하철_기준일자",
+    "버스_기준일자",
     "안심시설수",
     "안심시설수_면적당",
     "안심시설수_면적당_상대수준",
@@ -49,6 +52,15 @@ OUTPUT_COLUMNS = [
     "야간생활인구",
     "야간생활인구_상대수준",
     "주야간생활인구비율",
+    "지하철역수",
+    "지하철노선수",
+    "지하철역_행정동내여부",
+    "최근접지하철역명",
+    "최근접지하철역거리_m",
+    "최근접지하철역거리_상대수준",
+    "버스정류소수",
+    "버스정류소_면적당",
+    "버스정류소_면적당_상대수준",
     "실거래가",
     "실거래가_서울평균대비율",
     "실거래가_서울평균이하여부",
@@ -61,10 +73,12 @@ OUTPUT_COLUMNS = [
     "상권_데이터여부",
     "생활인구_데이터여부",
     "가격_데이터여부",
+    "교통_데이터여부",
     "안전_매칭지표수",
     "편의_매칭지표수",
     "가격_매칭지표수",
     "인구_매칭지표수",
+    "교통_매칭지표수",
 ]
 
 
@@ -139,6 +153,17 @@ def build_indicator_profile() -> pd.DataFrame:
     profile["생활인구_상대수준"] = relative_level(profile["생활인구"])
     profile["주간생활인구_상대수준"] = relative_level(profile["주간생활인구"])
     profile["야간생활인구_상대수준"] = relative_level(profile["야간생활인구"])
+    profile["지하철역_행정동내여부"] = (
+        pd.to_numeric(profile["지하철역수"], errors="coerce")
+        .gt(0)
+        .where(profile["교통_데이터여부"], pd.NA)
+    )
+    profile["최근접지하철역거리_상대수준"] = relative_level(
+        profile["최근접지하철역거리_m"],
+    )
+    profile["버스정류소_면적당_상대수준"] = relative_level(
+        profile["버스정류소_면적당"],
+    )
     profile["실거래가_서울평균이하여부"] = boolean_from_ratio_at_or_below_average(
         profile["실거래가_서울평균대비율"],
     )
@@ -158,6 +183,10 @@ def build_indicator_profile() -> pd.DataFrame:
         ["실거래가_서울평균이하여부", "전세가_서울평균이하여부"]
     ].eq(True).sum(axis=1)
     profile["인구_매칭지표수"] = 0
+    profile["교통_매칭지표수"] = (
+        profile["지하철역_행정동내여부"].eq(True).astype(int)
+        + profile["버스정류소_면적당_상대수준"].eq("상대적으로높음").astype(int)
+    )
 
     profile = profile[OUTPUT_COLUMNS].sort_values(
         ["시군구명", "행정동명", "region_id"],
@@ -205,8 +234,8 @@ def print_validation(profile: pd.DataFrame) -> None:
         f"{int(profile['인구_매칭지표수'].gt(0).sum()):,}",
     )
     print(
-        "transport candidate indicator rows: 0 "
-        "(transport source not added yet)",
+        "transport candidate indicator rows: "
+        f"{int(profile['교통_매칭지표수'].gt(0).sum()):,}",
     )
 
 

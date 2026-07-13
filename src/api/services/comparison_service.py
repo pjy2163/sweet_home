@@ -45,7 +45,10 @@ HOUSING_RENT_SNAPSHOT_PATH = (
     BASE_DIR / "data" / "processed" / "housing_rent_snapshot.csv"
 )
 GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
-TRANSPORT_STATUS = "교통 원천 데이터가 아직 추가되지 않아 후보군 매칭에는 반영하지 않습니다."
+TRANSPORT_STATUS = (
+    "지하철역과 버스정류소의 정적 위치를 행정동 경계에 연결했습니다. "
+    "실제 이동 경로나 출퇴근 시간은 반영하지 않습니다."
+)
 
 HEATMAP_METRICS: dict[str, dict[str, str]] = {
     "deposit_ratio": {
@@ -88,6 +91,12 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
         "column": "사업체수_면적당",
         "label": "생활편의 점포 밀도",
         "description": "행정동 면적 1㎢당 생활편의 점포 수를 보여줍니다.",
+        "unit": "개/㎢",
+    },
+    "bus_stop_density": {
+        "column": "버스정류소_면적당",
+        "label": "버스정류소 밀도",
+        "description": "행정동 면적 1㎢당 버스정류소 수를 보여줍니다.",
         "unit": "개/㎢",
     },
 }
@@ -177,10 +186,18 @@ def region_to_response(region: RegionSnapshot) -> RegionComparisonMetrics:
         commercial_date=region.commercial_date,
         industry_count=region.industry_count,
         store_count=region.store_count,
+        transport_date=region.transport_date,
+        subway_station_count=region.subway_station_count,
+        subway_line_count=region.subway_line_count,
+        nearest_subway_station_name=region.nearest_subway_station_name,
+        nearest_subway_distance_m=region.nearest_subway_distance_m,
+        bus_stop_count=region.bus_stop_count,
+        bus_stop_density=region.bus_stop_density,
         has_price_data=region.has_price_data,
         has_population_data=region.has_population_data,
         has_safety_data=region.has_safety_data,
         has_commercial_data=region.has_commercial_data,
+        has_transport_data=region.has_transport_data,
     )
 
 
@@ -245,6 +262,7 @@ def get_data_metadata() -> MetadataResponse:
         population_latest_month=latest_text(snapshot, "생활인구_기준월"),
         safety_latest_date=latest_text(snapshot, "안전_기준일자"),
         commercial_latest_quarter=latest_text(snapshot, "상권_기준일자"),
+        transport_latest_date=latest_text(snapshot, "교통_기준일자"),
     )
 
 
@@ -401,10 +419,12 @@ def list_candidate_matches(
         matched["match_count"] += matched["편의_매칭지표수"]
     if price:
         matched["match_count"] += matched["가격_매칭지표수"]
+    if transport:
+        matched["match_count"] += matched["교통_매칭지표수"]
     direct_region_ids = [str(region_id) for region_id in (region_ids or [])]
     if direct_region_ids:
         candidate_rows = matched[matched["region_id"].isin(direct_region_ids)].copy()
-    elif convenience or price:
+    elif convenience or price or transport:
         candidate_rows = matched[matched["match_count"] > 0].copy()
     else:
         contextual_data = pd.Series(False, index=matched.index)
@@ -412,6 +432,8 @@ def list_candidate_matches(
             contextual_data |= matched["안전_데이터여부"].fillna(False).astype(bool)
         if population:
             contextual_data |= matched["생활인구_데이터여부"].fillna(False).astype(bool)
+        if transport:
+            contextual_data |= matched["교통_데이터여부"].fillna(False).astype(bool)
         candidate_rows = matched[contextual_data].copy()
     if exclude_low_volume_price:
         candidate_rows = candidate_rows[
@@ -607,7 +629,21 @@ def row_to_candidate_match(
         )
 
     if "transport" in selected_conditions:
-        indicator_summary["transport"] = TRANSPORT_STATUS
+        station_count = format_metric_value(row.get("지하철역수"), "개", 0)
+        nearest_name = none_or_text(row.get("최근접지하철역명")) or "최근접역"
+        nearest_distance = format_metric_value(
+            row.get("최근접지하철역거리_m"),
+            "m",
+            0,
+        )
+        indicator_summary["transport"] = (
+            f"행정동 내부 지하철역 {station_count}, 대표 중심점에서 "
+            f"{nearest_name}까지 직선거리 {nearest_distance}가 관측됩니다."
+        )
+        if is_true_indicator(row.get("지하철역_행정동내여부")):
+            matched_indicators.append("행정동 내부 지하철역")
+        if row.get("버스정류소_면적당_상대수준") == "상대적으로높음":
+            matched_indicators.append("버스정류소 밀도")
 
     return CandidateMatchRegion(
         region_id=str(row["region_id"]),
@@ -797,6 +833,61 @@ def build_candidate_evidence(
                 normal_text=f"{period_text} 체류 추정인구가 서울 내 중간권입니다.",
             )
             evidence.append(metric.model_copy(update={"is_matched": False}))
+
+    if "transport" in selected_conditions:
+        station_count = row.get("지하철역수")
+        station_inside = is_true_indicator(row.get("지하철역_행정동내여부"))
+        evidence.extend(
+            [
+                CandidateEvidenceMetric(
+                    condition="transport",
+                    label="행정동 내부 지하철역",
+                    value=none_or_rounded_float(station_count, 0),
+                    unit="개",
+                    display_value=format_metric_value(station_count, "개", 0),
+                    interpretation=(
+                        "행정동 경계 안에 지하철역이 관측됩니다."
+                        if station_inside
+                        else "행정동 경계 안에는 지하철역이 관측되지 않습니다."
+                    ),
+                    level="관측" if station_inside else "미관측",
+                    is_matched=station_inside,
+                    data_date=none_or_text(row.get("지하철_기준일자")),
+                    reliability="정적 위치의 행정동 경계 매핑",
+                ),
+                CandidateEvidenceMetric(
+                    condition="transport",
+                    label="대표 중심점 최근접역 거리",
+                    value=none_or_rounded_float(row.get("최근접지하철역거리_m"), 0),
+                    unit="m",
+                    display_value=format_metric_value(
+                        row.get("최근접지하철역거리_m"),
+                        "m",
+                        0,
+                    ),
+                    interpretation=(
+                        f"행정동 대표 중심점에서 {none_or_text(row.get('최근접지하철역명')) or '최근접역'}까지의 "
+                        "직선거리입니다. 실제 도보거리나 이동시간이 아닙니다."
+                    ),
+                    level=str(row.get("최근접지하철역거리_상대수준", "데이터없음")),
+                    is_matched=False,
+                    data_date=none_or_text(row.get("지하철_기준일자")),
+                    reliability="행정동 대표 중심점 기준 직선거리",
+                ),
+                relative_count_evidence(
+                    row=row,
+                    condition="transport",
+                    label="버스정류소 밀도",
+                    value_column="버스정류소_면적당",
+                    level_column="버스정류소_면적당_상대수준",
+                    unit="개/㎢",
+                    data_date_column="버스_기준일자",
+                    high_text="면적 대비 버스정류소가 서울 내에서 많은 편입니다.",
+                    low_text="면적 대비 버스정류소가 서울 내에서 적은 편입니다.",
+                    normal_text="면적 대비 버스정류소가 서울 내 중간권입니다.",
+                ),
+            ],
+        )
 
     return evidence
 

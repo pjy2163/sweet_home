@@ -166,7 +166,7 @@ def test_explore_regions_requires_at_least_one_condition() -> None:
     }
 
 
-def test_explore_regions_accepts_transport_as_unavailable_condition() -> None:
+def test_explore_regions_returns_static_transport_evidence() -> None:
     client = TestClient(app)
 
     response = client.get("/explore", params={"transport": "true"})
@@ -174,10 +174,18 @@ def test_explore_regions_accepts_transport_as_unavailable_condition() -> None:
     assert response.status_code == 200
     result = response.json()
     assert result["selected_conditions"] == ["transport"]
-    assert result["regions"] == []
-    assert "교통 원천 데이터가 아직 추가되지 않아" in result["metadata"][
-        "transport_status"
-    ]
+    assert result["regions"]
+    assert "정적 위치" in result["metadata"]["transport_status"]
+    assert all(region["match_count"] > 0 for region in result["regions"])
+    assert all(
+        {"행정동 내부 지하철역", "대표 중심점 최근접역 거리", "버스정류소 밀도"}
+        <= {
+            metric["label"]
+            for metric in region["evidence_metrics"]
+            if metric["condition"] == "transport"
+        }
+        for region in result["regions"]
+    )
 
 
 def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None:

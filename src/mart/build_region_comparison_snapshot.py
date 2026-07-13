@@ -11,6 +11,7 @@ PRICE_PATH = BASE_DIR / "data" / "processed" / "real_estate_price_comparison.csv
 POPULATION_PATH = BASE_DIR / "data" / "processed" / "population_fact.csv"
 SAFETY_PATH = BASE_DIR / "data" / "processed" / "safety_fact.csv"
 COMMERCIAL_PATH = BASE_DIR / "data" / "processed" / "commercial_fact.csv"
+TRANSPORT_PATH = BASE_DIR / "data" / "processed" / "transport_fact.csv"
 OUTPUT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
 
 OUTPUT_COLUMNS = [
@@ -49,10 +50,22 @@ OUTPUT_COLUMNS = [
     "상권_기준일자",
     "업종수",
     "사업체수",
+    "교통_기준일자",
+    "지하철_기준일자",
+    "버스_기준일자",
+    "지하철역수",
+    "지하철노선수",
+    "최근접지하철역명",
+    "최근접지하철역거리_m",
+    "버스정류소수",
+    "버스정류소_면적당",
+    "교통_매핑방법",
+    "교통_데이터출처",
     "가격_데이터여부",
     "생활인구_데이터여부",
     "안전_데이터여부",
     "상권_데이터여부",
+    "교통_데이터여부",
 ]
 
 
@@ -183,12 +196,14 @@ def build_snapshot() -> pd.DataFrame:
     population = latest_per_region(read_csv(POPULATION_PATH))
     safety = latest_safety_snapshot(read_csv(SAFETY_PATH))
     commercial = latest_per_region(read_csv(COMMERCIAL_PATH))
+    transport = latest_per_region(read_csv(TRANSPORT_PATH))
 
     validate_unique_region(region_master, "region_master")
     validate_unique_region(price, "latest price")
     validate_unique_region(population, "latest population")
     validate_unique_region(safety, "latest safety")
     validate_unique_region(commercial, "latest commercial")
+    validate_unique_region(transport, "latest transport")
 
     price = price.rename(columns={"기준일자": "가격_기준월"})
     population = population.rename(columns={"기준일자": "생활인구_기준월"})
@@ -200,6 +215,7 @@ def build_snapshot() -> pd.DataFrame:
         },
     )
     commercial = commercial.rename(columns={"기준일자": "상권_기준일자"})
+    transport = transport.rename(columns={"기준일자": "교통_기준일자"})
 
     snapshot = region_master.merge(
         price.drop(columns=["시군구명", "행정동명"], errors="ignore"),
@@ -220,11 +236,13 @@ def build_snapshot() -> pd.DataFrame:
         on="region_id",
         how="left",
     )
+    snapshot = snapshot.merge(transport, on="region_id", how="left")
 
     snapshot["가격_데이터여부"] = snapshot["가격_기준월"].notna()
     snapshot["생활인구_데이터여부"] = snapshot["생활인구_기준월"].notna()
     snapshot["안전_데이터여부"] = snapshot["안전_기준일자"].notna()
     snapshot["상권_데이터여부"] = snapshot["상권_기준일자"].notna()
+    snapshot["교통_데이터여부"] = snapshot["교통_기준일자"].notna()
 
     snapshot = snapshot[OUTPUT_COLUMNS].sort_values(
         ["시군구명", "행정동명", "region_id"],
@@ -243,6 +261,7 @@ def print_validation(snapshot: pd.DataFrame) -> None:
     )
     print(f"safety missing rows: {int((~snapshot['안전_데이터여부']).sum()):,}")
     print(f"commercial missing rows: {int((~snapshot['상권_데이터여부']).sum()):,}")
+    print(f"transport missing rows: {int((~snapshot['교통_데이터여부']).sum()):,}")
     print(f"price latest month: {snapshot['가격_기준월'].dropna().max()}")
     print(
         "price rows using an earlier reliable month: "
@@ -251,6 +270,7 @@ def print_validation(snapshot: pd.DataFrame) -> None:
     print(f"population latest month: {snapshot['생활인구_기준월'].dropna().max()}")
     print(f"safety latest date: {snapshot['안전_기준일자'].dropna().max()}")
     print(f"commercial latest quarter: {snapshot['상권_기준일자'].dropna().max()}")
+    print(f"transport latest date: {snapshot['교통_기준일자'].dropna().max()}")
 
 
 def main() -> None:
