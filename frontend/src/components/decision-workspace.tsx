@@ -46,6 +46,7 @@ const CONDITION_OPTIONS: Array<{
   { id: "convenience", label: "생활 편의", description: "일상 상권과 편의시설" },
   { id: "safety", label: "야간 생활환경", description: "안심 인프라와 야간 상권 분포" },
   { id: "population", label: "거주·활동 특성", description: "주간·야간 체류인구의 차이" },
+  { id: "transport", label: "교통 접근성", description: "지하철역과 버스정류소의 정적 위치" },
 ];
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
@@ -53,7 +54,7 @@ const CONDITION_LABELS: Record<ExploreCondition, string> = {
   convenience: "생활 편의",
   safety: "야간 생활환경",
   population: "거주·활동 특성",
-  transport: "교통",
+  transport: "교통 접근성",
 };
 
 export function DecisionWorkspace() {

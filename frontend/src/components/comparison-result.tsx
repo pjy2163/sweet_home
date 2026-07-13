@@ -34,7 +34,7 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
           vs {comparison.region_b.display_name}
         </h2>
         <p className="mt-6 max-w-3xl text-base leading-7 text-[#5e7069]">
-          두 후보지를 같은 기준에 놓고 가격, 생활환경, 편의 지표를 빠르게 비교합니다.
+          두 후보지를 같은 기준에 놓고 가격, 생활환경, 편의, 교통 근거를 빠르게 비교합니다.
         </p>
       </div>
 
@@ -85,6 +85,21 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
           a={formatNumber(comparison.region_a.store_count, "개")}
           b={formatNumber(comparison.region_b.store_count, "개")}
           label="생활편의 점포"
+        />
+        <MetricRow
+          a={formatNumber(comparison.region_a.subway_station_count, "개")}
+          b={formatNumber(comparison.region_b.subway_station_count, "개")}
+          label="행정동 내부 지하철역"
+        />
+        <MetricRow
+          a={formatNearestStation(comparison.region_a.nearest_subway_station_name, comparison.region_a.nearest_subway_distance_m)}
+          b={formatNearestStation(comparison.region_b.nearest_subway_station_name, comparison.region_b.nearest_subway_distance_m)}
+          label="대표 중심점 최근접역 · 직선거리"
+        />
+        <MetricRow
+          a={formatNumber(comparison.region_a.bus_stop_density, "개/㎢")}
+          b={formatNumber(comparison.region_b.bus_stop_density, "개/㎢")}
+          label="버스정류소 밀도"
         />
       </div>
 
@@ -171,6 +186,12 @@ function ComparisonMiniReport({ comparison }: { comparison: CompareResponse }) {
       label: "야간 체류",
       a: formatNumber(comparison.region_a.nighttime_living_population, "명"),
       b: formatNumber(comparison.region_b.nighttime_living_population, "명"),
+      winner: "none",
+    },
+    {
+      label: "최근접역",
+      a: formatNearestStation(comparison.region_a.nearest_subway_station_name, comparison.region_a.nearest_subway_distance_m),
+      b: formatNearestStation(comparison.region_b.nearest_subway_station_name, comparison.region_b.nearest_subway_distance_m),
       winner: "none",
     },
   ];
@@ -260,6 +281,14 @@ function formatPriceDelta(value: number | null) {
   }
 
   return "서울 평균과 유사";
+}
+
+function formatNearestStation(name: string | null, distance: number | null) {
+  if (!name || distance === null || Number.isNaN(distance)) {
+    return "데이터 없음";
+  }
+
+  return `${name} ${distance.toLocaleString()}m`;
 }
 
 function EmptyResult() {

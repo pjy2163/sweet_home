@@ -41,6 +41,7 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "deposit_ratio", label: "실거래가" },
   { id: "safe_facility_density", label: "안심 인프라" },
   { id: "store_density", label: "편의" },
+  { id: "bus_stop_density", label: "버스정류소" },
   { id: "daytime_living_population", label: "주간 체류인구" },
   { id: "nighttime_living_population", label: "야간 체류인구" },
 ];
@@ -76,7 +77,7 @@ type OpenCandidateReport = {
 };
 
 type EvidenceProfile = {
-  condition: Exclude<ExploreCondition, "transport">;
+  condition: ExploreCondition;
   label: string;
   status: string;
   detail: string;
@@ -110,6 +111,7 @@ const CONDITION_OPTIONS: ExploreCondition[] = [
   "safety",
   "convenience",
   "population",
+  "transport",
 ];
 
 type KakaoLatLng = {
@@ -1765,7 +1767,7 @@ function buildEvidenceProfiles(metrics: CandidateEvidenceMetric[]): EvidenceProf
     grouped.set(metric.condition, current);
   });
 
-  return (["price", "safety", "convenience", "population"] as const)
+  return (["price", "safety", "convenience", "population", "transport"] as const)
     .map((condition) => {
       const conditionMetrics = grouped.get(condition) ?? [];
       if (!conditionMetrics.length) return null;
@@ -1835,6 +1837,7 @@ function evidenceConditionLabel(condition: EvidenceProfile["condition"]) {
     safety: "야간 생활환경",
     convenience: "편의",
     population: "거주·활동 특성",
+    transport: "교통 접근성",
   };
 
   return labels[condition];

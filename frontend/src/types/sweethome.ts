@@ -11,6 +11,7 @@ export type Metadata = {
   population_latest_month: string | null;
   safety_latest_date: string | null;
   commercial_latest_quarter: string | null;
+  transport_latest_date: string | null;
   source: string;
   aggregation: string;
   limitation: string;
@@ -37,10 +38,18 @@ export type RegionMetrics = {
   nightlife_count: number | null;
   industry_count: number | null;
   store_count: number | null;
+  transport_date: string | null;
+  subway_station_count: number | null;
+  subway_line_count: number | null;
+  nearest_subway_station_name: string | null;
+  nearest_subway_distance_m: number | null;
+  bus_stop_count: number | null;
+  bus_stop_density: number | null;
   has_price_data: boolean;
   has_population_data: boolean;
   has_safety_data: boolean;
   has_commercial_data: boolean;
+  has_transport_data: boolean;
 };
 
 export type CompareResponse = {
@@ -122,7 +131,8 @@ export type HeatmapMetric =
   | "daytime_living_population"
   | "nighttime_living_population"
   | "safe_facility_density"
-  | "store_density";
+  | "store_density"
+  | "bus_stop_density";
 
 export type HeatmapLevel =
   | "very_low"

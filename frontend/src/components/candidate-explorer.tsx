@@ -56,7 +56,7 @@ const CONDITION_OPTIONS: ConditionOption[] = [
   {
     id: "transport",
     label: "교통",
-    description: "원천 준비 중",
+    description: "지하철역과 버스정류소의 정적 접근성",
   },
 ];
 
@@ -186,9 +186,6 @@ function CandidateMatchList({
       ) : (
         <p className="mt-10 rounded-2xl border border-[#d7e6df] bg-white p-5 text-base font-semibold text-[#5e7069]">
           선택한 조건과 연결된 후보군이 아직 없습니다
-          {exploration.selected_conditions.includes("transport")
-            ? ` ${exploration.metadata.transport_status}`
-            : ""}
         </p>
       )}
     </aside>
