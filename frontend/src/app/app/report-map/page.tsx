@@ -209,6 +209,7 @@ function ReportMapContent() {
     const raw = searchParams.get("saved");
     return new Set(raw ? raw.split(",").filter(Boolean) : []);
   }, [searchParams]);
+  const focusSavedCandidates = searchParams.get("focus") === "true";
   const [selectedConditions, setSelectedConditions] = useState<ExploreCondition[]>(
     initialConditions,
   );
@@ -232,11 +233,12 @@ function ReportMapContent() {
       budgetMaxKrw10k,
       buildingType,
       areaBand,
+      regionIds: focusSavedCandidates ? [...savedRegionIds] : undefined,
     }).then((result) => {
       if (!ignore) setCandidateRegions(result.regions);
     }).catch(() => {});
     return () => { ignore = true; };
-  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, excludeLowVolumePrice, selectedConditions]);
+  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, excludeLowVolumePrice, focusSavedCandidates, savedRegionIds, selectedConditions]);
 
   const visibleCandidateRegions = useMemo(
     () => {
@@ -586,16 +588,26 @@ function KakaoReportMap({
 
   function updateCandidateState(regionId: string, nextState: CandidateState) {
     setCandidateStates((current) => {
+      const isRemoving = current[regionId] === nextState;
+      const savedCount = Object.values(current).filter((state) => state === "saved").length;
+      if (!isRemoving && nextState === "saved" && savedCount >= 3) {
+        return current;
+      }
       const next = { ...current };
-      if (next[regionId] === nextState) delete next[regionId];
+      if (isRemoving) delete next[regionId];
       else next[regionId] = nextState;
 
       try {
         const stored = window.localStorage.getItem(DECISION_STORAGE_KEY);
         const parsed = stored ? JSON.parse(stored) as Record<string, unknown> : {};
+        const comparisonRegionIds = Array.isArray(parsed.comparisonRegionIds)
+          ? parsed.comparisonRegionIds.filter(
+              (id): id is string => typeof id === "string" && id !== regionId,
+            )
+          : [];
         window.localStorage.setItem(
           DECISION_STORAGE_KEY,
-          JSON.stringify({ ...parsed, candidateStates: next }),
+          JSON.stringify({ ...parsed, candidateStates: next, comparisonRegionIds }),
         );
       } catch {
         // Candidate state still works for the current map session.

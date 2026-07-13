@@ -18,6 +18,7 @@ import type {
 
 type WorkspaceStep = "entry" | "profile" | "candidates" | "comparison";
 type CandidateState = "saved" | "excluded";
+type ExclusionReason = "budget" | "transport" | "night_environment" | "convenience" | "housing" | "other";
 type EntryMode = "known" | "unknown";
 
 type DecisionProfile = {
@@ -29,6 +30,8 @@ type DecisionProfile = {
 };
 
 const STORAGE_KEY = "sweethome.decision-workspace.v1";
+const MAX_SAVED_CANDIDATES = 3;
+const MAX_COMPARISON_CANDIDATES = 2;
 const DEFAULT_PROFILE: DecisionProfile = {
   contractType: "monthly",
   budget: "80",
@@ -65,6 +68,9 @@ export function DecisionWorkspace() {
   const [directRegionIds, setDirectRegionIds] = useState<[string, string]>(["", ""]);
   const [exploration, setExploration] = useState<ExploreResponse | null>(null);
   const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>({});
+  const [candidateNotes, setCandidateNotes] = useState<Record<string, string>>({});
+  const [exclusionReasons, setExclusionReasons] = useState<Record<string, ExclusionReason>>({});
+  const [comparisonRegionIds, setComparisonRegionIds] = useState<string[]>([]);
   const [comparison, setComparison] = useState<CompareResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -78,9 +84,28 @@ export function DecisionWorkspace() {
           const parsed = JSON.parse(stored) as {
             profile?: DecisionProfile;
             candidateStates?: Record<string, CandidateState>;
+            candidateNotes?: Record<string, string>;
+            exclusionReasons?: Record<string, ExclusionReason>;
+            comparisonRegionIds?: string[];
           };
           if (parsed.profile) setProfile(parsed.profile);
-          if (parsed.candidateStates) setCandidateStates(parsed.candidateStates);
+          const restoredStates = parsed.candidateStates ?? {};
+          let restoredSavedCount = 0;
+          const normalizedStates = Object.fromEntries(
+            Object.entries(restoredStates).filter(([, state]) => {
+              if (state !== "saved") return true;
+              restoredSavedCount += 1;
+              return restoredSavedCount <= MAX_SAVED_CANDIDATES;
+            }),
+          );
+          setCandidateStates(normalizedStates);
+          if (parsed.candidateNotes) setCandidateNotes(parsed.candidateNotes);
+          if (parsed.exclusionReasons) setExclusionReasons(parsed.exclusionReasons);
+          if (parsed.comparisonRegionIds) setComparisonRegionIds(
+            parsed.comparisonRegionIds
+              .filter((regionId) => normalizedStates[regionId] === "saved")
+              .slice(0, MAX_COMPARISON_CANDIDATES),
+          );
         }
       } catch {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -96,9 +121,9 @@ export function DecisionWorkspace() {
     if (!hasRestored) return;
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ profile, candidateStates }),
+      JSON.stringify({ profile, candidateStates, candidateNotes, exclusionReasons, comparisonRegionIds }),
     );
-  }, [candidateStates, hasRestored, profile]);
+  }, [candidateNotes, candidateStates, comparisonRegionIds, exclusionReasons, hasRestored, profile]);
 
   useEffect(() => {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
@@ -163,23 +188,51 @@ export function DecisionWorkspace() {
   }
 
   function updateCandidate(regionId: string, state: CandidateState) {
+    const isRemoving = candidateStates[regionId] === state;
+    if (!isRemoving && state === "saved") {
+      const savedCount = Object.values(candidateStates).filter((value) => value === "saved").length;
+      if (savedCount >= MAX_SAVED_CANDIDATES) {
+        setError("검토 후보는 최대 3곳까지 저장할 수 있습니다.");
+        return;
+      }
+    }
+
+    setError("");
     setCandidateStates((current) => {
       const next = { ...current };
-      if (next[regionId] === state) delete next[regionId];
+      if (isRemoving) delete next[regionId];
       else next[regionId] = state;
       return next;
+    });
+    if (state === "excluded" || isRemoving) {
+      setComparisonRegionIds((ids) => ids.filter((id) => id !== regionId));
+    }
+  }
+
+  function toggleComparisonCandidate(regionId: string) {
+    setComparisonRegionIds((current) => {
+      if (current.includes(regionId)) {
+        setError("");
+        return current.filter((id) => id !== regionId);
+      }
+      if (current.length >= MAX_COMPARISON_CANDIDATES) {
+        setError("최종 비교 후보는 2곳만 선택할 수 있습니다.");
+        return current;
+      }
+      setError("");
+      return [...current, regionId];
     });
   }
 
   async function compareFinalists() {
-    if (savedCandidates.length !== 2) return;
+    if (comparisonRegionIds.length !== 2) return;
     setError("");
     setIsLoading(true);
     try {
       setComparison(
         await fetchComparison(
-          savedCandidates[0].region_id,
-          savedCandidates[1].region_id,
+          comparisonRegionIds[0],
+          comparisonRegionIds[1],
         ),
       );
       setStep("comparison");
@@ -231,11 +284,17 @@ export function DecisionWorkspace() {
           {step === "candidates" ? (
             <CandidateBoard
               candidateStates={candidateStates}
+              candidateNotes={candidateNotes}
+              comparisonRegionIds={comparisonRegionIds}
+              exclusionReasons={exclusionReasons}
               error={error}
               exploration={exploration}
               isLoading={isLoading}
               onCompare={compareFinalists}
+              onComparisonToggle={toggleComparisonCandidate}
               onEditProfile={() => setStep("profile")}
+              onExclusionReasonChange={(regionId, reason) => setExclusionReasons((current) => ({ ...current, [regionId]: reason }))}
+              onNoteChange={(regionId, note) => setCandidateNotes((current) => ({ ...current, [regionId]: note }))}
               onUpdateCandidate={updateCandidate}
               profile={profile}
               savedCandidates={savedCandidates}
@@ -247,7 +306,10 @@ export function DecisionWorkspace() {
                 <PageIntro eyebrow="Evidence-based comparison" title="최종 후보를 같은 기준으로 비교합니다" description="강조 결과는 종합 순위가 아닌 지표별 상대 비교입니다." />
                 <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep("candidates")} type="button">← 후보 보드</button>
               </div>
-              <ComparisonResult comparison={comparison} />
+              <ComparisonResult
+                comparison={comparison}
+                mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)}
+              />
             </div>
           ) : null}
         </div>
@@ -388,37 +450,51 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
   );
 }
 
-function CandidateBoard({ exploration, profile, candidateStates, savedCandidates, error, isLoading, onUpdateCandidate, onCompare, onEditProfile }: {
-  exploration: ExploreResponse | null; profile: DecisionProfile; candidateStates: Record<string, CandidateState>; savedCandidates: CandidateMatchRegion[]; error: string; isLoading: boolean;
-  onUpdateCandidate: (regionId: string, state: CandidateState) => void; onCompare: () => void; onEditProfile: () => void;
+function CandidateBoard({ exploration, profile, candidateStates, candidateNotes, comparisonRegionIds, exclusionReasons, savedCandidates, error, isLoading, onUpdateCandidate, onComparisonToggle, onExclusionReasonChange, onNoteChange, onCompare, onEditProfile }: {
+  exploration: ExploreResponse | null; profile: DecisionProfile; candidateStates: Record<string, CandidateState>; candidateNotes: Record<string, string>; comparisonRegionIds: string[]; exclusionReasons: Record<string, ExclusionReason>; savedCandidates: CandidateMatchRegion[]; error: string; isLoading: boolean;
+  onUpdateCandidate: (regionId: string, state: CandidateState) => void; onComparisonToggle: (regionId: string) => void; onExclusionReasonChange: (regionId: string, reason: ExclusionReason) => void; onNoteChange: (regionId: string, note: string) => void; onCompare: () => void; onEditProfile: () => void;
 }) {
   if (!exploration) return <section><PageIntro eyebrow="Candidate board" title="조건을 먼저 확인해 주세요" description="Decision Profile을 바탕으로 후보군을 구성합니다." /><button className="mt-6 rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
-  const mapParams = new URLSearchParams({
-    conditions: profile.conditions.join(","),
-    contract_type: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
-    budget_max_krw_10k: profile.budget,
-  });
-  if (profile.buildingType !== "any") mapParams.set("building_type", profile.buildingType);
-  if (profile.areaBand !== "any") mapParams.set("area_band", profile.areaBand);
-  if (savedCandidates.length) {
-    mapParams.set("saved", savedCandidates.map((region) => region.region_id).join(","));
-  }
-  const mapUrl = `/app/report-map?${mapParams.toString()}`;
+  const mapUrl = buildReportMapUrl(profile, savedCandidates);
   return (
     <section>
-      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="Candidate board" title="살펴볼 후보를 압축해 보세요" description="포함 근거와 주의사항을 확인하고 최종 비교 후보 2곳을 저장하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
-      <div className="mt-7 grid gap-4 sm:grid-cols-3"><SummaryCard label="탐색 후보" value={`${exploration.regions.length}곳`} /><SummaryCard label="저장한 후보" value={`${savedCandidates.length}/2`} accent /><SummaryCard label="의사결정 기준" value={`${profile.conditions.length}개`} /></div>
+      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="Candidate board" title="살펴볼 후보를 압축해 보세요" description="최대 3곳을 검토하며 판단 메모를 남기고, 그중 비교할 2곳을 선택하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
+      <div className="mt-7 grid gap-4 sm:grid-cols-3"><SummaryCard label="탐색 후보" value={`${exploration.regions.length}곳`} /><SummaryCard label="검토 후보" value={`${savedCandidates.length}/3`} accent /><SummaryCard label="비교 선택" value={`${comparisonRegionIds.length}/2`} /></div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        {exploration.regions.map((region) => <CandidateCard key={region.region_id} region={region} state={candidateStates[region.region_id]} onUpdate={onUpdateCandidate} />)}
+        {exploration.regions.map((region) => <CandidateCard candidateNote={candidateNotes[region.region_id] ?? ""} exclusionReason={exclusionReasons[region.region_id]} isComparisonCandidate={comparisonRegionIds.includes(region.region_id)} key={region.region_id} region={region} state={candidateStates[region.region_id]} onComparisonToggle={onComparisonToggle} onExclusionReasonChange={onExclusionReasonChange} onNoteChange={onNoteChange} onUpdate={onUpdateCandidate} />)}
       </div>
       {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(23,32,59,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">최종 후보 {savedCandidates.length}곳 선택</p><p className="mt-1 text-xs text-[#7b8292]">2곳을 저장하면 비교를 시작할 수 있습니다.</p></div><button className="rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={savedCandidates.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "근거 불러오는 중…" : "최종 후보 비교"}</button></div>
+      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(23,32,59,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">비교 후보 {comparisonRegionIds.length}/2 선택</p><p className="mt-1 text-xs text-[#7b8292]">검토 후보는 3곳까지, 최종 비교는 2곳을 선택합니다.</p></div><button className="rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={comparisonRegionIds.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "근거 불러오는 중…" : "선택한 2곳 비교"}</button></div>
     </section>
   );
 }
 
 function SummaryCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className={`rounded-xl border p-5 ${accent ? "border-[#b9dcfb] bg-[#edf7ff]" : "border-[#e0e4eb] bg-white"}`}><p className="text-xs text-[#818898]">{label}</p><p className={`mt-2 text-2xl font-semibold ${accent ? "text-[#1888e8]" : "text-[#17203b]"}`}>{value}</p></div>; }
 
-function CandidateCard({ region, state, onUpdate }: { region: CandidateMatchRegion; state?: CandidateState; onUpdate: (regionId: string, state: CandidateState) => void }) {
-  return <article className={`rounded-xl border bg-white p-6 transition ${state === "saved" ? "border-[#1888e8] ring-1 ring-[#1888e8]" : state === "excluded" ? "border-[#e1e4e9] opacity-55" : "border-[#e0e4eb]"}`}><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#818898]">{region.gu_name}</p><h3 className="mt-1 text-xl font-semibold">{region.dong_name}</h3></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${state === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : state === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{state === "saved" ? "최종 후보" : state === "excluded" ? "제외됨" : "발견됨"}</span></div><div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8b92a1]">포함 근거</p><ul className="mt-3 space-y-2 text-sm leading-6 text-[#596174]">{Object.values(region.indicator_summary).slice(0, 3).map((summary) => <li className="flex gap-2" key={summary}><span className="text-[#1888e8]">•</span>{summary}</li>)}</ul></div><div className="mt-5 flex flex-wrap gap-2">{region.matched_indicators.map((indicator) => <span className="rounded-full border border-[#e0e4eb] px-2.5 py-1 text-xs text-[#687083]" key={indicator}>{indicator}</span>)}</div><div className="mt-6 grid grid-cols-2 gap-2"><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "saved" ? "border-[#1888e8] bg-[#edf7ff] text-[#1888e8]" : "border-[#dce1e8] text-[#4f586b]"}`} onClick={() => onUpdate(region.region_id, "saved")} type="button">{state === "saved" ? "저장 취소" : "후보 저장"}</button><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "excluded" ? "border-[#cfd4dc] bg-[#f1f2f4] text-[#777e8c]" : "border-[#dce1e8] text-[#757c8b]"}`} onClick={() => onUpdate(region.region_id, "excluded")} type="button">{state === "excluded" ? "제외 취소" : "제외"}</button></div></article>;
+function CandidateCard({ region, state, candidateNote, exclusionReason, isComparisonCandidate, onUpdate, onComparisonToggle, onExclusionReasonChange, onNoteChange }: { region: CandidateMatchRegion; state?: CandidateState; candidateNote: string; exclusionReason?: ExclusionReason; isComparisonCandidate: boolean; onUpdate: (regionId: string, state: CandidateState) => void; onComparisonToggle: (regionId: string) => void; onExclusionReasonChange: (regionId: string, reason: ExclusionReason) => void; onNoteChange: (regionId: string, note: string) => void }) {
+  const statusLabel = state === "excluded" ? "제외됨" : isComparisonCandidate ? "비교 선택" : state === "saved" ? "검토 중" : "발견됨";
+  return (
+    <article className={`rounded-xl border bg-white p-6 transition ${isComparisonCandidate ? "border-[#1888e8] ring-1 ring-[#1888e8]" : state === "saved" ? "border-[#b9dcfb]" : state === "excluded" ? "border-[#e1e4e9] bg-[#fafafa]" : "border-[#e0e4eb]"}`}>
+      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#818898]">{region.gu_name}</p><h3 className="mt-1 text-xl font-semibold">{region.dong_name}</h3></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${isComparisonCandidate ? "bg-[#1888e8] text-white" : state === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : state === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{statusLabel}</span></div>
+      <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8b92a1]">포함 근거</p><ul className="mt-3 space-y-2 text-sm leading-6 text-[#596174]">{Object.values(region.indicator_summary).slice(0, 3).map((summary) => <li className="flex gap-2" key={summary}><span className="text-[#1888e8]">•</span>{summary}</li>)}</ul></div>
+      <div className="mt-5 flex flex-wrap gap-2">{region.matched_indicators.map((indicator) => <span className="rounded-full border border-[#e0e4eb] px-2.5 py-1 text-xs text-[#687083]" key={indicator}>{indicator}</span>)}</div>
+      {state === "excluded" ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">제외 이유<select className="mt-2 h-11 w-full rounded-lg border border-[#dfe3ea] bg-white px-3 text-sm font-normal" onChange={(event) => onExclusionReasonChange(region.region_id, event.target.value as ExclusionReason)} value={exclusionReason ?? "other"}><option value="budget">비용 조건</option><option value="transport">교통 접근성</option><option value="night_environment">야간 생활환경</option><option value="convenience">생활 편의</option><option value="housing">주택 조건</option><option value="other">기타</option></select></label> : null}
+      {(state === "saved" || state === "excluded") ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">판단 메모<textarea className="mt-2 min-h-20 w-full resize-y rounded-lg border border-[#dfe3ea] bg-white p-3 text-sm font-normal leading-5 outline-none focus:border-[#1888e8]" maxLength={180} onChange={(event) => onNoteChange(region.region_id, event.target.value)} placeholder="직접 확인할 내용이나 판단 이유를 남겨보세요." value={candidateNote} /></label> : null}
+      <div className={`mt-6 grid gap-2 ${state === "saved" ? "grid-cols-3" : "grid-cols-2"}`}><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "saved" ? "border-[#b9dcfb] bg-[#edf7ff] text-[#1888e8]" : "border-[#dce1e8] text-[#4f586b]"}`} onClick={() => onUpdate(region.region_id, "saved")} type="button">{state === "saved" ? "검토 취소" : "검토 추가"}</button>{state === "saved" ? <button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${isComparisonCandidate ? "border-[#1888e8] bg-[#1888e8] text-white" : "border-[#dce1e8] text-[#4f586b]"}`} onClick={() => onComparisonToggle(region.region_id)} type="button">{isComparisonCandidate ? "비교 해제" : "비교 선택"}</button> : null}<button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "excluded" ? "border-[#cfd4dc] bg-[#f1f2f4] text-[#777e8c]" : "border-[#dce1e8] text-[#757c8b]"}`} onClick={() => onUpdate(region.region_id, "excluded")} type="button">{state === "excluded" ? "제외 취소" : "제외"}</button></div>
+    </article>
+  );
+}
+
+function buildReportMapUrl(profile: DecisionProfile, candidates: CandidateMatchRegion[] | string[], focusOnly = false) {
+  const params = new URLSearchParams({
+    conditions: profile.conditions.join(","),
+    contract_type: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
+    budget_max_krw_10k: profile.budget,
+  });
+  if (profile.buildingType !== "any") params.set("building_type", profile.buildingType);
+  if (profile.areaBand !== "any") params.set("area_band", profile.areaBand);
+  const candidateIds = candidates.map((candidate) => typeof candidate === "string" ? candidate : candidate.region_id);
+  if (candidateIds.length) params.set("saved", candidateIds.join(","));
+  if (focusOnly && candidates.length) params.set("focus", "true");
+  return `/app/report-map?${params.toString()}`;
 }

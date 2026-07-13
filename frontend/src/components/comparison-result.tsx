@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { MetricRow } from "@/components/metric-row";
 import { formatNumber, formatRatio } from "@/lib/format";
 import {
@@ -9,13 +11,14 @@ import type { CompareResponse } from "@/types/sweethome";
 
 type ComparisonResultProps = {
   comparison: CompareResponse | null;
+  mapHref: string;
 };
 
-export function ComparisonResult({ comparison }: ComparisonResultProps) {
+export function ComparisonResult({ comparison, mapHref }: ComparisonResultProps) {
   return (
     <section className={`${layoutStyles.section} pb-24`} id="result">
       {comparison ? (
-        <ResultPanel comparison={comparison} />
+        <ResultPanel comparison={comparison} mapHref={mapHref} />
       ) : (
         <EmptyResult />
       )}
@@ -23,7 +26,7 @@ export function ComparisonResult({ comparison }: ComparisonResultProps) {
   );
 }
 
-function ResultPanel({ comparison }: { comparison: CompareResponse }) {
+function ResultPanel({ comparison, mapHref }: { comparison: CompareResponse; mapHref: string }) {
   return (
     <div className={layoutStyles.borderedPanel}>
       <div className="border-b border-[#d7e6df] p-8 sm:p-12">
@@ -103,49 +106,31 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
         />
       </div>
 
-      <DetailedReportPanel comparison={comparison} />
+      <MapVerificationPanel comparison={comparison} mapHref={mapHref} />
     </div>
   );
 }
 
-function DetailedReportPanel({ comparison }: { comparison: CompareResponse }) {
+function MapVerificationPanel({ comparison, mapHref }: { comparison: CompareResponse; mapHref: string }) {
   return (
-    <details
-      className="group border-t border-[#d7e6df] bg-[#eef3ef]"
-      id="basis"
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-8 sm:p-12">
+    <div className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12">
+      <div className="flex flex-wrap items-center justify-between gap-6">
         <div>
-          <p className={textStyles.eyebrow}>Detailed Report</p>
-          <h3 className="mt-3 text-2xl font-semibold">상세 리포트</h3>
+          <p className={textStyles.eyebrow}>Map verification</p>
+          <h3 className="mt-3 text-2xl font-semibold">두 후보의 위치와 주변 맥락을 확인하세요</h3>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5e7069]">
-            문장형 해석과 데이터 주의사항은 필요할 때 펼쳐서 확인합니다.
+            {comparison.region_a.display_name}과 {comparison.region_b.display_name}의 위치,
+            교통 접근성, 생활환경 근거를 같은 지도에서 이어서 살펴봅니다.
           </p>
         </div>
-        <span className="rounded-full border border-[#173d31] px-4 py-2 text-sm font-bold text-[#173d31] transition group-open:rotate-45">
-          +
-        </span>
-      </summary>
-
-      <div className="grid gap-8 border-t border-[#d7e6df] px-8 pb-8 sm:px-12 sm:pb-12 lg:grid-cols-[1fr_1fr]">
-        <div>
-          <h4 className="text-lg font-semibold text-[#172019]">해석 요약</h4>
-          <ul className="mt-5 grid gap-3 text-base leading-7 text-[#5e7069]">
-            {comparison.summary.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="text-lg font-semibold text-[#172019]">데이터 기준</h4>
-          <ul className="mt-5 grid gap-3 text-base leading-7 text-[#5e7069]">
-            {comparison.data_basis.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
+        <Link className="inline-flex items-center rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#263252]" href={mapHref}>
+          지도에서 두 후보 확인 →
+        </Link>
       </div>
-    </details>
+      <p className="mt-6 border-t border-[#d7e6df] pt-5 text-xs leading-5 text-[#718078]">
+        지도 지표는 지역의 우열이나 추천 순위가 아니라 현장 확인 전 비교 근거입니다.
+      </p>
+    </div>
   );
 }
 
