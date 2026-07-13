@@ -4,8 +4,6 @@ import Link from "next/link";
 import Script from "next/script";
 import {
   Suspense,
-  type PointerEvent as ReactPointerEvent,
-  type RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -59,20 +57,8 @@ type ReportRegion = HeatmapRegion & {
   selection_source?: "candidate" | "map_click";
 };
 
-type ReportPanelPosition = {
-  x: number;
-  y: number;
-};
-
-type ReportPanelSize = {
-  width: number;
-  height: number;
-};
-
 type OpenCandidateReport = {
   region: ReportRegion;
-  position: ReportPanelPosition | null;
-  size: ReportPanelSize;
 };
 
 type EvidenceProfile = {
@@ -607,7 +593,6 @@ function KakaoReportMap({
   unit: string;
 }) {
   const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapShellRef = useRef<HTMLDivElement | null>(null);
   const mapClickRequestRef = useRef(0);
   const [mapReady, setMapReady] = useState(false);
   const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>(
@@ -759,11 +744,7 @@ function KakaoReportMap({
 
       return [
         ...reports,
-        {
-          region,
-          position: null,
-          size: { width: 440, height: 640 },
-        },
+        { region },
       ].slice(-2);
     });
   }, []);
@@ -824,25 +805,6 @@ function KakaoReportMap({
       tone: "guide",
       text: "첫 번째로 비교할 위치를 지도에서 클릭하세요.",
     });
-  }, []);
-
-  const updateReportPosition = useCallback((
-    regionId: string,
-    position: ReportPanelPosition,
-  ) => {
-    setOpenReports((reports) =>
-      reports.map((report) =>
-        report.region.region_id === regionId ? { ...report, position } : report,
-      ),
-    );
-  }, []);
-
-  const updateReportSize = useCallback((regionId: string, size: ReportPanelSize) => {
-    setOpenReports((reports) =>
-      reports.map((report) =>
-        report.region.region_id === regionId ? { ...report, size } : report,
-      ),
-    );
   }, []);
 
   useEffect(() => {
@@ -1074,7 +1036,6 @@ function KakaoReportMap({
       <div className="grid h-full min-h-[700px] content-start gap-4">
         <div
           className={`relative ${MAP_SIZE_CLASS[mapSize]} overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]`}
-          ref={mapShellRef}
         >
           <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9f9fa0] backdrop-blur">
             Kakao key required
@@ -1087,25 +1048,6 @@ function KakaoReportMap({
               onClear={clearDirectSelection}
             />
           ) : null}
-          {openReports.map((report, index) => (
-            <CandidateMiniReport
-              candidateState={candidateStates[report.region.region_id]}
-              containerRef={mapShellRef}
-              key={report.region.region_id}
-              position={report.position}
-              reportIndex={index}
-              region={report.region}
-              showCautionMetrics={showCautionMetrics}
-              size={report.size}
-              unit={unit}
-              onCandidateStateChange={(state) => updateCandidateState(report.region.region_id, state)}
-              onClose={() => closeRegionReport(report.region.region_id)}
-              onPositionChange={(position) =>
-                updateReportPosition(report.region.region_id, position)
-              }
-              onSizeChange={(size) => updateReportSize(report.region.region_id, size)}
-            />
-          ))}
         </div>
         {!directSelectionMode ? <TopRegionCards
           candidateStates={candidateStates}
@@ -1115,6 +1057,15 @@ function KakaoReportMap({
           onCandidateStateChange={updateCandidateState}
           onSelectRegion={openRegionReport}
         /> : null}
+        <MapSelectionReports
+          candidateStates={candidateStates}
+          directSelectionMode={directSelectionMode}
+          reports={openReports}
+          showCautionMetrics={showCautionMetrics}
+          unit={unit}
+          onCandidateStateChange={updateCandidateState}
+          onClose={closeRegionReport}
+        />
         {AI_REPORT_ENABLED ? <EvidenceComparisonReport
           evidence={comparisonEvidence}
           result={activeComparisonReport}
@@ -1140,7 +1091,6 @@ function KakaoReportMap({
       />
       <div
         className={`relative ${MAP_SIZE_CLASS[mapSize]} overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]`}
-        ref={mapShellRef}
       >
         <div ref={mapRef} className="absolute inset-0" />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,10,11,0.10),rgba(9,10,11,0.22))]" />
@@ -1155,25 +1105,6 @@ function KakaoReportMap({
         ) : null}
         <MapClickNotice notice={mapClickNotice} />
         <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
-        {openReports.map((report, index) => (
-          <CandidateMiniReport
-            candidateState={candidateStates[report.region.region_id]}
-            containerRef={mapShellRef}
-            key={report.region.region_id}
-            position={report.position}
-            reportIndex={index}
-            region={report.region}
-            showCautionMetrics={showCautionMetrics}
-            size={report.size}
-            unit={unit}
-            onCandidateStateChange={(state) => updateCandidateState(report.region.region_id, state)}
-            onClose={() => closeRegionReport(report.region.region_id)}
-            onPositionChange={(position) =>
-              updateReportPosition(report.region.region_id, position)
-            }
-            onSizeChange={(size) => updateReportSize(report.region.region_id, size)}
-          />
-        ))}
       </div>
       {!directSelectionMode ? <TopRegionCards
         candidateStates={candidateStates}
@@ -1183,6 +1114,15 @@ function KakaoReportMap({
         onCandidateStateChange={updateCandidateState}
         onSelectRegion={openRegionReport}
       /> : null}
+      <MapSelectionReports
+        candidateStates={candidateStates}
+        directSelectionMode={directSelectionMode}
+        reports={openReports}
+        showCautionMetrics={showCautionMetrics}
+        unit={unit}
+        onCandidateStateChange={updateCandidateState}
+        onClose={closeRegionReport}
+      />
       {AI_REPORT_ENABLED ? <EvidenceComparisonReport
         evidence={comparisonEvidence}
         result={activeComparisonReport}
@@ -1657,34 +1597,88 @@ function TopRegionCards({
   );
 }
 
-function CandidateMiniReport({
-  candidateState,
-  containerRef,
-  position,
-  reportIndex,
-  region,
+function MapSelectionReports({
+  candidateStates,
+  directSelectionMode,
+  reports,
   showCautionMetrics,
-  size,
   unit,
   onCandidateStateChange,
   onClose,
-  onPositionChange,
-  onSizeChange,
+}: {
+  candidateStates: Record<string, CandidateState>;
+  directSelectionMode: boolean;
+  reports: OpenCandidateReport[];
+  showCautionMetrics: boolean;
+  unit: string;
+  onCandidateStateChange: (regionId: string, state: CandidateState) => void;
+  onClose: (regionId: string) => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-[#dfe3ea] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,59,.06)] sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e6e9ee] pb-5">
+        <div>
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2475d0]">Map comparison</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#17203b]">
+            {directSelectionMode ? "직접 고른 두 지역의 데이터 근거" : "지도에서 선택한 후보 데이터 근거"}
+          </h2>
+        </div>
+        <p className="text-xs text-[#798294]">선택 {reports.length}/2 · 추천이나 종합 순위가 아닙니다</p>
+      </div>
+      <div className="mt-5 grid items-stretch gap-4 lg:grid-cols-2">
+        {[0, 1].map((index) => {
+          const report = reports[index];
+          if (!report) {
+            return (
+              <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-[#cfd5df] bg-[#f7f9fb] p-8 text-center" key={index}>
+                <div>
+                  <p className="font-mono text-xs font-semibold text-[#1888e8]">0{index + 1}</p>
+                  <p className="mt-3 text-lg font-semibold text-[#3f4a60]">{index === 0 ? "첫 번째 지역을 선택하세요" : "두 번째 지역을 선택하세요"}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#80899a]">
+                    {directSelectionMode
+                      ? "지도에서 궁금한 위치를 클릭하면 이 자리에 행정동 상세 근거가 표시됩니다."
+                      : "지도 라벨이나 아래 후보 카드에서 지역을 선택하면 이 자리에 상세 근거가 표시됩니다."}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <CandidateMiniReport
+              candidateState={candidateStates[report.region.region_id]}
+              key={report.region.region_id}
+              reportIndex={index}
+              region={report.region}
+              showCautionMetrics={showCautionMetrics}
+              unit={unit}
+              onCandidateStateChange={(state) => onCandidateStateChange(report.region.region_id, state)}
+              onClose={() => onClose(report.region.region_id)}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CandidateMiniReport({
+  candidateState,
+  reportIndex,
+  region,
+  showCautionMetrics,
+  unit,
+  onCandidateStateChange,
+  onClose,
 }: {
   candidateState?: CandidateState;
-  containerRef: RefObject<HTMLDivElement | null>;
-  position: ReportPanelPosition | null;
   reportIndex: number;
   region: ReportRegion;
   showCautionMetrics: boolean;
-  size: ReportPanelSize;
   unit: string;
   onCandidateStateChange: (state: CandidateState) => void;
   onClose: () => void;
-  onPositionChange: (position: ReportPanelPosition) => void;
-  onSizeChange: (size: ReportPanelSize) => void;
 }) {
-  const panelRef = useRef<HTMLElement | null>(null);
   const evidence = useMemo(
     () =>
       (region.evidence_metrics ?? []).filter((metric) => {
@@ -1697,124 +1691,10 @@ function CandidateMiniReport({
     () => buildEvidenceProfiles(evidence),
     [evidence],
   );
-  const minPanelSize = { width: 300, height: 280 };
-
-  useEffect(() => {
-    if (position || !containerRef.current) return;
-
-    const container = containerRef.current.getBoundingClientRect();
-    const defaultX = reportIndex === 0
-      ? Math.max(20, container.width - size.width - 20)
-      : 20;
-
-    onPositionChange({
-      x: defaultX,
-      y: 88 + reportIndex * 28,
-    });
-  }, [containerRef, onPositionChange, position, reportIndex, size.width]);
-
-  function clampPosition(nextPosition: ReportPanelPosition) {
-    const container = containerRef.current?.getBoundingClientRect();
-
-    if (!container) {
-      return nextPosition;
-    }
-
-    return {
-      x: Math.min(Math.max(20, nextPosition.x), Math.max(20, container.width - size.width - 20)),
-      y: Math.min(Math.max(20, nextPosition.y), Math.max(20, container.height - size.height - 20)),
-    };
-  }
-
-  function clampSize(nextSize: ReportPanelSize) {
-    const container = containerRef.current?.getBoundingClientRect();
-    const maxWidth = container && position
-      ? Math.max(minPanelSize.width, container.width - position.x - 20)
-      : 640;
-    const maxHeight = container && position
-      ? Math.max(minPanelSize.height, container.height - position.y - 20)
-      : 640;
-
-    return {
-      width: Math.min(Math.max(minPanelSize.width, nextSize.width), maxWidth),
-      height: Math.min(Math.max(minPanelSize.height, nextSize.height), maxHeight),
-    };
-  }
-
-  function handleDragStart(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!position) return;
-
-    event.preventDefault();
-    const start = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      panelX: position.x,
-      panelY: position.y,
-    };
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      onPositionChange(
-        clampPosition({
-          x: start.panelX + moveEvent.clientX - start.pointerX,
-          y: start.panelY + moveEvent.clientY - start.pointerY,
-        }),
-      );
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  }
-
-  function handleResizeStart(event: ReactPointerEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const start = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      width: size.width,
-      height: size.height,
-    };
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      onSizeChange(
-        clampSize({
-          width: start.width + moveEvent.clientX - start.pointerX,
-          height: start.height + moveEvent.clientY - start.pointerY,
-        }),
-      );
-    };
-
-    const handlePointerUp = () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  }
 
   return (
-    <aside
-      className="absolute z-30 min-h-[280px] min-w-[300px] overflow-auto rounded-2xl border border-white/12 bg-[#0f1011]/95 p-5 text-[#f5f5f7] shadow-[0_24px_80px_rgba(0,0,0,0.48)] backdrop-blur"
-      ref={panelRef}
-      style={{
-        height: size.height,
-        left: position?.x ?? 20,
-        top: position?.y ?? 88,
-        width: size.width,
-        zIndex: 30 + reportIndex,
-      }}
-    >
-      <div
-        className="flex cursor-move touch-none select-none items-start justify-between gap-4"
-        onPointerDown={handleDragStart}
-      >
+    <aside className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-white/12 bg-[#111827] p-5 text-[#f5f5f7] shadow-[0_12px_36px_rgba(23,32,59,.12)]">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
             {region.selection_source === "map_click" ? "Map click analysis" : `Mini Report 0${reportIndex + 1}`}
@@ -1918,14 +1798,6 @@ function CandidateMiniReport({
           </div>
         </div>
       ) : null}
-      <button
-        aria-label="미니 리포트 크기 조절"
-        className="absolute bottom-2 right-2 h-7 w-7 cursor-nwse-resize rounded-md border border-white/10 bg-white/[0.06] text-[#9f9fa0] transition hover:border-white/25 hover:bg-white/[0.12] hover:text-[#f5f5f7]"
-        onPointerDown={handleResizeStart}
-        type="button"
-      >
-        <span className="block translate-x-[1px] translate-y-[1px] text-[13px] leading-none">↘</span>
-      </button>
     </aside>
   );
 }
