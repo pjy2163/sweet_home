@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { ComparisonResult } from "@/components/comparison-result";
+import { RegionSearchCombobox } from "@/components/region-search-combobox";
 import { SingleRegionResult } from "@/components/single-region-result";
 import { fetchCandidateMatches, fetchComparison, fetchRegions } from "@/lib/api";
 import type {
@@ -392,12 +393,17 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
               <legend className="text-sm font-semibold">알고 있는 후보 지역 <span className="font-normal text-[#8b92a1]">· 한 곳 이상</span></legend>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[0, 1].map((index) => (
-                  <select className="h-14 rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm outline-none focus:border-[#1888e8]" key={index} onChange={(event) => onDirectRegionChange(index as 0 | 1, event.target.value)} value={directRegionIds[index]}>
-                    <option value="">{index === 0 ? "알고 있는 후보 선택" : "추가 후보 선택 · 선택 사항"}</option>
-                    {regions.map((region) => <option key={region.region_id} value={region.region_id}>{region.display_name}</option>)}
-                  </select>
+                  <RegionSearchCombobox
+                    excludedRegionId={directRegionIds[index === 0 ? 1 : 0] || undefined}
+                    key={index}
+                    label={index === 0 ? "첫 번째 후보" : "두 번째 후보 · 선택 사항"}
+                    onChange={(regionId) => onDirectRegionChange(index as 0 | 1, regionId)}
+                    regions={regions}
+                    value={directRegionIds[index]}
+                  />
                 ))}
               </div>
+              <p className="mt-3 text-xs leading-5 text-[#7d8595]">강남, 망원처럼 이름으로 찾거나 ㄱㄴ, ㅁㅇ처럼 초성으로 검색할 수 있습니다.</p>
             </fieldset>
           ) : null}
           <fieldset>
