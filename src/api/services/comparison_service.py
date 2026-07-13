@@ -629,17 +629,25 @@ def row_to_candidate_match(
         )
 
     if "transport" in selected_conditions:
-        station_count = format_metric_value(row.get("지하철역수"), "개", 0)
-        nearest_name = none_or_text(row.get("최근접지하철역명")) or "최근접역"
-        nearest_distance = format_metric_value(
-            row.get("최근접지하철역거리_m"),
-            "m",
-            0,
-        )
-        indicator_summary["transport"] = (
-            f"행정동 내부 지하철역 {station_count}, 대표 중심점에서 "
-            f"{nearest_name}까지 직선거리 {nearest_distance}가 관측됩니다."
-        )
+        if not is_true_indicator(row.get("교통_데이터여부")):
+            indicator_summary["transport"] = (
+                "현재 행정동 경계와 연결된 교통 위치 근거가 없습니다."
+            )
+        else:
+            station_count = format_metric_value(row.get("지하철역수"), "개", 0)
+            line_count = format_metric_value(row.get("지하철노선수"), "개", 0)
+            nearest_name = none_or_text(row.get("최근접지하철역명")) or "최근접역"
+            nearest_distance = format_metric_value(
+                row.get("최근접지하철역거리_m"),
+                "m",
+                0,
+            )
+            bus_stop_count = format_metric_value(row.get("버스정류소수"), "개", 0)
+            indicator_summary["transport"] = (
+                f"행정동 내부 지하철역 {station_count}·노선 {line_count}, "
+                f"대표 중심점에서 {nearest_name}까지 직선거리 {nearest_distance}, "
+                f"버스정류소 {bus_stop_count}가 관측됩니다."
+            )
         if is_true_indicator(row.get("지하철역_행정동내여부")):
             matched_indicators.append("행정동 내부 지하철역")
         if row.get("버스정류소_면적당_상대수준") == "상대적으로높음":
@@ -835,8 +843,14 @@ def build_candidate_evidence(
             evidence.append(metric.model_copy(update={"is_matched": False}))
 
     if "transport" in selected_conditions:
+        transport_available = is_true_indicator(row.get("교통_데이터여부"))
         station_count = row.get("지하철역수")
+        line_count = row.get("지하철노선수")
+        nearest_distance = row.get("최근접지하철역거리_m")
+        nearest_name = none_or_text(row.get("최근접지하철역명"))
+        bus_stop_count = row.get("버스정류소수")
         station_inside = is_true_indicator(row.get("지하철역_행정동내여부"))
+        missing_interpretation = "행정동 경계와 연결된 교통 위치 근거가 없습니다."
         evidence.extend(
             [
                 CandidateEvidenceMetric(
@@ -846,33 +860,69 @@ def build_candidate_evidence(
                     unit="개",
                     display_value=format_metric_value(station_count, "개", 0),
                     interpretation=(
-                        "행정동 경계 안에 지하철역이 관측됩니다."
+                        missing_interpretation
+                        if not transport_available
+                        else "행정동 경계 안에 지하철역이 관측됩니다."
                         if station_inside
                         else "행정동 경계 안에는 지하철역이 관측되지 않습니다."
                     ),
-                    level="관측" if station_inside else "미관측",
+                    level="데이터없음" if not transport_available else "관측" if station_inside else "미관측",
                     is_matched=station_inside,
                     data_date=none_or_text(row.get("지하철_기준일자")),
                     reliability="정적 위치의 행정동 경계 매핑",
                 ),
                 CandidateEvidenceMetric(
                     condition="transport",
+                    label="행정동 관측 지하철 노선",
+                    value=none_or_rounded_float(line_count, 0),
+                    unit="개",
+                    display_value=format_metric_value(line_count, "개", 0),
+                    interpretation=(
+                        missing_interpretation
+                        if not transport_available
+                        else "행정동 경계 안의 역에서 관측된 고유 노선 수입니다. 환승 편의나 배차 수준을 의미하지 않습니다."
+                    ),
+                    level="데이터없음" if not transport_available else "관측",
+                    is_matched=False,
+                    data_date=none_or_text(row.get("지하철_기준일자")),
+                    reliability="정적 역·노선 위치 집계",
+                ),
+                CandidateEvidenceMetric(
+                    condition="transport",
                     label="대표 중심점 최근접역 거리",
-                    value=none_or_rounded_float(row.get("최근접지하철역거리_m"), 0),
+                    value=none_or_rounded_float(nearest_distance, 0),
                     unit="m",
-                    display_value=format_metric_value(
-                        row.get("최근접지하철역거리_m"),
-                        "m",
-                        0,
+                    display_value=(
+                        "데이터 없음"
+                        if not transport_available or nearest_name is None
+                        else f"{nearest_name} · {format_metric_value(nearest_distance, 'm', 0)}"
                     ),
                     interpretation=(
-                        f"행정동 대표 중심점에서 {none_or_text(row.get('최근접지하철역명')) or '최근접역'}까지의 "
+                        missing_interpretation
+                        if not transport_available
+                        else f"행정동 대표 중심점에서 {nearest_name or '최근접역'}까지의 "
                         "직선거리입니다. 실제 도보거리나 이동시간이 아닙니다."
                     ),
-                    level=str(row.get("최근접지하철역거리_상대수준", "데이터없음")),
+                    level="데이터없음" if not transport_available else str(row.get("최근접지하철역거리_상대수준", "데이터없음")),
                     is_matched=False,
                     data_date=none_or_text(row.get("지하철_기준일자")),
                     reliability="행정동 대표 중심점 기준 직선거리",
+                ),
+                CandidateEvidenceMetric(
+                    condition="transport",
+                    label="버스정류소 수",
+                    value=none_or_rounded_float(bus_stop_count, 0),
+                    unit="개",
+                    display_value=format_metric_value(bus_stop_count, "개", 0),
+                    interpretation=(
+                        missing_interpretation
+                        if not transport_available
+                        else "행정동 경계 안에서 관측된 버스정류소 수입니다. 노선 수나 배차 수준은 반영하지 않습니다."
+                    ),
+                    level="데이터없음" if not transport_available else "관측",
+                    is_matched=False,
+                    data_date=none_or_text(row.get("버스_기준일자")),
+                    reliability="정적 정류소 위치의 행정동 경계 매핑",
                 ),
                 relative_count_evidence(
                     row=row,

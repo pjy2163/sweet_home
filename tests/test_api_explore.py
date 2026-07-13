@@ -178,14 +178,56 @@ def test_explore_regions_returns_static_transport_evidence() -> None:
     assert "정적 위치" in result["metadata"]["transport_status"]
     assert all(region["match_count"] > 0 for region in result["regions"])
     assert all(
-        {"행정동 내부 지하철역", "대표 중심점 최근접역 거리", "버스정류소 밀도"}
-        <= {
+        {
+            "행정동 내부 지하철역",
+            "행정동 관측 지하철 노선",
+            "대표 중심점 최근접역 거리",
+            "버스정류소 수",
+            "버스정류소 밀도",
+        }
+        == {
             metric["label"]
             for metric in region["evidence_metrics"]
             if metric["condition"] == "transport"
         }
         for region in result["regions"]
     )
+
+    nearest_station = next(
+        metric
+        for metric in result["regions"][0]["evidence_metrics"]
+        if metric["label"] == "대표 중심점 최근접역 거리"
+    )
+    assert "·" in nearest_station["display_value"]
+    assert "실제 도보거리나 이동시간이 아닙니다" in nearest_station["interpretation"]
+
+
+def test_explore_explains_missing_transport_boundary_mapping() -> None:
+    client = TestClient(app)
+    profile = comparison_service.build_indicator_profile()
+    missing_region_id = profile.loc[
+        ~profile["교통_데이터여부"].fillna(False).astype(bool),
+        "region_id",
+    ].iloc[0]
+
+    response = client.get(
+        "/explore",
+        params=[("transport", "true"), ("region_ids", missing_region_id)],
+    )
+
+    assert response.status_code == 200
+    region = response.json()["regions"][0]
+    assert region["indicator_summary"]["transport"] == (
+        "현재 행정동 경계와 연결된 교통 위치 근거가 없습니다."
+    )
+    transport_evidence = [
+        metric
+        for metric in region["evidence_metrics"]
+        if metric["condition"] == "transport"
+    ]
+    assert len(transport_evidence) == 5
+    assert all(metric["display_value"] == "데이터 없음" for metric in transport_evidence)
+    assert all(metric["level"] == "데이터없음" for metric in transport_evidence)
 
 
 def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None:

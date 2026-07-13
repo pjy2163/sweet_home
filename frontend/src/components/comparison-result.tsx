@@ -336,6 +336,7 @@ function transportComparison(a: RegionMetrics, b: RegionMetrics): ConditionCompa
       { label: "행정동 내부 지하철역", a: formatNumber(a.subway_station_count, "개"), b: formatNumber(b.subway_station_count, "개") },
       { label: "관측 노선", a: formatNumber(a.subway_line_count, "개"), b: formatNumber(b.subway_line_count, "개") },
       { label: "대표 중심점 최근접역", a: formatNearestStation(a.nearest_subway_station_name, a.nearest_subway_distance_m), b: formatNearestStation(b.nearest_subway_station_name, b.nearest_subway_distance_m) },
+      { label: "버스정류소", a: formatNumber(a.bus_stop_count, "개"), b: formatNumber(b.bus_stop_count, "개") },
       { label: "버스정류소 밀도", a: formatDensity(a.bus_stop_density), b: formatDensity(b.bus_stop_density) },
     ],
     overview: { label: "대표 중심점 최근접역", a: formatNearestStation(a.nearest_subway_station_name, a.nearest_subway_distance_m), b: formatNearestStation(b.nearest_subway_station_name, b.nearest_subway_distance_m) },
