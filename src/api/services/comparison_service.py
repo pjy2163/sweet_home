@@ -62,8 +62,20 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
     },
     "living_population": {
         "column": "생활인구",
-        "label": "생활인구",
-        "description": "행정동별 월 평균 생활인구 규모를 보여줍니다.",
+        "label": "24시간 평균 체류인구",
+        "description": "거주인구가 아니라 행정동에 머문 것으로 추정되는 시간대별 인구의 월 평균입니다.",
+        "unit": "명",
+    },
+    "daytime_living_population": {
+        "column": "주간생활인구",
+        "label": "주간 평균 체류인구",
+        "description": "09시부터 18시까지 행정동에 머문 것으로 추정되는 인구의 월 평균입니다.",
+        "unit": "명",
+    },
+    "nighttime_living_population": {
+        "column": "야간생활인구",
+        "label": "야간 평균 체류인구",
+        "description": "19시부터 다음 날 08시까지 행정동에 머문 것으로 추정되는 인구의 월 평균입니다.",
         "unit": "명",
     },
     "safe_facility_density": {
@@ -156,6 +168,9 @@ def region_to_response(region: RegionSnapshot) -> RegionComparisonMetrics:
         low_volume=region.low_volume,
         population_month=region.population_month,
         living_population=region.living_population,
+        daytime_living_population=region.daytime_living_population,
+        nighttime_living_population=region.nighttime_living_population,
+        day_night_population_ratio=region.day_night_population_ratio,
         safety_date=region.safety_date,
         safe_facility_count=region.safe_facility_count,
         nightlife_count=region.nightlife_count,
@@ -382,20 +397,22 @@ def list_candidate_matches(
         matched = matched.merge(affordability, on="region_id", how="inner")
     matched["match_count"] = 0
 
-    if safety:
-        matched["match_count"] += matched["안전_매칭지표수"]
     if convenience:
         matched["match_count"] += matched["편의_매칭지표수"]
     if price:
         matched["match_count"] += matched["가격_매칭지표수"]
-    if population:
-        matched["match_count"] += matched["인구_매칭지표수"]
-
     direct_region_ids = [str(region_id) for region_id in (region_ids or [])]
     if direct_region_ids:
         candidate_rows = matched[matched["region_id"].isin(direct_region_ids)].copy()
-    else:
+    elif convenience or price:
         candidate_rows = matched[matched["match_count"] > 0].copy()
+    else:
+        contextual_data = pd.Series(False, index=matched.index)
+        if safety:
+            contextual_data |= matched["안전_데이터여부"].fillna(False).astype(bool)
+        if population:
+            contextual_data |= matched["생활인구_데이터여부"].fillna(False).astype(bool)
+        candidate_rows = matched[contextual_data].copy()
     if exclude_low_volume_price:
         candidate_rows = candidate_rows[
             ~candidate_rows["거래량_해석주의"].fillna(True).astype(bool)
@@ -552,13 +569,10 @@ def row_to_candidate_match(
             f"{observed_value} 사례가 확인됩니다."
         )
 
-    if (
-        "safety" in selected_conditions
-        and row["안심시설수_면적당_상대수준"] == "상대적으로높음"
-    ):
-        matched_indicators.append("안심시설 밀도")
+    if "safety" in selected_conditions:
         indicator_summary["safety"] = (
-            "면적 대비 안전 대체 지표가 상대적으로 많이 관측됩니다."
+            "안심 인프라와 야간 상권 관련 시설 분포를 함께 확인해야 합니다. "
+            "이 지표는 범죄율이나 안전도를 뜻하지 않습니다."
         )
 
     convenience_indicators = []
@@ -585,13 +599,11 @@ def row_to_candidate_match(
                 "가격 지표가 서울 평균 이하로 관측됩니다."
             )
 
-    if (
-        "population" in selected_conditions
-        and row["생활인구_상대수준"] == "상대적으로높음"
-    ):
-        matched_indicators.append("생활인구")
+    if "population" in selected_conditions:
         indicator_summary["population"] = (
-            "생활인구 지표가 상대적으로 높은 편입니다."
+            f"주간 평균 체류인구 {format_metric_value(row.get('주간생활인구'), '명', 0)}, "
+            f"야간 평균 체류인구 {format_metric_value(row.get('야간생활인구'), '명', 0)}가 "
+            "관측됩니다. 거주인구와는 다른 추정치입니다."
         )
 
     if "transport" in selected_conditions:
@@ -695,27 +707,47 @@ def build_candidate_evidence(
         )
 
     if "safety" in selected_conditions:
-        density = row.get("안심시설수_면적당")
-        count = row.get("안심시설수")
-        evidence.append(
-            CandidateEvidenceMetric(
-                condition="safety",
-                label="안심시설 밀도",
-                value=none_or_rounded_float(density, 2),
-                unit="개/㎢",
-                display_value=format_metric_value(density, "개/㎢", 1),
-                interpretation=relative_interpretation(
-                    row.get("안심시설수_면적당_상대수준"),
-                    "면적 대비 안전 대체 지표가 서울 내에서 높은 편입니다.",
-                    "면적 대비 안전 대체 지표가 서울 내에서 낮은 편입니다.",
-                    "면적 대비 안전 대체 지표가 서울 내 중간권입니다.",
-                ),
-                level=str(row.get("안심시설수_면적당_상대수준", "데이터없음")),
-                is_matched=row.get("안심시설수_면적당_상대수준") == "상대적으로높음",
-                data_date=none_or_text(row.get("안전_기준일자")),
-                reliability=f"원자료 {format_metric_value(count, '개', 0)}",
+        for label, value_column, level_column, high_text, low_text, normal_text in [
+            (
+                "안심 인프라 밀도",
+                "안심시설수_면적당",
+                "안심시설수_면적당_상대수준",
+                "면적 대비 안심 인프라 시설이 서울 내에서 많은 편입니다.",
+                "면적 대비 안심 인프라 시설이 서울 내에서 적은 편입니다.",
+                "면적 대비 안심 인프라 시설이 서울 내 중간권입니다.",
             ),
-        )
+            (
+                "야간 상권 시설 밀도",
+                "유흥시설수_면적당",
+                "유흥시설수_면적당_상대수준",
+                "면적 대비 야간 상권 관련 시설이 서울 내에서 많은 편입니다.",
+                "면적 대비 야간 상권 관련 시설이 서울 내에서 적은 편입니다.",
+                "면적 대비 야간 상권 관련 시설이 서울 내 중간권입니다.",
+            ),
+        ]:
+            value = row.get(value_column)
+            evidence.append(
+                CandidateEvidenceMetric(
+                    condition="safety",
+                    label=label,
+                    value=none_or_rounded_float(value, 2),
+                    unit="개/㎢",
+                    display_value=format_metric_value(value, "개/㎢", 1),
+                    interpretation=(
+                        relative_interpretation(
+                            row.get(level_column),
+                            high_text,
+                            low_text,
+                            normal_text,
+                        )
+                        + " 범죄율이나 지역 안전도를 의미하지 않습니다."
+                    ),
+                    level=str(row.get(level_column, "데이터없음")),
+                    is_matched=False,
+                    data_date=none_or_text(row.get("안전_기준일자")),
+                    reliability="행정동 공간 매핑 원자료",
+                ),
+            )
 
     if "convenience" in selected_conditions:
         evidence.extend(
@@ -748,20 +780,23 @@ def build_candidate_evidence(
         )
 
     if "population" in selected_conditions:
-        evidence.append(
-            relative_count_evidence(
+        for label, value_column, level_column, period_text in [
+            ("주간 평균 체류인구", "주간생활인구", "주간생활인구_상대수준", "09~18시"),
+            ("야간 평균 체류인구", "야간생활인구", "야간생활인구_상대수준", "19~08시"),
+        ]:
+            metric = relative_count_evidence(
                 row=row,
                 condition="population",
-                label="생활인구",
-                value_column="생활인구",
-                level_column="생활인구_상대수준",
+                label=label,
+                value_column=value_column,
+                level_column=level_column,
                 unit="명",
                 data_date_column="생활인구_기준월",
-                high_text="생활인구 규모가 서울 내에서 높은 편입니다.",
-                low_text="생활인구 규모가 서울 내에서 낮은 편입니다.",
-                normal_text="생활인구 규모가 서울 내 중간권입니다.",
-            ),
-        )
+                high_text=f"{period_text} 체류 추정인구가 서울 내에서 많은 편입니다.",
+                low_text=f"{period_text} 체류 추정인구가 서울 내에서 적은 편입니다.",
+                normal_text=f"{period_text} 체류 추정인구가 서울 내 중간권입니다.",
+            )
+            evidence.append(metric.model_copy(update={"is_matched": False}))
 
     return evidence
 

@@ -47,6 +47,9 @@ class RegionComparisonMetrics(BaseModel):
     low_volume: bool
     population_month: Optional[str]
     living_population: Optional[float]
+    daytime_living_population: Optional[float]
+    nighttime_living_population: Optional[float]
+    day_night_population_ratio: Optional[float]
     safety_date: Optional[str]
     safe_facility_count: Optional[float]
     nightlife_count: Optional[float]
@@ -119,6 +122,8 @@ HeatmapMetric = Literal[
     "deposit_ratio",
     "jeonse_ratio",
     "living_population",
+    "daytime_living_population",
+    "nighttime_living_population",
     "safe_facility_density",
     "store_density",
 ]

@@ -30,8 +30,8 @@ PROHIBITED_PHRASES = ("선택하세요", "추천합니다", "투자", "안전한
 def fallback_report(evidence: AIReportEvidencePack) -> AIReportContent:
     domain_labels = {
         "price": "가격과 표본",
-        "population": "생활인구",
-        "safety": "안전 대체 지표",
+        "population": "시간대별 체류 특성",
+        "safety": "야간 생활환경",
         "convenience": "생활 편의",
     }
     priorities = evidence.request.priorities or ["price", "population", "convenience"]
@@ -60,7 +60,7 @@ def fallback_report(evidence: AIReportEvidencePack) -> AIReportContent:
         cautions = ["공개 데이터의 기준일과 행정동 매핑 한계를 함께 확인해야 합니다."]
     return AIReportContent(
         executive_summary=(
-            "두 후보 지역은 하나의 점수로 순위를 정하지 않고 가격, 생활인구와 생활환경 근거를 "
+            "두 후보 지역은 하나의 점수로 순위를 정하지 않고 가격, 체류 특성과 생활환경 근거를 "
             "나누어 비교했습니다."
         ),
         sections=sections,
@@ -117,10 +117,10 @@ def build_prompt(evidence: AIReportEvidencePack) -> str:
     return (
         "당신은 주거 후보 비교 리포트 작성자입니다. 추천하거나 승자를 정하지 마세요. "
         "숫자는 화면의 백엔드 비교표가 표시하므로 어떤 숫자나 숫자 문자를 서술에 쓰지 마세요. "
-        "각 섹션은 제공된 metric evidence_id만 인용하세요. 가격, 생활인구, 안전 대체 지표, "
+        "각 섹션은 제공된 metric evidence_id만 인용하세요. 가격, 시간대별 체류 특성, 야간 생활환경, "
         "생활 편의에 대해 정확히 네 개의 섹션을 만들고 상충 조건과 데이터 한계를 "
         "간결한 한국어로 설명하세요. "
-        "안심시설과 유흥시설은 안전 또는 위험을 보장하지 않습니다.\n\nEVIDENCE:\n"
+        "안심 인프라와 야간 상권 관련 시설은 안전 또는 위험을 보장하지 않습니다.\n\nEVIDENCE:\n"
         + json.dumps(compact_context, ensure_ascii=False, separators=(",", ":"))
     )
 

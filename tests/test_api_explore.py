@@ -59,9 +59,8 @@ def test_explore_regions_returns_candidate_matches() -> None:
 
     first_region = result["regions"][0]
     assert first_region["display_name"] == "강남구 논현1동"
-    assert first_region["match_count"] == 3
+    assert first_region["match_count"] == 2
     assert first_region["matched_indicators"] == [
-        "안심시설 밀도",
         "업종수",
         "점포 밀도",
     ]
@@ -82,6 +81,43 @@ def test_explore_regions_returns_candidate_matches() -> None:
     assert "score" not in first_region
     assert "recommend" not in result["metadata"]["limitation"].lower()
     assert "추천이나 우열 판단이 아닙니다" in result["metadata"]["limitation"]
+    night_environment = [
+        metric
+        for metric in first_region["evidence_metrics"]
+        if metric["condition"] == "safety"
+    ]
+    assert [metric["label"] for metric in night_environment] == [
+        "안심 인프라 밀도",
+        "야간 상권 시설 밀도",
+    ]
+    assert all(metric["is_matched"] is False for metric in night_environment)
+    assert all(
+        "범죄율이나 지역 안전도를 의미하지 않습니다" in metric["interpretation"]
+        for metric in night_environment
+    )
+
+
+def test_population_condition_returns_context_without_ranking() -> None:
+    client = TestClient(app)
+
+    response = client.get("/explore", params={"population": "true", "limit": "2"})
+
+    assert response.status_code == 200
+    regions = response.json()["regions"]
+    assert len(regions) == 2
+    assert all(region["match_count"] == 0 for region in regions)
+    for region in regions:
+        population_evidence = [
+            metric
+            for metric in region["evidence_metrics"]
+            if metric["condition"] == "population"
+        ]
+        assert [metric["label"] for metric in population_evidence] == [
+            "주간 평균 체류인구",
+            "야간 평균 체류인구",
+        ]
+        assert all(metric["is_matched"] is False for metric in population_evidence)
+        assert "거주인구와는 다른 추정치" in region["indicator_summary"]["population"]
 
 
 def test_explore_price_excludes_low_volume_price_matches() -> None:

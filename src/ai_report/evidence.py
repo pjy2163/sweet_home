@@ -46,9 +46,9 @@ COMMERCIAL_SOURCE = "서울 상권분석서비스 점포-행정동"
 PRICE_BOUNDARY = (
     "실거래 가격 참고 지표이며 법정동-행정동 매핑과 거래량의 영향을 받습니다."
 )
-POPULATION_BOUNDARY = "거주인구가 아니라 해당 지역에 머문 생활인구 규모입니다."
+POPULATION_BOUNDARY = "거주인구가 아니라 해당 지역에 머문 것으로 추정되는 24시간 평균 체류인구입니다."
 SAFETY_BOUNDARY = (
-    "안심시설수와 유흥시설수는 범죄율이나 지역의 안전성을 단정하는 지표가 아닙니다."
+    "안심 인프라와 야간 상권 관련 시설은 범죄율이나 지역의 안전성을 단정하는 지표가 아닙니다."
 )
 COMMERCIAL_BOUNDARY = (
     "업종수와 사업체수는 상권 규모 참고 지표이며 매출이나 수익성을 뜻하지 않습니다."
@@ -113,7 +113,7 @@ METRIC_DEFINITIONS = (
     MetricDefinition(
         "living_population",
         "population",
-        "생활인구",
+        "24시간 평균 체류인구",
         "living_population",
         "명",
         "population_month",
@@ -123,7 +123,7 @@ METRIC_DEFINITIONS = (
     MetricDefinition(
         "safe_facility_count",
         "safety",
-        "안심시설수",
+        "안심 인프라 시설수",
         "safe_facility_count",
         "개",
         "safety_date",
@@ -133,7 +133,7 @@ METRIC_DEFINITIONS = (
     MetricDefinition(
         "nightlife_count",
         "safety",
-        "유흥시설수",
+        "야간 상권 관련 시설수",
         "nightlife_count",
         "개",
         "safety_date",
@@ -143,7 +143,7 @@ METRIC_DEFINITIONS = (
     MetricDefinition(
         "safe_facility_density",
         "safety",
-        "안심시설 밀도",
+        "안심 인프라 밀도",
         "safe_facility_density",
         "개/㎢",
         "safety_date",
@@ -153,7 +153,7 @@ METRIC_DEFINITIONS = (
     MetricDefinition(
         "nightlife_density",
         "safety",
-        "유흥시설 밀도",
+        "야간 상권 시설 밀도",
         "nightlife_density",
         "개/㎢",
         "safety_date",
@@ -389,7 +389,7 @@ def build_quality_flags(
                 region_id=None,
                 evidence_ids=[metric.evidence_id for metric in metrics],
                 message=(
-                    "가격, 생활인구, 안전, 상권 지표의 기준 시점이 서로 다르므로 하나의 "
+                    "가격, 체류인구, 야간 생활환경, 상권 지표의 기준 시점이 서로 다르므로 하나의 "
                     "동일 시점 종합 점수로 해석할 수 없습니다."
                 ),
             )
@@ -456,9 +456,9 @@ def build_interpretation_policies() -> list[InterpretationPolicy]:
 
 CHART_METRICS = (
     ("jeonse_ratio", "전세가 서울 평균 대비", "reference_dot", "relative_to_reference", "낮음", "높음"),
-    ("living_population", "생활인구 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
-    ("safe_facility_density", "안심시설 밀도 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
-    ("nightlife_density", "유흥시설 밀도 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
+    ("living_population", "24시간 평균 체류인구 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
+    ("safe_facility_density", "안심 인프라 밀도 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
+    ("nightlife_density", "야간 상권 시설 밀도 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
     ("store_density", "사업체 밀도 비교", "dumbbell", "candidate_comparison", "적음", "많음"),
 )
 

@@ -61,9 +61,27 @@ def test_heatmap_returns_supported_metric_metadata() -> None:
     assert response.status_code == 200
     result = response.json()
     assert result["metric"] == "living_population"
-    assert result["metadata"]["metric_label"] == "생활인구"
+    assert result["metadata"]["metric_label"] == "24시간 평균 체류인구"
     assert result["metadata"]["unit"] == "명"
     assert result["metadata"]["max_value"] >= result["metadata"]["min_value"]
+
+
+def test_heatmap_separates_daytime_and_nighttime_presence() -> None:
+    client = TestClient(app)
+
+    daytime = client.get(
+        "/map/heatmap",
+        params={"metric": "daytime_living_population"},
+    )
+    nighttime = client.get(
+        "/map/heatmap",
+        params={"metric": "nighttime_living_population"},
+    )
+
+    assert daytime.status_code == 200
+    assert nighttime.status_code == 200
+    assert daytime.json()["metadata"]["metric_label"] == "주간 평균 체류인구"
+    assert nighttime.json()["metadata"]["metric_label"] == "야간 평균 체류인구"
 
 
 def test_heatmap_rejects_unsupported_metric() -> None:
