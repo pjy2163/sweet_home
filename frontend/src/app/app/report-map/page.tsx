@@ -51,8 +51,6 @@ type ReportView = "heatmap" | "map";
 type MapSize = "compact" | "standard" | "expanded";
 type CandidateState = "saved" | "excluded";
 
-const DECISION_STORAGE_KEY = "sweethome.decision-workspace.v1";
-
 type ReportRegion = HeatmapRegion & {
   match_count?: number;
   matched_indicators?: string[];
@@ -113,6 +111,7 @@ const CONDITION_OPTIONS: ExploreCondition[] = [
   "population",
   "transport",
 ];
+const AI_REPORT_ENABLED = false;
 
 type KakaoLatLng = {
   getLat: () => number;
@@ -597,21 +596,6 @@ function KakaoReportMap({
       if (isRemoving) delete next[regionId];
       else next[regionId] = nextState;
 
-      try {
-        const stored = window.localStorage.getItem(DECISION_STORAGE_KEY);
-        const parsed = stored ? JSON.parse(stored) as Record<string, unknown> : {};
-        const comparisonRegionIds = Array.isArray(parsed.comparisonRegionIds)
-          ? parsed.comparisonRegionIds.filter(
-              (id): id is string => typeof id === "string" && id !== regionId,
-            )
-          : [];
-        window.localStorage.setItem(
-          DECISION_STORAGE_KEY,
-          JSON.stringify({ ...parsed, candidateStates: next, comparisonRegionIds }),
-        );
-      } catch {
-        // Candidate state still works for the current map session.
-      }
       return next;
     });
   }
@@ -639,7 +623,7 @@ function KakaoReportMap({
     : "";
 
   useEffect(() => {
-    if (!comparisonRegionA || !comparisonRegionB) {
+    if (!AI_REPORT_ENABLED || !comparisonRegionA || !comparisonRegionB) {
       return;
     }
 
@@ -721,7 +705,7 @@ function KakaoReportMap({
         {
           region,
           position: null,
-          size: { width: 380, height: 520 },
+          size: { width: 440, height: 640 },
         },
       ].slice(-2);
     });
@@ -960,7 +944,7 @@ function KakaoReportMap({
           onCandidateStateChange={updateCandidateState}
           onSelectRegion={openRegionReport}
         />
-        <EvidenceComparisonReport
+        {AI_REPORT_ENABLED ? <EvidenceComparisonReport
           evidence={comparisonEvidence}
           result={activeComparisonReport}
           error={currentComparisonError}
@@ -969,7 +953,7 @@ function KakaoReportMap({
           reportGenerationError={activeReportGenerationError}
           selectedCount={openReports.length}
           onGenerateReport={generateDetailedReport}
-        />
+        /> : null}
       </div>
     );
   }
@@ -1021,7 +1005,7 @@ function KakaoReportMap({
         onCandidateStateChange={updateCandidateState}
         onSelectRegion={openRegionReport}
       />
-      <EvidenceComparisonReport
+      {AI_REPORT_ENABLED ? <EvidenceComparisonReport
         evidence={comparisonEvidence}
         result={activeComparisonReport}
         error={currentComparisonError}
@@ -1030,7 +1014,7 @@ function KakaoReportMap({
         reportGenerationError={activeReportGenerationError}
         selectedCount={openReports.length}
         onGenerateReport={generateDetailedReport}
-      />
+      /> : null}
     </div>
   );
 }
@@ -1722,6 +1706,34 @@ function CandidateMiniReport({
           </div>
         )}
       </div>
+      {evidence.length > 0 ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-[#f5f5f7]">상세 데이터 근거</p>
+            <span className="text-[10px] text-[#6a6b6b]">{evidence.length}개 지표</span>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {evidence.map((metric) => (
+              <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3" key={`${metric.condition}-${metric.label}-${metric.data_date ?? "none"}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-[#847dff]">
+                      {CONDITION_LABELS[metric.condition]}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-[#cacaca]">{metric.label}</p>
+                  </div>
+                  <p className="text-lg font-semibold text-white">{metric.display_value}</p>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-[#9f9fa0]">{metric.interpretation}</p>
+                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#6f7378]">
+                  <span>기준 {metric.data_date ?? "확인 필요"}</span>
+                  <span>{metric.reliability}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <button
         aria-label="미니 리포트 크기 조절"
         className="absolute bottom-2 right-2 h-7 w-7 cursor-nwse-resize rounded-md border border-white/10 bg-white/[0.06] text-[#9f9fa0] transition hover:border-white/25 hover:bg-white/[0.12] hover:text-[#f5f5f7]"

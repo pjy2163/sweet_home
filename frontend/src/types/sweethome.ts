@@ -19,6 +19,7 @@ export type Metadata = {
 
 export type RegionMetrics = {
   display_name: string;
+  price_month: string | null;
   price_latest_available_month: string | null;
   price_selection_policy: string | null;
   price_month_lag: number | null;
@@ -30,12 +31,15 @@ export type RegionMetrics = {
   jeonse_ratio: number | null;
   volume: number | null;
   low_volume: boolean;
+  population_month: string | null;
   living_population: number | null;
   daytime_living_population: number | null;
   nighttime_living_population: number | null;
   day_night_population_ratio: number | null;
+  safety_date: string | null;
   safe_facility_count: number | null;
   nightlife_count: number | null;
+  commercial_date: string | null;
   industry_count: number | null;
   store_count: number | null;
   transport_date: string | null;

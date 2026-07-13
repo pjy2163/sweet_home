@@ -32,6 +32,35 @@ def test_compare_regions_accepts_region_ids_from_candidate_board() -> None:
     assert comparison["region_b"]["display_name"] == "강남구 논현2동"
 
 
+def test_compare_regions_accepts_current_explore_pair() -> None:
+    client = TestClient(app)
+    exploration = client.get(
+        "/explore",
+        params={
+            "price": "true",
+            "convenience": "true",
+            "contract_type": "monthly_rent",
+            "budget_max_krw_10k": 80,
+            "exclude_low_volume_price": "true",
+            "limit": 2,
+        },
+    )
+
+    assert exploration.status_code == 200
+    regions = exploration.json()["regions"]
+    assert len(regions) == 2
+
+    response = client.get(
+        "/compare",
+        params={"a": regions[0]["region_id"], "b": regions[1]["region_id"]},
+    )
+
+    assert response.status_code == 200
+    comparison = response.json()
+    assert comparison["region_a"]["region_id"] == regions[0]["region_id"]
+    assert comparison["region_b"]["region_id"] == regions[1]["region_id"]
+
+
 def test_compare_regions_returns_404_for_unknown_region() -> None:
     client = TestClient(app)
 

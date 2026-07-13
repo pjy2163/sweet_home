@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { ComparisonResult } from "@/components/comparison-result";
+import { SingleRegionResult } from "@/components/single-region-result";
 import { fetchCandidateMatches, fetchComparison, fetchRegions } from "@/lib/api";
 import type {
   CandidateMatchRegion,
@@ -29,7 +30,6 @@ type DecisionProfile = {
   conditions: ExploreCondition[];
 };
 
-const STORAGE_KEY = "sweethome.decision-workspace.v1";
 const MAX_SAVED_CANDIDATES = 3;
 const MAX_COMPARISON_CANDIDATES = 2;
 const DEFAULT_PROFILE: DecisionProfile = {
@@ -72,58 +72,9 @@ export function DecisionWorkspace() {
   const [exclusionReasons, setExclusionReasons] = useState<Record<string, ExclusionReason>>({});
   const [comparisonRegionIds, setComparisonRegionIds] = useState<string[]>([]);
   const [comparison, setComparison] = useState<CompareResponse | null>(null);
+  const [singleRegion, setSingleRegion] = useState<CandidateMatchRegion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [hasRestored, setHasRestored] = useState(false);
-
-  useEffect(() => {
-    const restoreTimer = window.setTimeout(() => {
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored) as {
-            profile?: DecisionProfile;
-            candidateStates?: Record<string, CandidateState>;
-            candidateNotes?: Record<string, string>;
-            exclusionReasons?: Record<string, ExclusionReason>;
-            comparisonRegionIds?: string[];
-          };
-          if (parsed.profile) setProfile(parsed.profile);
-          const restoredStates = parsed.candidateStates ?? {};
-          let restoredSavedCount = 0;
-          const normalizedStates = Object.fromEntries(
-            Object.entries(restoredStates).filter(([, state]) => {
-              if (state !== "saved") return true;
-              restoredSavedCount += 1;
-              return restoredSavedCount <= MAX_SAVED_CANDIDATES;
-            }),
-          );
-          setCandidateStates(normalizedStates);
-          if (parsed.candidateNotes) setCandidateNotes(parsed.candidateNotes);
-          if (parsed.exclusionReasons) setExclusionReasons(parsed.exclusionReasons);
-          if (parsed.comparisonRegionIds) setComparisonRegionIds(
-            parsed.comparisonRegionIds
-              .filter((regionId) => normalizedStates[regionId] === "saved")
-              .slice(0, MAX_COMPARISON_CANDIDATES),
-          );
-        }
-      } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
-      } finally {
-        setHasRestored(true);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(restoreTimer);
-  }, []);
-
-  useEffect(() => {
-    if (!hasRestored) return;
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ profile, candidateStates, candidateNotes, exclusionReasons, comparisonRegionIds }),
-    );
-  }, [candidateNotes, candidateStates, comparisonRegionIds, exclusionReasons, hasRestored, profile]);
 
   useEffect(() => {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
@@ -147,6 +98,7 @@ export function DecisionWorkspace() {
   }
 
   async function discoverCandidates() {
+    const selectedDirectRegionIds = directRegionIds.filter(Boolean);
     if (!profile.conditions.length) {
       setError("의사결정 기준을 하나 이상 선택해 주세요.");
       return;
@@ -155,8 +107,8 @@ export function DecisionWorkspace() {
       setError("예산 상한을 0보다 큰 금액으로 입력해 주세요.");
       return;
     }
-    if (entryMode === "known" && (!directRegionIds[0] || !directRegionIds[1])) {
-      setError("비교할 후보 지역 두 곳을 선택해 주세요.");
+    if (entryMode === "known" && selectedDirectRegionIds.length === 0) {
+      setError("알고 있는 후보 지역을 한 곳 이상 선택해 주세요.");
       return;
     }
     if (entryMode === "known" && directRegionIds[0] === directRegionIds[1]) {
@@ -166,18 +118,57 @@ export function DecisionWorkspace() {
     setError("");
     setIsLoading(true);
     try {
-      const result = await fetchCandidateMatches(profile.conditions, 8, {
+      const options = {
         excludeLowVolumePrice: profile.conditions.includes("price"),
-        contractType: profile.contractType === "monthly" ? "monthly_rent" : "jeonse",
+        contractType: profile.contractType === "monthly" ? "monthly_rent" as const : "jeonse" as const,
         budgetMaxKrw10k: Number(profile.budget),
         buildingType: profile.buildingType === "any" ? undefined : profile.buildingType,
         areaBand: profile.areaBand === "any" ? undefined : profile.areaBand,
-        regionIds: entryMode === "known" ? directRegionIds : undefined,
-      });
-      if (entryMode === "known" && result.regions.length < 2) {
-        setError("선택한 후보 중 현재 예산과 주거 조건을 통과한 지역이 두 곳보다 적습니다. 조건을 조정해 주세요.");
+      };
+      let result: ExploreResponse;
+
+      if (entryMode === "known") {
+        setCandidateStates({});
+        setCandidateNotes({});
+        setExclusionReasons({});
+
+        if (selectedDirectRegionIds.length === 2) {
+          const directComparison = await fetchComparison(
+            selectedDirectRegionIds[0],
+            selectedDirectRegionIds[1],
+          );
+          setExploration(null);
+          setComparisonRegionIds(selectedDirectRegionIds);
+          setSingleRegion(null);
+          setComparison(directComparison);
+          setStep("comparison");
+          return;
+        }
+
+        const directResult = await fetchCandidateMatches(profile.conditions, 8, {
+          contractType: options.contractType,
+          regionIds: selectedDirectRegionIds,
+        });
+        if (directResult.regions.length < selectedDirectRegionIds.length) {
+          setError("선택한 후보의 분석 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+          return;
+        }
+
+        setExploration(directResult);
+        setComparisonRegionIds([]);
+        setComparison(null);
+        setSingleRegion(directResult.regions[0]);
+        setStep("comparison");
         return;
+      } else {
+        result = await fetchCandidateMatches(profile.conditions, 8, options);
       }
+      setCandidateStates({});
+      setCandidateNotes({});
+      setExclusionReasons({});
+      setComparisonRegionIds([]);
+      setComparison(null);
+      setSingleRegion(null);
       setExploration(result);
       setStep("candidates");
     } catch (caught) {
@@ -229,6 +220,7 @@ export function DecisionWorkspace() {
     setError("");
     setIsLoading(true);
     try {
+      setSingleRegion(null);
       setComparison(
         await fetchComparison(
           comparisonRegionIds[0],
@@ -303,13 +295,14 @@ export function DecisionWorkspace() {
           {step === "comparison" ? (
             <div>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                <PageIntro eyebrow="Evidence-based comparison" title="최종 후보를 같은 기준으로 비교합니다" description="강조 결과는 종합 순위가 아닌 지표별 상대 비교입니다." />
-                <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep("candidates")} type="button">← 후보 보드</button>
+                <PageIntro eyebrow={singleRegion ? "Candidate analysis" : "Focused comparison"} title={singleRegion ? "알고 있는 후보를 크게 살펴봅니다" : "내가 고른 조건만 집중해서 비교합니다"} description={singleRegion ? "선택한 한 지역의 데이터 근거와 다음 확인 항목을 봅니다." : "관측된 차이와 지도에서 다시 확인할 항목을 분리해 봅니다."} />
+                <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep(entryMode === "known" ? "profile" : "candidates")} type="button">{entryMode === "known" ? "← 후보 다시 선택" : "← 후보 보드"}</button>
               </div>
-              <ComparisonResult
-                comparison={comparison}
-                mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)}
-              />
+              {singleRegion ? (
+                <SingleRegionResult mapHref={buildReportMapUrl(profile, [singleRegion], true)} region={singleRegion} selectedConditions={profile.conditions} />
+              ) : (
+                <ComparisonResult comparison={comparison} mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)} selectedConditions={profile.conditions} />
+              )}
             </div>
           ) : null}
         </div>
@@ -359,7 +352,7 @@ function EntryPanel({ onSelect }: { onSelect: (mode: EntryMode) => void }) {
         <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("known")} type="button">
           <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">I have candidates</span>
           <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">고민 중인 지역이 있어요</strong>
-          <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">후보 지역 두 곳을 직접 추가하고 내 예산과 주거 조건에서 비교합니다.</span>
+          <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">후보 한 곳은 상세하게 살펴보고, 두 곳은 같은 조건으로 바로 비교합니다.</span>
         </button>
         <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("unknown")} type="button">
           <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">Discover candidates</span>
@@ -396,11 +389,11 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
         <div className="rounded-xl border border-[#e0e4eb] bg-white p-6 shadow-[0_6px_20px_rgba(25,39,74,.04)] sm:p-8">
           {entryMode === "known" ? (
             <fieldset className="mb-8 border-b border-[#eceef2] pb-8">
-              <legend className="text-sm font-semibold">직접 비교할 후보 지역</legend>
+              <legend className="text-sm font-semibold">알고 있는 후보 지역 <span className="font-normal text-[#8b92a1]">· 한 곳 이상</span></legend>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[0, 1].map((index) => (
                   <select className="h-14 rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm outline-none focus:border-[#1888e8]" key={index} onChange={(event) => onDirectRegionChange(index as 0 | 1, event.target.value)} value={directRegionIds[index]}>
-                    <option value="">{index + 1}번째 후보 선택</option>
+                    <option value="">{index === 0 ? "알고 있는 후보 선택" : "추가 후보 선택 · 선택 사항"}</option>
                     {regions.map((region) => <option key={region.region_id} value={region.region_id}>{region.display_name}</option>)}
                   </select>
                 ))}
@@ -437,7 +430,7 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
             </div>
           </fieldset>
           {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-          <button className="mt-8 h-13 w-full rounded-lg bg-[#17203b] px-5 font-semibold text-white transition hover:bg-[#263252] disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "후보군 분석 중…" : "조건 확인하고 후보 탐색"}</button>
+          <button className="mt-8 h-13 w-full rounded-lg bg-[#17203b] px-5 font-semibold text-white transition hover:bg-[#263252] disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터 불러오는 중…" : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
         </div>
         <aside className="rounded-xl border border-[#dce5ef] bg-[#f1f8ff] p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Profile summary</p>
