@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 
 const APP_URL = "/app";
+const DIRECT_MAP_URL = "/app/report-map?mode=direct&conditions=price,convenience,safety,population,transport";
 
 const FLOW = [
   {
@@ -136,7 +137,10 @@ export default function LandingPage() {
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
           <a className="w-[164px] text-[#17203b]" href="#top" aria-label="SweetHome 홈"><BrandLogo /></a>
           <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
-          <ArrowLink className="inline-flex items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건 입력하기</ArrowLink>
+          <div className="flex items-center gap-2">
+            <Link className="rounded-lg border border-[#cfd5df] px-3 py-3 text-sm font-semibold text-[#3f4a60] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 비교</Link>
+            <ArrowLink className="hidden items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453] sm:inline-flex">내 조건 입력하기</ArrowLink>
+          </div>
         </div>
       </header>
 
@@ -146,7 +150,7 @@ export default function LandingPage() {
             <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#1888e8]">Seoul housing decision support</p>
             <h1 className="mt-6 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-.055em] sm:text-6xl">내 조건에 맞는 동네,<br />어디부터 살펴봐야<br />할까요?</h1>
             <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 입력하면 서울의 후보 지역을 좁혀드립니다. 후보가 남은 이유와 지역별 차이를 확인하고, 직접 살펴볼 동네를 결정해 보세요.</p>
-            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 후보 찾기</ArrowLink><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
+            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 후보 찾기</ArrowLink><Link className="rounded-lg border border-[#cfd5df] px-5 py-3.5 text-sm font-semibold text-[#4e596d] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 직접 비교 ↗</Link><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
             <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />조건에 맞는 후보와 비교 근거를 제공하고, 최종 선택은 사용자가 합니다.</p>
           </div>
           <div data-scroll-float><WorkspacePreview /></div>

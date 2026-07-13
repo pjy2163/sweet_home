@@ -239,6 +239,7 @@ function ReportMapContent() {
     return new Set(raw ? raw.split(",").filter(Boolean) : []);
   }, [searchParams]);
   const focusSavedCandidates = searchParams.get("focus") === "true";
+  const directSelectionMode = searchParams.get("mode") === "direct";
   const [selectedConditions, setSelectedConditions] = useState<ExploreCondition[]>(
     initialConditions,
   );
@@ -252,7 +253,7 @@ function ReportMapContent() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (selectedConditions.length === 0) {
+    if (selectedConditions.length === 0 || directSelectionMode) {
       return;
     }
     let ignore = false;
@@ -267,18 +268,18 @@ function ReportMapContent() {
       if (!ignore) setCandidateRegions(result.regions);
     }).catch(() => {});
     return () => { ignore = true; };
-  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, excludeLowVolumePrice, focusSavedCandidates, savedRegionIds, selectedConditions]);
+  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, directSelectionMode, excludeLowVolumePrice, focusSavedCandidates, savedRegionIds, selectedConditions]);
 
   const visibleCandidateRegions = useMemo(
     () => {
-      if (selectedConditions.length === 0) return [];
+      if (selectedConditions.length === 0 || directSelectionMode) return [];
       return [...candidateRegions].sort((a, b) => {
         const savedDifference = Number(savedRegionIds.has(b.region_id))
           - Number(savedRegionIds.has(a.region_id));
         return savedDifference || b.match_count - a.match_count;
       });
     },
-    [candidateRegions, savedRegionIds, selectedConditions.length],
+    [candidateRegions, directSelectionMode, savedRegionIds, selectedConditions.length],
   );
 
   useEffect(() => {
@@ -357,10 +358,12 @@ function ReportMapContent() {
             Detailed Report
           </p>
           <h1 className="mt-4 text-4xl font-normal leading-[1.05] tracking-[-0.055em]">
-            지도로 보는 후보군 분포
+            {directSelectionMode ? "지도에서 두 지역 직접 고르기" : "지도로 보는 후보군 분포"}
           </h1>
           <p className="mt-6 text-base leading-7 text-[#9f9fa0]">
-            후보 위치를 확인하거나 궁금한 지점을 직접 클릭해 해당 행정동의 데이터 근거를 살펴봅니다.
+            {directSelectionMode
+              ? "궁금한 위치를 한 곳씩 클릭하세요. 선택한 두 행정동을 추천이나 순위 없이 나란히 살펴봅니다."
+              : "후보 위치를 확인하거나 궁금한 지점을 직접 클릭해 해당 행정동의 데이터 근거를 살펴봅니다."}
           </p>
 
           {contractType && budgetMaxKrw10k ? (
@@ -391,7 +394,11 @@ function ReportMapContent() {
                 {CONDITION_OPTIONS.map((condition) => {
                   const selected = selectedConditions.includes(condition);
 
-                  return (
+                  return directSelectionMode ? (
+                    <span className="rounded-full border border-[#dce1e8] bg-white px-3 py-1.5 text-xs font-semibold text-[#626b7d]" key={condition}>
+                      {CONDITION_LABELS[condition]}
+                    </span>
+                  ) : (
                     <button
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         selected
@@ -408,13 +415,14 @@ function ReportMapContent() {
                 })}
               </div>
               <p className="mt-3 text-xs text-[#6a6b6b]">
-                후보군 {visibleCandidateRegions.length}곳이 지도에 표시됩니다
-                {savedRegionIds.size > 0 ? ` · 저장 후보 ${savedRegionIds.size}곳 우선 표시` : ""}
+                {directSelectionMode
+                  ? "지도 클릭으로 비교할 행정동을 최대 2곳 직접 선택합니다"
+                  : `후보군 ${visibleCandidateRegions.length}곳이 지도에 표시됩니다${savedRegionIds.size > 0 ? ` · 저장 후보 ${savedRegionIds.size}곳 우선 표시` : ""}`}
               </p>
             </div>
 
             <div className="mt-5 grid gap-3 border-t border-[#e1e5eb] pt-4">
-              <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
+              {!directSelectionMode ? <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
                 <input
                   checked={excludeLowVolumePrice}
                   className="mt-1"
@@ -422,7 +430,7 @@ function ReportMapContent() {
                   type="checkbox"
                 />
                 <span>거래량 적은 가격 지표 제외</span>
-              </label>
+              </label> : null}
               <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
                 <input
                   checked={showCautionMetrics}
@@ -435,7 +443,7 @@ function ReportMapContent() {
             </div>
           </div>
 
-          {selectedConditions.length > 0 && (
+          {!directSelectionMode && selectedConditions.length > 0 && (
             <div className="mt-4 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
                 선택 조건
@@ -453,7 +461,7 @@ function ReportMapContent() {
             </div>
           )}
 
-          <div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-[#e0e4eb] bg-[#f2f4f7] p-1">
+          {!directSelectionMode ? <><div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-[#e0e4eb] bg-[#f2f4f7] p-1">
             {[
               { id: "map", label: "지도" },
               { id: "heatmap", label: "지표 순위" },
@@ -496,9 +504,9 @@ function ReportMapContent() {
                 </button>
               );
             })}
-          </div>
+          </div></> : null}
 
-          {heatmap ? (
+          {!directSelectionMode && heatmap ? (
             <div className="mt-10 grid gap-4 text-sm text-[#9f9fa0]">
               <SummaryRow label="지표" value={heatmap.metadata.metric_label} />
               <SummaryRow
@@ -517,6 +525,7 @@ function ReportMapContent() {
             <MapNotice text={errorMessage} />
           ) : heatmap ? (
             <ReportVisual
+              directSelectionMode={directSelectionMode}
               regions={heatmap.regions}
               savedRegionIds={savedRegionIds}
               showCautionMetrics={showCautionMetrics}
@@ -543,6 +552,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 }
 
 function ReportVisual({
+  directSelectionMode,
   regions,
   savedRegionIds,
   showCautionMetrics,
@@ -550,6 +560,7 @@ function ReportVisual({
   unit,
   view,
 }: {
+  directSelectionMode: boolean;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
   showCautionMetrics: boolean;
@@ -570,6 +581,7 @@ function ReportVisual({
 
   return (
     <KakaoReportMap
+      directSelectionMode={directSelectionMode}
       regions={regions}
       savedRegionIds={savedRegionIds}
       showCautionMetrics={showCautionMetrics}
@@ -580,12 +592,14 @@ function ReportVisual({
 }
 
 function KakaoReportMap({
+  directSelectionMode,
   regions,
   savedRegionIds,
   showCautionMetrics,
   topRegions,
   unit,
 }: {
+  directSelectionMode: boolean;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
   showCautionMetrics: boolean;
@@ -600,10 +614,13 @@ function KakaoReportMap({
     () => Object.fromEntries([...savedRegionIds].map((regionId) => [regionId, "saved"])),
   );
   const [mapSize, setMapSize] = useState<MapSize>("standard");
+  const [mapResetVersion, setMapResetVersion] = useState(0);
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
   const [mapClickNotice, setMapClickNotice] = useState({
     tone: "guide" as "guide" | "loading" | "success" | "error",
-    text: "지도에서 궁금한 위치를 클릭해 행정동 데이터를 확인하세요.",
+    text: directSelectionMode
+      ? "첫 번째로 비교할 위치를 지도에서 클릭하세요."
+      : "지도에서 궁금한 위치를 클릭해 행정동 데이터를 확인하세요.",
   });
   const [comparisonReport, setComparisonReport] =
     useState<AIReportResponse | null>(null);
@@ -722,11 +739,12 @@ function KakaoReportMap({
   }
 
   const mappedTopRegions = useMemo(
-    () =>
-      topRegions.filter(
+    () => directSelectionMode
+      ? []
+      : topRegions.filter(
         (region) => region.centroid_lat !== null && region.centroid_lon !== null,
       ),
-    [topRegions],
+    [directSelectionMode, topRegions],
   );
 
   const openRegionReport = useCallback((region: ReportRegion) => {
@@ -798,6 +816,16 @@ function KakaoReportMap({
     );
   }, []);
 
+  const clearDirectSelection = useCallback(() => {
+    mapClickRequestRef.current += 1;
+    setOpenReports([]);
+    setMapResetVersion((version) => version + 1);
+    setMapClickNotice({
+      tone: "guide",
+      text: "첫 번째로 비교할 위치를 지도에서 클릭하세요.",
+    });
+  }, []);
+
   const updateReportPosition = useCallback((
     regionId: string,
     position: ReportPanelPosition,
@@ -848,7 +876,7 @@ function KakaoReportMap({
 
   // SDK 로드 완료 후 또는 데이터가 바뀔 때 지도 재그리기
   useEffect(() => {
-    if (!mapReady || !mapRef.current || mappedTopRegions.length === 0) {
+    if (!mapReady || !mapRef.current) {
       return;
     }
 
@@ -858,8 +886,8 @@ function KakaoReportMap({
       const maps = window.kakao.maps;
       const centerRegion = mappedTopRegions[0];
       const center = new maps.LatLng(
-        centerRegion.centroid_lat ?? 37.5665,
-        centerRegion.centroid_lon ?? 126.978,
+        centerRegion?.centroid_lat ?? 37.5665,
+        centerRegion?.centroid_lon ?? 126.978,
       );
       const map = new maps.Map(mapRef.current, { center, level: 8 });
       const bounds = new maps.LatLngBounds();
@@ -1028,15 +1056,18 @@ function KakaoReportMap({
 
       if (mappedTopRegions.length > 1) {
         map.setBounds(bounds);
-      } else {
+      } else if (mappedTopRegions.length === 1) {
         map.setCenter(center);
         map.setLevel(7);
+      } else {
+        map.setCenter(center);
+        map.setLevel(8);
       }
       map.relayout();
     }
 
     window.kakao?.maps.load(drawMap);
-  }, [analyzeClickedRegion, candidateStates, mapReady, mapSize, mappedTopRegions, openRegionReport, unit]);
+  }, [analyzeClickedRegion, candidateStates, mapReady, mapResetVersion, mapSize, mappedTopRegions, openRegionReport, unit]);
 
   if (!appKey) {
     return (
@@ -1049,7 +1080,13 @@ function KakaoReportMap({
             Kakao key required
           </div>
           <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
-          <MapLayer regions={regions} topRegions={topRegions} unit={unit} />
+          <MapLayer regions={regions} topRegions={directSelectionMode ? [] : topRegions} unit={unit} />
+          {directSelectionMode ? (
+            <DirectSelectionProgress
+              reports={openReports}
+              onClear={clearDirectSelection}
+            />
+          ) : null}
           {openReports.map((report, index) => (
             <CandidateMiniReport
               candidateState={candidateStates[report.region.region_id]}
@@ -1070,14 +1107,14 @@ function KakaoReportMap({
             />
           ))}
         </div>
-        <TopRegionCards
+        {!directSelectionMode ? <TopRegionCards
           candidateStates={candidateStates}
           selectedRegionIds={openReports.map((report) => report.region.region_id)}
           topRegions={topRegions}
           unit={unit}
           onCandidateStateChange={updateCandidateState}
           onSelectRegion={openRegionReport}
-        />
+        /> : null}
         {AI_REPORT_ENABLED ? <EvidenceComparisonReport
           evidence={comparisonEvidence}
           result={activeComparisonReport}
@@ -1110,6 +1147,12 @@ function KakaoReportMap({
         <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
           Kakao map layer
         </div>
+        {directSelectionMode ? (
+          <DirectSelectionProgress
+            reports={openReports}
+            onClear={clearDirectSelection}
+          />
+        ) : null}
         <MapClickNotice notice={mapClickNotice} />
         <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
         {openReports.map((report, index) => (
@@ -1132,14 +1175,14 @@ function KakaoReportMap({
           />
         ))}
       </div>
-      <TopRegionCards
+      {!directSelectionMode ? <TopRegionCards
         candidateStates={candidateStates}
         selectedRegionIds={openReports.map((report) => report.region.region_id)}
         topRegions={topRegions}
         unit={unit}
         onCandidateStateChange={updateCandidateState}
         onSelectRegion={openRegionReport}
-      />
+      /> : null}
       {AI_REPORT_ENABLED ? <EvidenceComparisonReport
         evidence={comparisonEvidence}
         result={activeComparisonReport}
@@ -1884,6 +1927,48 @@ function CandidateMiniReport({
         <span className="block translate-x-[1px] translate-y-[1px] text-[13px] leading-none">↘</span>
       </button>
     </aside>
+  );
+}
+
+function DirectSelectionProgress({
+  reports,
+  onClear,
+}: {
+  reports: OpenCandidateReport[];
+  onClear: () => void;
+}) {
+  const selectedCount = reports.length;
+  const guide = selectedCount === 0
+    ? "첫 번째 위치를 클릭하세요"
+    : selectedCount === 1
+      ? "두 번째 위치를 클릭하세요"
+      : "두 행정동 선택 완료";
+
+  return (
+    <div className="absolute left-1/2 top-5 z-20 w-[min(34rem,calc(100%-11rem))] -translate-x-1/2 rounded-xl border border-white/15 bg-[#111a2c]/95 p-3 text-white shadow-[0_12px_36px_rgba(0,0,0,.35)] backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#91cfff]">직접 선택 비교 · {selectedCount}/2</p>
+          <p className="mt-1 text-xs font-semibold">{guide}</p>
+        </div>
+        {selectedCount > 0 ? (
+          <button className="rounded-lg border border-white/15 px-3 py-2 text-[10px] font-semibold text-white/75 transition hover:bg-white/10 hover:text-white" onClick={onClear} type="button">
+            다시 선택
+          </button>
+        ) : null}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {[0, 1].map((index) => (
+          <div className={`rounded-lg border px-3 py-2 text-xs ${reports[index] ? "border-[#847dff]/40 bg-[#847dff]/15 text-white" : "border-white/10 bg-white/[0.04] text-white/35"}`} key={index}>
+            <span className="mr-2 font-mono text-[9px]">0{index + 1}</span>
+            {reports[index]?.region.display_name ?? "위치 미선택"}
+          </div>
+        ))}
+      </div>
+      {selectedCount === 2 ? (
+        <p className="mt-2 text-[10px] leading-4 text-white/55">두 상세 패널을 나란히 확인하세요. 새 위치를 클릭하면 먼저 고른 지역이 교체됩니다.</p>
+      ) : null}
+    </div>
   );
 }
 
