@@ -44,15 +44,15 @@ const CONDITION_OPTIONS: Array<{
 }> = [
   { id: "price", label: "주거 비용", description: "서울 평균 대비 가격 수준" },
   { id: "convenience", label: "생활 편의", description: "일상 상권과 편의시설" },
-  { id: "safety", label: "야간 환경", description: "안전 관련 대체 지표" },
-  { id: "population", label: "생활 밀도", description: "행정동 생활인구 규모" },
+  { id: "safety", label: "야간 생활환경", description: "안심 인프라와 야간 상권 분포" },
+  { id: "population", label: "거주·활동 특성", description: "주간·야간 체류인구의 차이" },
 ];
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
   price: "주거 비용",
   convenience: "생활 편의",
-  safety: "야간 환경",
-  population: "생활 밀도",
+  safety: "야간 생활환경",
+  population: "거주·활동 특성",
   transport: "교통",
 };
 

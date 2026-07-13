@@ -21,7 +21,7 @@ export function HeroSection() {
         </h1>
         <div className="mt-12 grid gap-8 border-t border-white/25 pt-7 md:grid-cols-[1fr_1fr] md:items-end">
           <p className="max-w-xl text-base leading-7 text-white/70 sm:text-lg">
-            감이나 소문 대신, 가격·생활인구·안전·편의 데이터를 한눈에
+            감이나 소문 대신, 가격·시간대별 체류·야간환경·편의 데이터를 한눈에
             서울의 수많은 동네 사이에서 나에게 맞는 선택을 선명하게 만듭니다
           </p>
           <a className="group flex items-center justify-between border-b border-white/40 pb-3 text-lg font-semibold md:ml-auto md:w-72" href="#entry">

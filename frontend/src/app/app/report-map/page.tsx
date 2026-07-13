@@ -39,9 +39,10 @@ import type {
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "jeonse_ratio", label: "전세가" },
   { id: "deposit_ratio", label: "실거래가" },
-  { id: "safe_facility_density", label: "안전" },
+  { id: "safe_facility_density", label: "안심 인프라" },
   { id: "store_density", label: "편의" },
-  { id: "living_population", label: "생활인구" },
+  { id: "daytime_living_population", label: "주간 체류인구" },
+  { id: "nighttime_living_population", label: "야간 체류인구" },
 ];
 
 type ReportView = "heatmap" | "map";
@@ -97,10 +98,10 @@ const MAP_SIZE_CLASS: Record<MapSize, string> = {
 };
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
-  safety: "안전",
+  safety: "야간 생활환경",
   convenience: "편의",
   price: "가격",
-  population: "생활인구",
+  population: "거주·활동 특성",
   transport: "교통",
 };
 
@@ -1831,9 +1832,9 @@ function evidenceProfileForCondition(
 function evidenceConditionLabel(condition: EvidenceProfile["condition"]) {
   const labels: Record<EvidenceProfile["condition"], string> = {
     price: "가격",
-    safety: "안전",
+    safety: "야간 생활환경",
     convenience: "편의",
-    population: "생활인구",
+    population: "거주·활동 특성",
   };
 
   return labels[condition];

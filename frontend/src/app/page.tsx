@@ -26,7 +26,7 @@ const FLOW = [
     label: "근거 비교",
     title: "최종 후보의 차이를\n같은 기준으로 비교합니다",
     description:
-      "비용, 생활 편의, 생활인구와 주거환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
+      "비용, 생활 편의, 시간대별 체류 특성과 야간 생활환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
   },
 ];
 
@@ -74,7 +74,7 @@ function WorkspacePreview() {
           </div>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <PreviewCandidate district="마포구" dong="망원2동" reasons={["생활 편의 지표 확인", "가격 수준 비교 가능"]} />
-            <PreviewCandidate district="성동구" dong="성수1가1동" reasons={["최근 거래 데이터 확인", "생활인구 지표 확인"]} />
+            <PreviewCandidate district="성동구" dong="성수1가1동" reasons={["최근 거래 데이터 확인", "주간·야간 체류 특성 확인"]} />
           </div>
           <div className="mt-3 flex items-center justify-between rounded-lg border border-[#dfe3ea] bg-white px-4 py-3">
             <p className="text-[11px] font-semibold text-[#17203b]">최종 후보 2곳 선택</p>
@@ -168,7 +168,7 @@ export default function LandingPage() {
           <div className="lg:pl-6">
             <p className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">A clearer place to start</p>
             <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />내게 맞는 동네를 찾는<br />기준은 만들 수 있습니다.</h2>
-            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 생활인구와 주거환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
+            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 시간대별 체류 특성과 야간 생활환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
           </div>
         </div>
       </section>

@@ -30,6 +30,9 @@ export type RegionMetrics = {
   volume: number | null;
   low_volume: boolean;
   living_population: number | null;
+  daytime_living_population: number | null;
+  nighttime_living_population: number | null;
+  day_night_population_ratio: number | null;
   safe_facility_count: number | null;
   nightlife_count: number | null;
   industry_count: number | null;
@@ -116,6 +119,8 @@ export type HeatmapMetric =
   | "deposit_ratio"
   | "jeonse_ratio"
   | "living_population"
+  | "daytime_living_population"
+  | "nighttime_living_population"
   | "safe_facility_density"
   | "store_density";
 

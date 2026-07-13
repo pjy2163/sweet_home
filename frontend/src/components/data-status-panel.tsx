@@ -18,11 +18,11 @@ export function DataStatusPanel({ metadata }: DataStatusPanelProps) {
           value={metadata?.price_latest_month ?? "-"}
         />
         <DataStatusRow
-          label="생활인구"
+          label="시간대별 체류"
           value={metadata?.population_latest_month ?? "-"}
         />
         <DataStatusRow
-          label="안전 proxy"
+          label="야간 생활환경"
           value={metadata?.safety_latest_date ?? "-"}
         />
         <DataStatusRow

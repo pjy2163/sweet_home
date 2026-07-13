@@ -35,8 +35,8 @@ type ConditionOption = {
 const CONDITION_OPTIONS: ConditionOption[] = [
   {
     id: "safety",
-    label: "안전",
-    description: "안전 대체 지표",
+    label: "야간 환경",
+    description: "안심 인프라와 야간 상권 분포",
   },
   {
     id: "convenience",
@@ -50,8 +50,8 @@ const CONDITION_OPTIONS: ConditionOption[] = [
   },
   {
     id: "population",
-    label: "인구",
-    description: "생활인구 지표",
+    label: "활동 특성",
+    description: "주간·야간 체류인구",
   },
   {
     id: "transport",

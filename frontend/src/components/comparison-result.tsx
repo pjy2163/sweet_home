@@ -62,14 +62,24 @@ function ResultPanel({ comparison }: { comparison: CompareResponse }) {
           label="거래량"
         />
         <MetricRow
-          a={formatNumber(comparison.region_a.living_population, "명")}
-          b={formatNumber(comparison.region_b.living_population, "명")}
-          label="생활인구"
+          a={formatNumber(comparison.region_a.daytime_living_population, "명")}
+          b={formatNumber(comparison.region_b.daytime_living_population, "명")}
+          label="주간 평균 체류인구"
+        />
+        <MetricRow
+          a={formatNumber(comparison.region_a.nighttime_living_population, "명")}
+          b={formatNumber(comparison.region_b.nighttime_living_population, "명")}
+          label="야간 평균 체류인구"
         />
         <MetricRow
           a={formatNumber(comparison.region_a.safe_facility_count, "개")}
           b={formatNumber(comparison.region_b.safe_facility_count, "개")}
-          label="안전 proxy 시설"
+          label="안심 인프라 시설"
+        />
+        <MetricRow
+          a={formatNumber(comparison.region_a.nightlife_count, "개")}
+          b={formatNumber(comparison.region_b.nightlife_count, "개")}
+          label="야간 상권 관련 시설"
         />
         <MetricRow
           a={formatNumber(comparison.region_a.store_count, "개")}
@@ -143,13 +153,10 @@ function ComparisonMiniReport({ comparison }: { comparison: CompareResponse }) {
       ),
     },
     {
-      label: "안전",
-      a: formatNumber(comparison.region_a.safe_facility_count, "개"),
-      b: formatNumber(comparison.region_b.safe_facility_count, "개"),
-      winner: higherValueWins(
-        comparison.region_a.safe_facility_count,
-        comparison.region_b.safe_facility_count,
-      ),
+      label: "주간 체류",
+      a: formatNumber(comparison.region_a.daytime_living_population, "명"),
+      b: formatNumber(comparison.region_b.daytime_living_population, "명"),
+      winner: "none",
     },
     {
       label: "편의",
@@ -161,13 +168,10 @@ function ComparisonMiniReport({ comparison }: { comparison: CompareResponse }) {
       ),
     },
     {
-      label: "생활인구",
-      a: formatNumber(comparison.region_a.living_population, "명"),
-      b: formatNumber(comparison.region_b.living_population, "명"),
-      winner: higherValueWins(
-        comparison.region_a.living_population,
-        comparison.region_b.living_population,
-      ),
+      label: "야간 체류",
+      a: formatNumber(comparison.region_a.nighttime_living_population, "명"),
+      b: formatNumber(comparison.region_b.nighttime_living_population, "명"),
+      winner: "none",
     },
   ];
 

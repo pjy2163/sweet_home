@@ -169,7 +169,7 @@ function ResearchReport({ result }: { result: AIReportResponse }) {
           <div className="space-y-5 text-sm leading-7 text-white/70">
             <p>지역 수치, 기준일과 품질 판정은 검증된 SweetHome Evidence Pack에서 생성됩니다.</p>
             <p>AI는 수치를 계산하거나 특정 지역을 선택하지 않으며, 검증된 비교 결과의 관계와 한계만 설명합니다.</p>
-            <p>안전 관련 시설 지표는 범죄율이나 실제 체감 안전을 보장하지 않습니다.</p>
+            <p>안심 인프라와 야간 상권 관련 시설은 범죄율이나 실제 체감 안전을 보장하지 않습니다.</p>
           </div>
         </div>
       </footer>
