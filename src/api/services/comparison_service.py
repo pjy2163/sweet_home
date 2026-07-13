@@ -53,51 +53,77 @@ TRANSPORT_STATUS = (
 HEATMAP_METRICS: dict[str, dict[str, str]] = {
     "deposit_ratio": {
         "column": "실거래가_서울평균대비율",
+        "date_column": "가격_기준월",
         "label": "실거래가 서울 평균 대비",
         "description": "전월세 전체 평균 보증금이 같은 월 서울 평균 대비 어느 수준인지 보여줍니다.",
         "unit": "%",
+        "source_name": "서울 전월세 실거래 공공데이터",
+        "methodology": "법정동 실거래를 행정동에 연결한 뒤 같은 기준월의 서울 평균과 비교",
     },
     "jeonse_ratio": {
         "column": "전세가_서울평균대비율",
+        "date_column": "가격_기준월",
         "label": "전세가 서울 평균 대비",
         "description": "전세 평균 보증금이 같은 월 서울 평균 대비 어느 수준인지 보여줍니다.",
         "unit": "%",
+        "source_name": "서울 전월세 실거래 공공데이터",
+        "methodology": "법정동 전세 실거래를 행정동에 연결한 뒤 같은 기준월의 서울 평균과 비교",
     },
     "living_population": {
         "column": "생활인구",
+        "date_column": "생활인구_기준월",
         "label": "24시간 평균 체류인구",
         "description": "거주인구가 아니라 행정동에 머문 것으로 추정되는 시간대별 인구의 월 평균입니다.",
         "unit": "명",
+        "source_name": "서울 열린데이터광장 행정동 단위 서울 생활인구(내국인)",
+        "methodology": "시간대별 체류 추정인구를 행정동·월 단위 24시간 평균으로 집계",
     },
     "daytime_living_population": {
         "column": "주간생활인구",
+        "date_column": "생활인구_기준월",
         "label": "주간 평균 체류인구",
         "description": "09시부터 18시까지 행정동에 머문 것으로 추정되는 인구의 월 평균입니다.",
         "unit": "명",
+        "source_name": "서울 열린데이터광장 행정동 단위 서울 생활인구(내국인)",
+        "methodology": "시간대별 체류 추정인구 중 09~18시를 행정동·월 단위로 평균",
     },
     "nighttime_living_population": {
         "column": "야간생활인구",
+        "date_column": "생활인구_기준월",
         "label": "야간 평균 체류인구",
         "description": "19시부터 다음 날 08시까지 행정동에 머문 것으로 추정되는 인구의 월 평균입니다.",
         "unit": "명",
+        "source_name": "서울 열린데이터광장 행정동 단위 서울 생활인구(내국인)",
+        "methodology": "시간대별 체류 추정인구 중 19~08시를 행정동·월 단위로 평균",
     },
     "safe_facility_density": {
         "column": "안심시설수_면적당",
+        "date_column": "안전_기준일자",
         "label": "안심시설 밀도",
         "description": "행정동 면적 1㎢당 안심귀갓길 안전시설물 수를 보여줍니다.",
         "unit": "개/㎢",
+        "source_name": "서울시 안심귀갓길 안전시설물",
+        "methodology": "공식 시설 좌표를 SGIS 행정동 경계에 공간조인한 뒤 면적 1㎢당 시설 수로 환산",
     },
     "store_density": {
         "column": "사업체수_면적당",
+        "date_column": "상권_기준일자",
         "label": "생활편의 점포 밀도",
         "description": "행정동 면적 1㎢당 생활편의 점포 수를 보여줍니다.",
         "unit": "개/㎢",
+        "source_name": "서울시 상권분석서비스(점포-행정동)",
+        "methodology": "공식 행정동 코드를 서비스 region_id로 정규화한 뒤 면적 1㎢당 점포 수로 환산",
     },
     "bus_stop_density": {
         "column": "버스정류소_면적당",
+        "date_column": "버스_기준일자",
         "label": "버스정류소 밀도",
         "description": "행정동 면적 1㎢당 버스정류소 수를 보여줍니다.",
         "unit": "개/㎢",
+        "source_name": "서울 열린데이터광장 서울시 버스정류소 위치정보",
+        "source_url": "https://data.seoul.go.kr/dataList/OA-15067/S/1/datasetView.do",
+        "source_license": "공공누리 제1유형 · 출처표시",
+        "methodology": "정류소 WGS84 좌표를 SGIS 행정동 경계에 공간조인한 뒤 면적 1㎢당 고유 정류소 수로 환산",
     },
 }
 
@@ -295,6 +321,8 @@ def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
     percentiles = values.rank(method="average", pct=True) * 100
 
     data_values = values.dropna()
+    data_region_count = int(values.notna().sum())
+    region_count = int(snapshot["region_id"].nunique())
     response_rows = []
     heatmap_source = snapshot.assign(
         _heatmap_value=values,
@@ -333,6 +361,11 @@ def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
         regions=response_rows,
         metadata=HeatmapMetadata(
             source=DATA_SOURCE_TEXT,
+            source_name=metric_config["source_name"],
+            source_url=metric_config.get("source_url"),
+            source_license=metric_config.get("source_license"),
+            data_date=latest_text(snapshot, metric_config["date_column"]),
+            methodology=metric_config["methodology"],
             aggregation="행정동 기준 최신 snapshot mart의 지표를 서울 내 상대 구간으로 변환",
             limitation=(
                 "히트맵은 지역별 지표 분포를 보기 위한 시각화이며 추천, 우열, "
@@ -343,8 +376,9 @@ def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
             unit=metric_config["unit"],
             min_value=None if data_values.empty else round(float(data_values.min()), 2),
             max_value=None if data_values.empty else round(float(data_values.max()), 2),
-            region_count=int(snapshot["region_id"].nunique()),
-            data_region_count=int(values.notna().sum()),
+            region_count=region_count,
+            data_region_count=data_region_count,
+            missing_region_count=region_count - data_region_count,
         ),
     )
 

@@ -66,6 +66,28 @@ def test_heatmap_returns_supported_metric_metadata() -> None:
     assert result["metadata"]["max_value"] >= result["metadata"]["min_value"]
 
 
+def test_heatmap_returns_bus_stop_provenance_and_coverage() -> None:
+    client = TestClient(app)
+
+    response = client.get(
+        "/map/heatmap",
+        params={"metric": "bus_stop_density"},
+    )
+
+    assert response.status_code == 200
+    metadata = response.json()["metadata"]
+    assert metadata["metric_label"] == "버스정류소 밀도"
+    assert metadata["source_name"] == (
+        "서울 열린데이터광장 서울시 버스정류소 위치정보"
+    )
+    assert metadata["source_url"].startswith("https://data.seoul.go.kr/")
+    assert metadata["source_license"] == "공공누리 제1유형 · 출처표시"
+    assert metadata["data_date"] == "2026-07-01"
+    assert metadata["data_region_count"] == 420
+    assert metadata["missing_region_count"] == 13
+    assert "공간조인" in metadata["methodology"]
+
+
 def test_heatmap_separates_daytime_and_nighttime_presence() -> None:
     client = TestClient(app)
 

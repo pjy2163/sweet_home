@@ -92,6 +92,12 @@ export async function fetchHeatmap(metric: HeatmapMetric) {
   const params = new URLSearchParams({ metric });
   const response = await fetch(`/api/backend/map/heatmap?${params.toString()}`);
 
+  if (response.status === 422) {
+    throw new Error(
+      "현재 데이터 서버가 이 지표를 지원하지 않습니다. 최신 서버 버전을 확인해 주세요.",
+    );
+  }
+
   return parseJsonResponse<HeatmapResponse>(
     response,
     "히트맵 데이터를 불러오지 못했습니다.",

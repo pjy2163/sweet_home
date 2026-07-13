@@ -39,7 +39,7 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "deposit_ratio", label: "실거래가" },
   { id: "safe_facility_density", label: "안심 인프라" },
   { id: "store_density", label: "편의" },
-  { id: "bus_stop_density", label: "버스정류소" },
+  { id: "bus_stop_density", label: "버스정류소 밀도" },
   { id: "daytime_living_population", label: "주간 체류인구" },
   { id: "nighttime_living_population", label: "야간 체류인구" },
 ];
@@ -99,6 +99,7 @@ const CONDITION_OPTIONS: ExploreCondition[] = [
   "transport",
 ];
 const AI_REPORT_ENABLED = false;
+const DATA_INVENTORY_URL = "https://github.com/pjy2163/sweet_home#데이터-출처와-산출-기준";
 
 type KakaoLatLng = {
   getLat: () => number;
@@ -237,6 +238,7 @@ function ReportMapContent() {
   const [candidateRegions, setCandidateRegions] = useState<CandidateMatchRegion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [heatmapReloadKey, setHeatmapReloadKey] = useState(0);
 
   useEffect(() => {
     if (selectedConditions.length === 0 || directSelectionMode) {
@@ -293,7 +295,7 @@ function ReportMapContent() {
 
     loadHeatmap();
     return () => { ignore = true; };
-  }, [metric]);
+  }, [heatmapReloadKey, metric]);
 
   const topRegions = useMemo<ReportRegion[]>(() => {
     if (visibleCandidateRegions.length > 0) {
@@ -493,31 +495,47 @@ function ReportMapContent() {
           </div></> : null}
 
           {!directSelectionMode && heatmap ? (
-            <div className="mt-10 grid gap-4 text-sm text-[#9f9fa0]">
-              <SummaryRow label="지표" value={heatmap.metadata.metric_label} />
-              <SummaryRow
-                label="행정동"
-                value={`${heatmap.metadata.data_region_count}/${heatmap.metadata.region_count}개`}
-              />
-              <SummaryRow label="단위" value={heatmap.metadata.unit} />
-            </div>
+            <>
+              <div className="mt-10 grid gap-4 text-sm text-[#9f9fa0]">
+                <SummaryRow label="지표" value={heatmap.metadata.metric_label} />
+                <SummaryRow
+                  label="행정동"
+                  value={`${heatmap.metadata.data_region_count}/${heatmap.metadata.region_count}개`}
+                />
+                <SummaryRow label="단위" value={heatmap.metadata.unit} />
+              </div>
+              <DataProvenance metadata={heatmap.metadata} />
+            </>
           ) : null}
         </aside>
 
         <div className="relative min-h-[760px] bg-[#eef1f3] p-5 sm:p-8">
-          {isLoading ? (
+          {heatmap ? (
+            <>
+              <ReportVisual
+                directSelectionMode={directSelectionMode}
+                regions={heatmap.regions}
+                savedRegionIds={savedRegionIds}
+                showCautionMetrics={showCautionMetrics}
+                topRegions={topRegions}
+                unit={heatmap.metadata.unit}
+                view={reportView}
+              />
+              {isLoading ? <MapStatusBanner text="새 지표를 불러오는 중입니다. 현재 지도는 그대로 유지됩니다." /> : null}
+              {errorMessage ? (
+                <MapStatusBanner
+                  onRetry={() => setHeatmapReloadKey((key) => key + 1)}
+                  text={`${errorMessage} 이전에 불러온 지도를 유지했습니다.`}
+                  tone="error"
+                />
+              ) : null}
+            </>
+          ) : isLoading ? (
             <MapNotice text="지도 데이터를 불러오는 중입니다." />
           ) : errorMessage ? (
-            <MapNotice text={errorMessage} />
-          ) : heatmap ? (
-            <ReportVisual
-              directSelectionMode={directSelectionMode}
-              regions={heatmap.regions}
-              savedRegionIds={savedRegionIds}
-              showCautionMetrics={showCautionMetrics}
-              topRegions={topRegions}
-              unit={heatmap.metadata.unit}
-              view={reportView}
+            <MapNotice
+              onRetry={() => setHeatmapReloadKey((key) => key + 1)}
+              text={errorMessage}
             />
           ) : null}
         </div>
@@ -534,6 +552,25 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       </dt>
       <dd className="text-[#cacaca]">{value}</dd>
     </div>
+  );
+}
+
+function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] }) {
+  return (
+    <section className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] p-4" aria-labelledby="data-provenance-title">
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#847dff]" id="data-provenance-title">Data provenance</p>
+      <p className="mt-3 text-sm font-semibold leading-5 text-[#e1e1e4]">{metadata.source_name}</p>
+      <dl className="mt-4 space-y-3 text-xs leading-5 text-[#9f9fa0]">
+        <div><dt className="inline text-[#6f7073]">기준일 </dt><dd className="inline">{metadata.data_date ?? "원천별 확인 필요"}</dd></div>
+        <div><dt className="inline text-[#6f7073]">산출 방식 </dt><dd className="inline">{metadata.methodology}</dd></div>
+        <div><dt className="inline text-[#6f7073]">데이터 범위 </dt><dd className="inline">{metadata.data_region_count}개 행정동 · 결측 {metadata.missing_region_count}개</dd></div>
+        {metadata.source_license ? <div><dt className="inline text-[#6f7073]">이용 조건 </dt><dd className="inline">{metadata.source_license}</dd></div> : null}
+      </dl>
+      <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
+        {metadata.source_url ? <a className="text-[#a9a4ff] hover:text-white" href={metadata.source_url} rel="noreferrer" target="_blank">공식 원천 ↗</a> : null}
+        <a className="text-[#a9a4ff] hover:text-white" href={DATA_INVENTORY_URL} rel="noreferrer" target="_blank">전체 출처·한계 ↗</a>
+      </div>
+    </section>
   );
 }
 
@@ -2014,10 +2051,28 @@ function evidenceConditionLabel(condition: EvidenceProfile["condition"]) {
   return labels[condition];
 }
 
-function MapNotice({ text }: { text: string }) {
+function MapStatusBanner({
+  onRetry,
+  text,
+  tone = "loading",
+}: {
+  onRetry?: () => void;
+  text: string;
+  tone?: "loading" | "error";
+}) {
+  return (
+    <div className={`absolute right-8 top-8 z-50 max-w-sm rounded-xl border px-4 py-3 text-xs leading-5 shadow-lg backdrop-blur ${tone === "error" ? "border-[#e8988f]/35 bg-[#2a1716]/95 text-[#ffc7c2]" : "border-[#847dff]/30 bg-[#17152b]/90 text-[#d8d6ff]"}`} role={tone === "error" ? "alert" : "status"}>
+      <p>{text}</p>
+      {onRetry ? <button className="mt-2 rounded-lg border border-current/25 px-3 py-1.5 font-semibold hover:bg-white/10" onClick={onRetry} type="button">다시 시도</button> : null}
+    </div>
+  );
+}
+
+function MapNotice({ text, onRetry }: { text: string; onRetry?: () => void }) {
   return (
     <div className="absolute left-1/2 top-1/2 w-[min(420px,calc(100%_-_48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0f1011] p-6 text-center text-sm font-medium text-[#9f9fa0]">
-      {text}
+      <p>{text}</p>
+      {onRetry ? <button className="mt-4 rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2 text-xs font-semibold text-white hover:bg-white/10" onClick={onRetry} type="button">다시 시도</button> : null}
     </div>
   );
 }

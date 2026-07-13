@@ -166,6 +166,11 @@ class HeatmapRegion(BaseModel):
 
 class HeatmapMetadata(BaseModel):
     source: str
+    source_name: str
+    source_url: Optional[str]
+    source_license: Optional[str]
+    data_date: Optional[str]
+    methodology: str
     aggregation: str
     limitation: str
     metric_label: str
@@ -175,6 +180,7 @@ class HeatmapMetadata(BaseModel):
     max_value: Optional[float]
     region_count: int
     data_region_count: int
+    missing_region_count: int
 
 
 class HeatmapResponse(BaseModel):

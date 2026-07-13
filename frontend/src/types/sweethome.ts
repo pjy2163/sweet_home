@@ -164,6 +164,11 @@ export type HeatmapRegion = {
 
 export type HeatmapMetadata = {
   source: string;
+  source_name: string;
+  source_url: string | null;
+  source_license: string | null;
+  data_date: string | null;
+  methodology: string;
   aggregation: string;
   limitation: string;
   metric_label: string;
@@ -173,6 +178,7 @@ export type HeatmapMetadata = {
   max_value: number | null;
   region_count: number;
   data_region_count: number;
+  missing_region_count: number;
 };
 
 export type HeatmapResponse = {
