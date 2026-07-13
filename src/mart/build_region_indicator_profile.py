@@ -44,6 +44,11 @@ OUTPUT_COLUMNS = [
     "사업체수_상대수준",
     "생활인구",
     "생활인구_상대수준",
+    "주간생활인구",
+    "주간생활인구_상대수준",
+    "야간생활인구",
+    "야간생활인구_상대수준",
+    "주야간생활인구비율",
     "실거래가",
     "실거래가_서울평균대비율",
     "실거래가_서울평균이하여부",
@@ -132,6 +137,8 @@ def build_indicator_profile() -> pd.DataFrame:
     profile["업종수_상대수준"] = relative_level(profile["업종수"])
     profile["사업체수_상대수준"] = relative_level(profile["사업체수"])
     profile["생활인구_상대수준"] = relative_level(profile["생활인구"])
+    profile["주간생활인구_상대수준"] = relative_level(profile["주간생활인구"])
+    profile["야간생활인구_상대수준"] = relative_level(profile["야간생활인구"])
     profile["실거래가_서울평균이하여부"] = boolean_from_ratio_at_or_below_average(
         profile["실거래가_서울평균대비율"],
     )
@@ -142,10 +149,7 @@ def build_indicator_profile() -> pd.DataFrame:
     profile.loc[low_volume, "실거래가_서울평균이하여부"] = False
     profile.loc[low_volume, "전세가_서울평균이하여부"] = False
 
-    profile["안전_매칭지표수"] = count_matching_indicators(
-        profile,
-        ["안심시설수_면적당_상대수준"],
-    )
+    profile["안전_매칭지표수"] = 0
     profile["편의_매칭지표수"] = count_matching_indicators(
         profile,
         ["업종수_상대수준", "사업체수_면적당_상대수준"],
@@ -153,10 +157,7 @@ def build_indicator_profile() -> pd.DataFrame:
     profile["가격_매칭지표수"] = profile[
         ["실거래가_서울평균이하여부", "전세가_서울평균이하여부"]
     ].eq(True).sum(axis=1)
-    profile["인구_매칭지표수"] = count_matching_indicators(
-        profile,
-        ["생활인구_상대수준"],
-    )
+    profile["인구_매칭지표수"] = 0
 
     profile = profile[OUTPUT_COLUMNS].sort_values(
         ["시군구명", "행정동명", "region_id"],
