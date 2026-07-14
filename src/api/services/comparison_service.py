@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -128,24 +129,26 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
 }
 
 
-def read_snapshot() -> pd.DataFrame:
+@lru_cache(maxsize=8)
+def _read_csv_cached(path: Path) -> pd.DataFrame:
     return pd.read_csv(
-        SNAPSHOT_PATH,
+        path,
         encoding="utf-8-sig",
         dtype={"region_id": str},
     )
+
+
+def read_snapshot() -> pd.DataFrame:
+    return _read_csv_cached(SNAPSHOT_PATH).copy(deep=True)
 
 
 def read_housing_rent_snapshot() -> pd.DataFrame:
-    return pd.read_csv(
-        HOUSING_RENT_SNAPSHOT_PATH,
-        encoding="utf-8-sig",
-        dtype={"region_id": str},
-    )
+    return _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH).copy(deep=True)
 
 
-def read_geometry() -> pd.DataFrame:
-    if not GEOMETRY_PATH.exists():
+@lru_cache(maxsize=4)
+def _read_geometry_cached(path: Path) -> pd.DataFrame:
+    if not path.exists():
         return pd.DataFrame(
             columns=[
                 "region_id",
@@ -157,7 +160,34 @@ def read_geometry() -> pd.DataFrame:
             ],
         )
 
-    return pd.read_csv(GEOMETRY_PATH, encoding="utf-8-sig", dtype={"region_id": str})
+    return pd.read_csv(path, encoding="utf-8-sig", dtype={"region_id": str})
+
+
+def read_geometry() -> pd.DataFrame:
+    return _read_geometry_cached(GEOMETRY_PATH).copy(deep=True)
+
+
+@lru_cache(maxsize=1)
+def _build_indicator_profile_cached() -> pd.DataFrame:
+    return build_indicator_profile()
+
+
+def read_indicator_profile() -> pd.DataFrame:
+    return _build_indicator_profile_cached().copy(deep=True)
+
+
+def warm_data_cache() -> None:
+    _read_csv_cached(SNAPSHOT_PATH)
+    _read_geometry_cached(GEOMETRY_PATH)
+    _build_indicator_profile_cached()
+    if HOUSING_RENT_SNAPSHOT_PATH.exists():
+        _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH)
+
+
+def clear_data_cache() -> None:
+    _read_csv_cached.cache_clear()
+    _read_geometry_cached.cache_clear()
+    _build_indicator_profile_cached.cache_clear()
 
 
 def enrich_with_geometry(snapshot: pd.DataFrame) -> pd.DataFrame:
@@ -436,7 +466,7 @@ def list_candidate_matches(
             message="탐색할 조건을 하나 이상 선택해 주세요.",
         )
 
-    profile = build_indicator_profile()
+    profile = read_indicator_profile()
     matched = profile.copy()
     budget_filter_applied = contract_type is not None and budget_max_krw_10k is not None
     if budget_filter_applied:

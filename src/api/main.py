@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Query
 from typing import List, Literal, Optional
 
@@ -29,13 +31,21 @@ from src.api.services.comparison_service import (
     get_heatmap,
     list_candidate_matches,
     list_region_options,
+    warm_data_cache,
 )
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    warm_data_cache()
+    yield
 
 
 app = FastAPI(
     title="SweetHome API",
     description="SweetHome MVP region comparison API.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 app.add_exception_handler(ApiError, api_error_handler)
 
