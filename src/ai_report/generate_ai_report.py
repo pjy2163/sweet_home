@@ -204,7 +204,7 @@ def generate_ai_report(
     validate_grounding(report, evidence)
     return AIReportResponse(
         schema_version="1.0.0",
-        report_id=f"report:{uuid.uuid4()}",
+        report_id=uuid.uuid4(),
         generation_mode=generation_mode,
         model=used_model,
         prompt_version=PROMPT_VERSION,

@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi.testclient import TestClient
 
 from src.ai_report.contracts import AIReportContent, AIReportSection
@@ -34,6 +36,7 @@ def test_report_endpoint_returns_deterministic_fallback_without_api_key(monkeypa
 
     assert response.status_code == 200
     payload = response.json()
+    UUID(payload["report_id"])
     assert payload["generation_mode"] == "deterministic_fallback"
     assert payload["model"] is None
     assert payload["prompt_version"] == "ai-report-beta-v1"

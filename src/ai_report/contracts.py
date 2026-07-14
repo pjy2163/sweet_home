@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal, Optional
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -162,7 +163,7 @@ class AIReportContent(BaseModel):
 
 class AIReportResponse(BaseModel):
     schema_version: str
-    report_id: str
+    report_id: UUID
     generation_mode: Literal["openai", "deterministic_fallback"]
     model: Optional[str]
     prompt_version: str
