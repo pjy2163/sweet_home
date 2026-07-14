@@ -65,9 +65,11 @@ data/exports/**
 # Markdown docs are local/internal by default.
 *.md
 *.MD
-!README.md
-!**/README.md
-!**/README.MD
+!/README.md
+!/frontend/README.md
+
+# Public repository contracts
+!.env.example
 
 # Private/internal operating docs
 study/**
