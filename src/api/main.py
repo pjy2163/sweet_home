@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from typing import List, Literal, Optional
 
 from src.ai_report.contracts import (
@@ -48,6 +48,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.add_exception_handler(ApiError, api_error_handler)
+
+
+API_SECURITY_HEADERS = {
+    "Content-Security-Policy": "base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Referrer-Policy": "no-referrer",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+}
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    for header, value in API_SECURITY_HEADERS.items():
+        response.headers[header] = value
+    if request.url.path.startswith("/ai/reports"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/health", response_model=HealthResponse)

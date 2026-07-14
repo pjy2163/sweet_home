@@ -1,26 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE_URL = process.env.SWEETHOME_API_BASE_URL ?? "http://127.0.0.1:8000";
-const ALLOWED_PATHS = new Set([
+const ALLOWED_GET_PATHS = new Set([
   "health",
   "regions",
   "metadata",
   "compare",
   "explore",
-  "map",
-  "ai",
+  "map/heatmap",
+]);
+const ALLOWED_POST_PATHS = new Set([
+  "ai/reports/preview",
+  "ai/reports",
 ]);
 const BACKEND_UNAVAILABLE_MESSAGE =
-  "FastAPI 서버에 연결할 수 없습니다. 백엔드를 먼저 실행해 주세요: .venv/bin/uvicorn src.api.main:app --host 127.0.0.1 --port 8000";
+  "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const [resource] = path;
+  const resource = path.join("/");
 
-  if (!resource || !ALLOWED_PATHS.has(resource)) {
+  if (!ALLOWED_GET_PATHS.has(resource)) {
     return NextResponse.json(
       { code: "NOT_FOUND", message: "지원하지 않는 API 경로입니다." },
       { status: 404 },
@@ -43,7 +46,6 @@ export async function GET(
       {
         code: "BACKEND_UNAVAILABLE",
         message: BACKEND_UNAVAILABLE_MESSAGE,
-        target: API_BASE_URL,
       },
       { status: 503 },
     );
@@ -55,9 +57,9 @@ export async function POST(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const [resource] = path;
+  const resource = path.join("/");
 
-  if (!resource || !ALLOWED_PATHS.has(resource)) {
+  if (!ALLOWED_POST_PATHS.has(resource)) {
     return NextResponse.json(
       { code: "NOT_FOUND", message: "지원하지 않는 API 경로입니다." },
       { status: 404 },
@@ -84,7 +86,6 @@ export async function POST(
       {
         code: "BACKEND_UNAVAILABLE",
         message: BACKEND_UNAVAILABLE_MESSAGE,
-        target: API_BASE_URL,
       },
       { status: 503 },
     );
