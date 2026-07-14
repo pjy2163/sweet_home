@@ -1,6 +1,8 @@
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
+from src.api.services import comparison_service
 
 
 def test_compare_regions_returns_structured_report() -> None:
@@ -32,7 +34,34 @@ def test_compare_regions_accepts_region_ids_from_candidate_board() -> None:
     assert comparison["region_b"]["display_name"] == "강남구 논현2동"
 
 
-def test_compare_regions_accepts_current_explore_pair() -> None:
+def test_compare_regions_accepts_current_explore_pair(tmp_path, monkeypatch) -> None:
+    housing_snapshot_path = tmp_path / "housing_rent_snapshot.csv"
+    pd.DataFrame(
+        [
+            {
+                "region_id": region_id,
+                "reference_month": "2025-12",
+                "building_type": "multi_family",
+                "area_band": "compact",
+                "lease_type": "monthly_rent",
+                "median_deposit_krw_10k": 1_000,
+                "median_monthly_rent_krw_10k": monthly_rent,
+                "weighted_record_count": 10,
+                "sample_confidence": "high",
+                "is_comparable": True,
+            }
+            for region_id, monthly_rent in [
+                ("1174065000", 65),
+                ("1150052000", 75),
+            ]
+        ],
+    ).to_csv(housing_snapshot_path, index=False)
+    monkeypatch.setattr(
+        comparison_service,
+        "HOUSING_RENT_SNAPSHOT_PATH",
+        housing_snapshot_path,
+    )
+
     client = TestClient(app)
     exploration = client.get(
         "/explore",
