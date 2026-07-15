@@ -134,9 +134,10 @@ def count_matching_indicators(frame: pd.DataFrame, columns: list[str]) -> pd.Ser
     return frame[columns].eq("상대적으로높음").sum(axis=1)
 
 
-def build_indicator_profile() -> pd.DataFrame:
-    snapshot = read_snapshot()
-    geometry = read_geometry()
+def build_indicator_profile_from_frames(
+    snapshot: pd.DataFrame,
+    geometry: pd.DataFrame,
+) -> pd.DataFrame:
     profile = snapshot.merge(geometry, on="region_id", how="left")
 
     profile["display_name"] = profile["시군구명"] + " " + profile["행정동명"]
@@ -193,6 +194,10 @@ def build_indicator_profile() -> pd.DataFrame:
     )
     validate_indicator_profile(profile)
     return profile
+
+
+def build_indicator_profile() -> pd.DataFrame:
+    return build_indicator_profile_from_frames(read_snapshot(), read_geometry())
 
 
 def validate_indicator_profile(profile: pd.DataFrame) -> None:

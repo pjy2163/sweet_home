@@ -20,11 +20,10 @@ from src.ai_report.contracts import (
     EvidenceSourceDocument,
     InterpretationPolicy,
 )
-from src.api.services.comparison_service import (
+from src.api.services.comparison_service import resolve_region
+from src.api.services.data_service import (
     SNAPSHOT_PATH,
-    enrich_with_geometry,
-    read_snapshot,
-    resolve_region,
+    read_enriched_snapshot,
 )
 from src.api.errors import ApiError, REPORT_REGIONS_MUST_DIFFER
 from src.report.generate_report import (
@@ -534,7 +533,7 @@ def build_chart_specs(
 
 
 def build_evidence_pack(request: AIReportPreviewRequest) -> AIReportEvidencePack:
-    snapshot = enrich_with_geometry(read_snapshot())
+    snapshot = read_enriched_snapshot()
     region_a = resolve_region(snapshot, request.region_a)
     region_b = resolve_region(snapshot, request.region_b)
     if region_a.region_id == region_b.region_id:

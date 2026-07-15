@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from functools import lru_cache
-from pathlib import Path
-
 import pandas as pd
 
 from src.api.errors import (
@@ -26,7 +23,11 @@ from src.api.schemas import (
     RegionComparisonMetrics,
     RegionOption,
 )
-from src.mart.build_region_indicator_profile import build_indicator_profile
+from src.api.services.data_service import (
+    read_enriched_snapshot,
+    read_housing_rent_snapshot,
+    read_indicator_profile,
+)
 from src.report.generate_report import (
     AGGREGATION_TEXT,
     DATA_SOURCE_TEXT,
@@ -40,12 +41,6 @@ from src.report.generate_report import (
 )
 
 
-BASE_DIR = Path(__file__).resolve().parents[3]
-SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.csv"
-HOUSING_RENT_SNAPSHOT_PATH = (
-    BASE_DIR / "data" / "processed" / "housing_rent_snapshot.csv"
-)
-GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
 TRANSPORT_STATUS = (
     "지하철역과 버스정류소의 정적 위치를 행정동 경계에 연결했습니다. "
     "실제 이동 경로나 출퇴근 시간은 반영하지 않습니다."
@@ -129,82 +124,6 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
 }
 
 
-@lru_cache(maxsize=8)
-def _read_csv_cached(path: Path) -> pd.DataFrame:
-    return pd.read_csv(
-        path,
-        encoding="utf-8-sig",
-        dtype={"region_id": str},
-    )
-
-
-def read_snapshot() -> pd.DataFrame:
-    return _read_csv_cached(SNAPSHOT_PATH).copy(deep=True)
-
-
-def read_housing_rent_snapshot() -> pd.DataFrame:
-    return _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH).copy(deep=True)
-
-
-@lru_cache(maxsize=4)
-def _read_geometry_cached(path: Path) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame(
-            columns=[
-                "region_id",
-                "area_km2",
-                "centroid_lon",
-                "centroid_lat",
-                "map_x",
-                "map_y",
-            ],
-        )
-
-    return pd.read_csv(path, encoding="utf-8-sig", dtype={"region_id": str})
-
-
-def read_geometry() -> pd.DataFrame:
-    return _read_geometry_cached(GEOMETRY_PATH).copy(deep=True)
-
-
-@lru_cache(maxsize=1)
-def _build_indicator_profile_cached() -> pd.DataFrame:
-    return build_indicator_profile()
-
-
-def read_indicator_profile() -> pd.DataFrame:
-    return _build_indicator_profile_cached().copy(deep=True)
-
-
-def warm_data_cache() -> None:
-    _read_csv_cached(SNAPSHOT_PATH)
-    _read_geometry_cached(GEOMETRY_PATH)
-    _build_indicator_profile_cached()
-    if HOUSING_RENT_SNAPSHOT_PATH.exists():
-        _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH)
-
-
-def clear_data_cache() -> None:
-    _read_csv_cached.cache_clear()
-    _read_geometry_cached.cache_clear()
-    _build_indicator_profile_cached.cache_clear()
-
-
-def enrich_with_geometry(snapshot: pd.DataFrame) -> pd.DataFrame:
-    enriched = snapshot.merge(read_geometry(), on="region_id", how="left")
-    area = pd.to_numeric(enriched["area_km2"], errors="coerce")
-    enriched["안심시설수_면적당"] = (
-        pd.to_numeric(enriched["안심시설수"], errors="coerce").where(area.gt(0)) / area
-    )
-    enriched["사업체수_면적당"] = (
-        pd.to_numeric(enriched["사업체수"], errors="coerce").where(area.gt(0)) / area
-    )
-    enriched["유흥시설수_면적당"] = (
-        pd.to_numeric(enriched["유흥시설수"], errors="coerce").where(area.gt(0)) / area
-    )
-    return enriched
-
-
 def latest_text(snapshot: pd.DataFrame, column: str) -> str | None:
     value = snapshot[column].dropna().max()
     if pd.isna(value):
@@ -283,7 +202,7 @@ def strip_bullet_prefix(lines: list[str]) -> list[str]:
 
 
 def list_region_options() -> list[RegionOption]:
-    snapshot = enrich_with_geometry(read_snapshot())
+    snapshot = read_enriched_snapshot()
     regions = snapshot[
         [
             "region_id",
@@ -304,7 +223,7 @@ def list_region_options() -> list[RegionOption]:
 
 
 def get_data_metadata() -> MetadataResponse:
-    snapshot = enrich_with_geometry(read_snapshot())
+    snapshot = read_enriched_snapshot()
     price_latest_column = (
         "가격_최신가용월" if "가격_최신가용월" in snapshot.columns else "가격_기준월"
     )
@@ -323,7 +242,7 @@ def get_data_metadata() -> MetadataResponse:
 
 
 def compare_region_snapshots(a: str, b: str) -> CompareResponse:
-    snapshot = enrich_with_geometry(read_snapshot())
+    snapshot = read_enriched_snapshot()
     region_a = resolve_region(snapshot, a)
     region_b = resolve_region(snapshot, b)
 
@@ -345,7 +264,7 @@ def get_heatmap(metric: HeatmapMetric) -> HeatmapResponse:
             message=f"지원하지 않는 히트맵 지표입니다: {metric}",
         )
 
-    snapshot = enrich_with_geometry(read_snapshot())
+    snapshot = read_enriched_snapshot()
     column = metric_config["column"]
     values = pd.to_numeric(snapshot[column], errors="coerce")
     percentiles = values.rank(method="average", pct=True) * 100

@@ -3,10 +3,11 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.services import comparison_service
+from src.mart.build_region_indicator_profile import build_indicator_profile
 
 
 def mock_housing_rent_snapshot(monkeypatch) -> None:
-    region_ids = comparison_service.build_indicator_profile()["region_id"].tolist()
+    region_ids = build_indicator_profile()["region_id"].tolist()
     rows = []
     for index, region_id in enumerate(region_ids):
         rows.extend(
@@ -204,7 +205,7 @@ def test_explore_regions_returns_static_transport_evidence() -> None:
 
 def test_explore_explains_missing_transport_boundary_mapping() -> None:
     client = TestClient(app)
-    profile = comparison_service.build_indicator_profile()
+    profile = build_indicator_profile()
     missing_region_id = profile.loc[
         ~profile["교통_데이터여부"].fillna(False).astype(bool),
         "region_id",
@@ -330,7 +331,7 @@ def test_explore_filters_by_building_type_and_area_band(monkeypatch) -> None:
 def test_explore_preserves_direct_candidate_order(monkeypatch) -> None:
     mock_housing_rent_snapshot(monkeypatch)
     client = TestClient(app)
-    affordable_ids = comparison_service.build_indicator_profile()["region_id"].tolist()[::2]
+    affordable_ids = build_indicator_profile()["region_id"].tolist()[::2]
     selected_ids = affordable_ids[:2]
 
     response = client.get(
@@ -355,7 +356,7 @@ def test_explore_preserves_direct_candidate_order(monkeypatch) -> None:
 
 def test_explore_returns_all_evidence_for_map_clicked_region() -> None:
     client = TestClient(app)
-    region_id = comparison_service.build_indicator_profile().iloc[0]["region_id"]
+    region_id = build_indicator_profile().iloc[0]["region_id"]
 
     response = client.get(
         "/explore",

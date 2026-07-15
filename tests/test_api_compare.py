@@ -2,7 +2,7 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.services import comparison_service
+from src.api.services import comparison_service, data_service
 
 
 def test_compare_regions_returns_structured_report() -> None:
@@ -56,8 +56,9 @@ def test_compare_regions_accepts_current_explore_pair(tmp_path, monkeypatch) -> 
             ]
         ],
     ).to_csv(housing_snapshot_path, index=False)
+    data_service.clear_data_cache()
     monkeypatch.setattr(
-        comparison_service,
+        data_service,
         "HOUSING_RENT_SNAPSHOT_PATH",
         housing_snapshot_path,
     )
@@ -88,6 +89,7 @@ def test_compare_regions_accepts_current_explore_pair(tmp_path, monkeypatch) -> 
     comparison = response.json()
     assert comparison["region_a"]["region_id"] == regions[0]["region_id"]
     assert comparison["region_b"]["region_id"] == regions[1]["region_id"]
+    data_service.clear_data_cache()
 
 
 def test_compare_regions_returns_404_for_unknown_region() -> None:

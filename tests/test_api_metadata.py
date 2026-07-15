@@ -20,7 +20,7 @@ def test_metadata_returns_data_basis() -> None:
 
 
 def test_metadata_supports_snapshot_without_price_lineage_columns(monkeypatch) -> None:
-    snapshot = comparison_service.read_snapshot().drop(
+    snapshot = comparison_service.read_enriched_snapshot().drop(
         columns=[
             "가격_최신가용월",
             "가격_선택정책",
@@ -28,7 +28,7 @@ def test_metadata_supports_snapshot_without_price_lineage_columns(monkeypatch) -
         ],
         errors="ignore",
     )
-    monkeypatch.setattr(comparison_service, "read_snapshot", lambda: snapshot)
+    monkeypatch.setattr(comparison_service, "read_enriched_snapshot", lambda: snapshot)
 
     metadata = comparison_service.get_data_metadata()
 
