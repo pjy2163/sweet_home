@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.services import saved_report_service
+from src.api.services import agreement_service
 
 
 def test_saved_report_requires_authenticated_identity() -> None:
@@ -45,6 +46,11 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
         "persist_saved_report",
         fake_persist_saved_report,
     )
+    monkeypatch.setattr(
+        agreement_service,
+        "get_current_agreement",
+        lambda **_: {"accepted_at": datetime(2026, 7, 15, tzinfo=timezone.utc)},
+    )
 
     with TestClient(app) as client:
         region_id = client.get("/regions").json()[0]["region_id"]
@@ -59,6 +65,11 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
                 "region_ids": [region_id],
                 "priority_keys": ["price", "transport"],
                 "comparison_basis": "direct",
+                "decision_context": {
+                    "selection_mode": "candidate",
+                    "contract_type": "monthly_rent",
+                    "budget_max_krw_10k": 80,
+                },
             },
         )
 
@@ -68,6 +79,40 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
     assert "email" not in captured
     assert response.json()["priority_keys"] == ["price", "transport"]
     assert response.json()["report_content"]["regions"][0]["region_id"] == region_id
+    assert response.json()["report_content"]["detailed_regions"][0]["region_id"] == region_id
+    assert response.json()["report_content"]["decision_context"] == {
+        "selection_mode": "candidate",
+        "contract_type": "monthly_rent",
+        "budget_max_krw_10k": 80.0,
+        "building_type": None,
+        "area_band": None,
+    }
+    assert response.json()["title"].endswith("살펴보기")
+
+
+def test_saved_report_rejects_authenticated_user_without_current_agreement(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        agreement_service,
+        "get_current_agreement",
+        lambda **_: None,
+    )
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/saved-reports",
+            headers={"x-sweethome-principal-id": "opaque-user-subject"},
+            json={
+                "client_request_id": "4f3bfec8-c5fe-46dc-a6ec-53dfd2cd7637",
+                "region_ids": ["11110530"],
+                "priority_keys": ["price"],
+                "comparison_basis": "direct",
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["code"] == "AGREEMENT_REQUIRED"
 
 
 def test_saved_report_request_rejects_duplicate_regions() -> None:
@@ -84,3 +129,32 @@ def test_saved_report_request_rejects_duplicate_regions() -> None:
         )
 
     assert response.status_code == 422
+
+
+def test_saved_report_delete_is_scoped_to_authenticated_owner(monkeypatch) -> None:
+    captured = {}
+
+    def fake_remove_saved_report(**payload):
+        captured.update(payload)
+        return True
+
+    monkeypatch.setattr(
+        saved_report_service,
+        "remove_saved_report",
+        fake_remove_saved_report,
+    )
+    report_id = "2acd7028-3468-48a0-b942-51294fa897d6"
+
+    with TestClient(app) as client:
+        response = client.delete(
+            f"/saved-reports/{report_id}",
+            headers={
+                "x-sweethome-principal-id": "opaque-user-subject",
+                "x-sweethome-identity-provider": "github",
+            },
+        )
+
+    assert response.status_code == 204
+    assert captured["auth_issuer"] == "github"
+    assert captured["auth_subject"] == "opaque-user-subject"
+    assert str(captured["report_id"]) == report_id

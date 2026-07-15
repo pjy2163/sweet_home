@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { safeRedirectPath } from "@/lib/auth";
 
 export default async function LoginPage({
   searchParams,
@@ -11,9 +12,15 @@ export default async function LoginPage({
   const redirectPath = safeRedirectPath(
     Array.isArray(requestedRedirect) ? requestedRedirect[0] : requestedRedirect,
   );
-  const encodedRedirect = encodeURIComponent(redirectPath);
-  const googleLoginUrl = `/.auth/login/google?post_login_redirect_uri=${encodedRedirect}`;
-  const githubLoginUrl = `/.auth/login/github?post_login_redirect_uri=${encodedRedirect}`;
+  const completionPath = `/auth/complete?redirect=${encodeURIComponent(redirectPath)}`;
+  const encodedRedirect = encodeURIComponent(completionPath);
+  const localDevelopment = process.env.NODE_ENV === "development";
+  const googleLoginUrl = localDevelopment
+    ? `/api/dev-auth?provider=google&redirect=${encodedRedirect}`
+    : `/.auth/login/google?post_login_redirect_uri=${encodedRedirect}`;
+  const githubLoginUrl = localDevelopment
+    ? `/api/dev-auth?provider=github&redirect=${encodedRedirect}`
+    : `/.auth/login/github?post_login_redirect_uri=${encodedRedirect}`;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-canvas text-ink">
@@ -89,26 +96,11 @@ export default async function LoginPage({
                 인증은 Google·GitHub와 Azure가 처리합니다. SweetHome은 비밀번호나 인증 토큰을 저장하지 않습니다.
               </p>
             </div>
-            <p className="mt-3 text-[11px] leading-5 text-subtle">
-              계속하면 <Link className="underline underline-offset-2" href="/terms">이용약관</Link>과{" "}
-              <Link className="underline underline-offset-2" href="/privacy">개인정보처리방침</Link>을 확인한 것으로 봅니다.
-            </p>
           </div>
         </section>
       </div>
     </main>
   );
-}
-
-function safeRedirectPath(value: string | undefined) {
-  if (
-    !value
-    || !value.startsWith("/")
-    || value.startsWith("//")
-    || value.includes("\\")
-    || /[\u0000-\u001f]/.test(value)
-  ) return "/app";
-  return value;
 }
 
 function GoogleMark() {

@@ -23,12 +23,15 @@ export function AuthMenu({ className = "" }: { className?: string }) {
   }, []);
 
   if (authenticated) {
+    const logoutUrl = process.env.NODE_ENV === "development"
+      ? "/api/dev-auth?mode=logout&redirect=/"
+      : "/.auth/logout?post_logout_redirect_uri=/";
     return (
       <span className="flex items-center gap-1">
         <Link className={className} href="/mypage">내 기록</Link>
         <a
           className={`${className} opacity-65`}
-          href="/.auth/logout?post_logout_redirect_uri=/"
+          href={logoutUrl}
         >
           로그아웃
         </a>

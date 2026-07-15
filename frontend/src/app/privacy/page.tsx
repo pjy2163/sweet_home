@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 export default function PrivacyPage() {
   const controllerName = process.env.SWEETHOME_PRIVACY_CONTROLLER_NAME?.trim()
-    || "SweetHome 운영자";
+    || "SweetHome 개인정보 문의";
   const contactEmail = process.env.SWEETHOME_PRIVACY_CONTACT_EMAIL?.trim()
     || "parangofsky@gmail.com";
 
@@ -20,6 +20,7 @@ export default function PrivacyPage() {
       <PolicySection title="2. 처리하는 개인정보 항목">
         <ul className="list-disc space-y-2 pl-5">
           <li>로그인 시: 인증 제공자명(Google 또는 GitHub), 제공자가 부여한 불투명 사용자 식별자</li>
+          <li>최초 확인 시: 이용약관 버전, 개인정보 처리 안내 버전, 확인 시각</li>
           <li>리포트 저장 시: 선택 지역 코드, 판단 기준, 비교 방식, 저장 시점의 데이터 근거와 생성 시각</li>
           <li>서비스 접속 시 자동 생성: 접속 시각, 요청·오류 기록 등 보안과 장애 대응에 필요한 최소 서버 로그</li>
         </ul>
@@ -27,7 +28,7 @@ export default function PrivacyPage() {
       </PolicySection>
       <PolicySection title="3. 보유 기간과 파기">
         <ul className="list-disc space-y-2 pl-5">
-          <li>로그인 식별자와 저장 리포트: 이용 종료 또는 삭제 요청 시까지</li>
+          <li>로그인 식별자, 약관 확인 이력과 저장 리포트: 이용 종료 또는 삭제 요청 시까지</li>
           <li>서비스 운영 로그: 생성일로부터 최대 30일</li>
         </ul>
         <p>목적이 달성되거나 보유기간이 끝난 정보는 복구하기 어려운 방식으로 지체 없이 삭제합니다. 법령에 따라 별도 보관이 필요한 경우에는 해당 근거와 기간을 안내하고 분리 보관합니다.</p>
@@ -56,7 +57,8 @@ export default function PrivacyPage() {
       </PolicySection>
       <PolicySection title="10. 개인정보 보호 문의">
         <dl className="grid gap-2 rounded-xl bg-surface-soft p-4 sm:grid-cols-[140px_1fr]">
-          <dt className="font-semibold text-ink">개인정보 처리자</dt><dd>{controllerName}</dd>
+          <dt className="font-semibold text-ink">서비스 운영</dt><dd>parang</dd>
+          <dt className="font-semibold text-ink">개인정보 문의</dt><dd>{controllerName}</dd>
           <dt className="font-semibold text-ink">문의 이메일</dt><dd>{contactEmail}</dd>
         </dl>
         <p>개인정보 침해에 대한 신고나 상담이 필요한 경우 개인정보침해 신고센터(118), 개인정보분쟁조정위원회 등 관계 기관에 문의할 수 있습니다.</p>

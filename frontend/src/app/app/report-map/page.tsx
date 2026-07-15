@@ -15,7 +15,9 @@ import { useRouter } from "next/navigation";
 import {
   createSavedReport,
   fetchCandidateMatches,
+  fetchAgreementStatus,
   fetchAuthSession,
+  fetchComparison,
   fetchHeatmap,
 } from "@/lib/api";
 import { DataBasis } from "@/components/data-provenance";
@@ -55,6 +57,7 @@ import type {
   HeatmapResponse,
   HousingAreaBand,
   HousingBuildingType,
+  SavedReportDecisionContext,
 } from "@/types/sweethome";
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
@@ -147,6 +150,13 @@ function ReportMapContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [heatmapReloadKey, setHeatmapReloadKey] = useState(0);
+  const decisionContext = useMemo<SavedReportDecisionContext>(() => ({
+    selection_mode: directSelectionMode ? "direct_map" : "candidate",
+    contract_type: contractType,
+    budget_max_krw_10k: budgetMaxKrw10k,
+    building_type: buildingType,
+    area_band: areaBand,
+  }), [areaBand, budgetMaxKrw10k, buildingType, contractType, directSelectionMode]);
 
   useEffect(() => {
     if (selectedConditions.length === 0 || directSelectionMode) {
@@ -351,6 +361,7 @@ function ReportMapContent() {
           {heatmap ? (
             <>
               <ReportVisual
+                decisionContext={decisionContext}
                 directSelectionMode={directSelectionMode}
                 pendingReportRegionIds={pendingReportRegionIds}
                 pendingSaveRequestId={pendingSaveRequestId}
@@ -417,6 +428,7 @@ function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] })
 }
 
 function ReportVisual({
+  decisionContext,
   directSelectionMode,
   pendingReportRegionIds,
   pendingSaveRequestId,
@@ -429,6 +441,7 @@ function ReportVisual({
   unit,
   view,
 }: {
+  decisionContext: SavedReportDecisionContext;
   directSelectionMode: boolean;
   pendingReportRegionIds: string[];
   pendingSaveRequestId: string | null;
@@ -458,6 +471,7 @@ function ReportVisual({
 
   return (
     <KakaoReportMap
+      decisionContext={decisionContext}
       directSelectionMode={directSelectionMode}
       pendingReportRegionIds={pendingReportRegionIds}
       pendingSaveRequestId={pendingSaveRequestId}
@@ -473,6 +487,7 @@ function ReportVisual({
 }
 
 function KakaoReportMap({
+  decisionContext,
   directSelectionMode,
   pendingReportRegionIds,
   pendingSaveRequestId,
@@ -484,6 +499,7 @@ function KakaoReportMap({
   metricLabel,
   unit,
 }: {
+  decisionContext: SavedReportDecisionContext;
   directSelectionMode: boolean;
   pendingReportRegionIds: string[];
   pendingSaveRequestId: string | null;
@@ -674,6 +690,7 @@ function KakaoReportMap({
           onClose={closeRegionReport}
         />
         <SaveReportAction
+          decisionContext={decisionContext}
           pendingSaveRequestId={pendingSaveRequestId}
           reports={openReports}
           selectedConditions={selectedConditions}
@@ -724,6 +741,7 @@ function KakaoReportMap({
         onClose={closeRegionReport}
       />
       <SaveReportAction
+        decisionContext={decisionContext}
         pendingSaveRequestId={pendingSaveRequestId}
         reports={openReports}
         selectedConditions={selectedConditions}
@@ -733,10 +751,12 @@ function KakaoReportMap({
 }
 
 function SaveReportAction({
+  decisionContext,
   pendingSaveRequestId,
   reports,
   selectedConditions,
 }: {
+  decisionContext: SavedReportDecisionContext;
   pendingSaveRequestId: string | null;
   reports: OpenCandidateReport[];
   selectedConditions: ExploreCondition[];
@@ -757,18 +777,46 @@ function SaveReportAction({
     try {
       const session = await fetchAuthSession();
       if (!session) {
-        const returnUrl = new URL(window.location.href);
-        returnUrl.searchParams.set("report_regions", regionIds.join(","));
-        returnUrl.searchParams.set("save_request", requestId);
-        const redirect = `${returnUrl.pathname}${returnUrl.search}`;
+        const redirect = pendingReportRedirect(regionIds, requestId);
         window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
         return;
       }
+      const agreement = await fetchAgreementStatus();
+      if (!agreement?.accepted) {
+        const redirect = pendingReportRedirect(regionIds, requestId);
+        window.location.assign(`/auth/complete?redirect=${encodeURIComponent(redirect)}`);
+        return;
+      }
+      const previewDetailedRegions = process.env.NODE_ENV === "development"
+        && regionIds.length === 2
+        ? await fetchComparison(regionIds[0], regionIds[1])
+          .then((comparison) => [comparison.region_a, comparison.region_b])
+          .catch(() => undefined)
+        : undefined;
       const saved = await createSavedReport({
         client_request_id: requestId,
         region_ids: regionIds,
         priority_keys: priorities,
         comparison_basis: "direct",
+        decision_context: decisionContext,
+        preview_regions: process.env.NODE_ENV === "development"
+          ? reports.map(({ region }) => ({
+            region_id: region.region_id,
+            gu_name: region.gu_name,
+            dong_name: region.dong_name,
+            display_name: region.display_name,
+            area_km2: region.area_km2,
+            centroid_lon: region.centroid_lon,
+            centroid_lat: region.centroid_lat,
+            map_x: region.map_x,
+            map_y: region.map_y,
+            match_count: region.match_count ?? 0,
+            matched_indicators: region.matched_indicators ?? [],
+            indicator_summary: region.indicator_summary ?? {},
+            evidence_metrics: region.evidence_metrics ?? [],
+          }))
+          : undefined,
+        preview_detailed_regions: previewDetailedRegions,
       });
       router.replace(`/mypage?created=${encodeURIComponent(saved.report_id)}`);
     } catch (error) {
@@ -779,7 +827,7 @@ function SaveReportAction({
           : "나만의 리포트를 저장하지 못했습니다.",
       );
     }
-  }, [priorities, regionIds, router]);
+  }, [decisionContext, priorities, regionIds, reports, router]);
 
   useEffect(() => {
     if (
@@ -816,6 +864,13 @@ function SaveReportAction({
       {status === "error" ? <p className="mt-3 text-xs font-semibold text-[#b84d61]">{message}</p> : null}
     </section>
   );
+}
+
+function pendingReportRedirect(regionIds: string[], requestId: string) {
+  const returnUrl = new URL(window.location.href);
+  returnUrl.searchParams.set("report_regions", regionIds.join(","));
+  returnUrl.searchParams.set("save_request", requestId);
+  return `${returnUrl.pathname}${returnUrl.search}`;
 }
 
 function toReportRegion(

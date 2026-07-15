@@ -10,11 +10,29 @@ export type AuthSession = {
   provider: string;
 };
 
+export type AgreementStatus = {
+  accepted: boolean;
+  terms_version: string;
+  privacy_notice_version: string;
+  accepted_at: string | null;
+};
+
 export type SavedReportCreate = {
   client_request_id: string;
   region_ids: string[];
   priority_keys: ExploreCondition[];
   comparison_basis: "seoul" | "direct";
+  decision_context?: SavedReportDecisionContext;
+  preview_regions?: CandidateMatchRegion[];
+  preview_detailed_regions?: RegionMetrics[];
+};
+
+export type SavedReportDecisionContext = {
+  selection_mode: "candidate" | "direct_map";
+  contract_type?: "monthly_rent" | "jeonse";
+  budget_max_krw_10k?: number;
+  building_type?: HousingBuildingType;
+  area_band?: HousingAreaBand;
 };
 
 export type SavedReportSummary = {
@@ -40,7 +58,9 @@ export type SavedReportDetail = SavedReportSummary & {
       comparison_basis: "seoul" | "direct";
       notice: string;
     };
+    decision_context?: SavedReportDecisionContext | null;
     regions: CandidateMatchRegion[];
+    detailed_regions?: RegionMetrics[];
     source: string;
     limitation: string;
   };
@@ -59,6 +79,9 @@ export type Metadata = {
 };
 
 export type RegionMetrics = {
+  region_id: string;
+  gu_name: string;
+  dong_name: string;
   display_name: string;
   price_month: string | null;
   price_latest_available_month: string | null;

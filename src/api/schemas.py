@@ -17,6 +17,18 @@ class AuthMeResponse(BaseModel):
     provider: str
 
 
+class AgreementAcceptRequest(BaseModel):
+    terms_accepted: Literal[True]
+    privacy_notice_confirmed: Literal[True]
+
+
+class AgreementStatusResponse(BaseModel):
+    accepted: bool
+    terms_version: str
+    privacy_notice_version: str
+    accepted_at: Optional[datetime] = None
+
+
 DecisionPriority = Literal[
     "price",
     "population",
@@ -26,11 +38,20 @@ DecisionPriority = Literal[
 ]
 
 
+class SavedReportDecisionContext(BaseModel):
+    selection_mode: Literal["candidate", "direct_map"]
+    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
+    budget_max_krw_10k: Optional[float] = Field(default=None, gt=0)
+    building_type: Optional[str] = None
+    area_band: Optional[str] = None
+
+
 class SavedReportCreateRequest(BaseModel):
     client_request_id: UUID
     region_ids: list[str] = Field(min_length=1, max_length=2)
     priority_keys: list[DecisionPriority] = Field(min_length=1, max_length=5)
     comparison_basis: Literal["seoul", "direct"] = "direct"
+    decision_context: Optional[SavedReportDecisionContext] = None
 
     @field_validator("region_ids")
     @classmethod

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-import os
-from dataclasses import dataclass
 from typing import Any
 from uuid import UUID, uuid4
 
-
-@dataclass(frozen=True)
-class ReportStorageUnavailable(RuntimeError):
-    reason: str
+from src.api.repositories.storage import (
+    StorageUnavailable as ReportStorageUnavailable,
+    database_driver,
+    database_url,
+    find_or_create_user,
+    find_user,
+)
 
 
 def create_saved_report(
@@ -24,13 +25,13 @@ def create_saved_report(
     evidence_snapshot: dict[str, Any],
     report_content: dict[str, Any],
 ) -> dict[str, Any]:
-    psycopg, jsonb = _database_driver()
-    database_url = _database_url()
+    psycopg, jsonb = database_driver()
+    connection_url = database_url()
 
     try:
-        with psycopg.connect(database_url) as connection:
+        with psycopg.connect(connection_url) as connection:
             with connection.cursor() as cursor:
-                user_id = _find_or_create_user(
+                user_id = find_or_create_user(
                     cursor,
                     auth_issuer=auth_issuer,
                     auth_subject=auth_subject,
@@ -96,13 +97,13 @@ def create_saved_report(
 
 
 def list_saved_reports(*, auth_issuer: str, auth_subject: str) -> list[dict[str, Any]]:
-    psycopg, _ = _database_driver()
-    database_url = _database_url()
+    psycopg, _ = database_driver()
+    connection_url = database_url()
 
     try:
-        with psycopg.connect(database_url) as connection:
+        with psycopg.connect(connection_url) as connection:
             with connection.cursor() as cursor:
-                user_id = _find_user(
+                user_id = find_user(
                     cursor,
                     auth_issuer=auth_issuer,
                     auth_subject=auth_subject,
@@ -141,13 +142,13 @@ def get_saved_report(
     auth_subject: str,
     report_id: UUID,
 ) -> dict[str, Any] | None:
-    psycopg, _ = _database_driver()
-    database_url = _database_url()
+    psycopg, _ = database_driver()
+    connection_url = database_url()
 
     try:
-        with psycopg.connect(database_url) as connection:
+        with psycopg.connect(connection_url) as connection:
             with connection.cursor() as cursor:
-                user_id = _find_user(
+                user_id = find_user(
                     cursor,
                     auth_issuer=auth_issuer,
                     auth_subject=auth_subject,
@@ -166,58 +167,37 @@ def get_saved_report(
         raise ReportStorageUnavailable("database request failed") from error
 
 
-def _database_driver():
+def delete_saved_report(
+    *,
+    auth_issuer: str,
+    auth_subject: str,
+    report_id: UUID,
+) -> bool:
+    psycopg, _ = database_driver()
+    connection_url = database_url()
+
     try:
-        import psycopg
-        from psycopg.types.json import Jsonb
-    except ImportError as error:
-        raise ReportStorageUnavailable("database driver is not installed") from error
-    return psycopg, Jsonb
-
-
-def _database_url() -> str:
-    database_url = os.getenv("DATABASE_URL", "").strip()
-    if not database_url:
-        raise ReportStorageUnavailable("DATABASE_URL is not configured")
-    return database_url
-
-
-def _find_user(cursor, *, auth_issuer: str, auth_subject: str):
-    cursor.execute(
-        """
-        SELECT user_id
-        FROM identity.user_account
-        WHERE auth_issuer = %s AND auth_subject = %s
-        """,
-        (auth_issuer, auth_subject),
-    )
-    row = cursor.fetchone()
-    return row[0] if row else None
-
-
-def _find_or_create_user(cursor, *, auth_issuer: str, auth_subject: str):
-    user_id = _find_user(
-        cursor,
-        auth_issuer=auth_issuer,
-        auth_subject=auth_subject,
-    )
-    if user_id is not None:
-        return user_id
-
-    generated_user_id = uuid4()
-    cursor.execute(
-        """
-        INSERT INTO identity.user_account (
-            user_id, auth_issuer, auth_subject
-        )
-        VALUES (%s, %s, %s)
-        ON CONFLICT (auth_issuer, auth_subject) DO UPDATE
-        SET auth_subject = EXCLUDED.auth_subject
-        RETURNING user_id
-        """,
-        (generated_user_id, auth_issuer, auth_subject),
-    )
-    return cursor.fetchone()[0]
+        with psycopg.connect(connection_url) as connection:
+            with connection.cursor() as cursor:
+                user_id = find_user(
+                    cursor,
+                    auth_issuer=auth_issuer,
+                    auth_subject=auth_subject,
+                )
+                if user_id is None:
+                    return False
+                cursor.execute(
+                    """
+                    DELETE FROM app.saved_report
+                    WHERE user_id = %s AND report_id = %s
+                    """,
+                    (user_id, report_id),
+                )
+                return cursor.rowcount == 1
+    except ReportStorageUnavailable:
+        raise
+    except Exception as error:
+        raise ReportStorageUnavailable("database request failed") from error
 
 
 def _fetch_report(cursor, *, user_id, report_id, required: bool = True):

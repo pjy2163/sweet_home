@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from uuid import UUID
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, Response
 from typing import List, Literal, Optional
 
 from src.ai_report.contracts import (
@@ -21,6 +21,8 @@ from src.api.errors import (
 )
 from src.api.schemas import (
     AuthMeResponse,
+    AgreementAcceptRequest,
+    AgreementStatusResponse,
     CompareResponse,
     ExploreResponse,
     HeatmapMetric,
@@ -38,11 +40,13 @@ from src.api.security import (
     validate_internal_proxy,
 )
 from src.api.services.comparison_service import compare_region_snapshots
+from src.api.services.agreement_service import accept_agreement, get_agreement_status
 from src.api.services.data_service import warm_data_cache
 from src.api.services.explore_service import list_candidate_matches
 from src.api.services.heatmap_service import get_heatmap
 from src.api.services.region_service import get_data_metadata, list_region_options
 from src.api.services.saved_report_service import (
+    delete_decision_report,
     get_decision_report,
     list_decision_reports,
     save_decision_report,
@@ -82,7 +86,12 @@ async def add_security_headers(request: Request, call_next):
         response = await call_next(request)
     for header, value in API_SECURITY_HEADERS.items():
         response.headers[header] = value
-    if request.url.path.startswith(("/ai/reports", "/saved-reports", "/auth/me")):
+    if request.url.path.startswith((
+        "/ai/reports",
+        "/saved-reports",
+        "/agreements",
+        "/auth/me",
+    )):
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -104,6 +113,20 @@ def get_current_user(request: Request) -> AuthMeResponse:
     return AuthMeResponse(authenticated=True, provider=identity.provider)
 
 
+@app.get("/agreements/me", response_model=AgreementStatusResponse)
+def get_current_user_agreement(request: Request) -> AgreementStatusResponse:
+    return get_agreement_status(get_authenticated_identity(request))
+
+
+@app.post("/agreements/me", response_model=AgreementStatusResponse)
+def accept_current_user_agreement(
+    payload: AgreementAcceptRequest,
+    request: Request,
+) -> AgreementStatusResponse:
+    del payload
+    return accept_agreement(get_authenticated_identity(request))
+
+
 @app.get("/saved-reports", response_model=list[SavedReportSummary])
 def list_current_user_reports(request: Request) -> list[SavedReportSummary]:
     return list_decision_reports(get_authenticated_identity(request))
@@ -123,6 +146,15 @@ def get_current_user_report(
     request: Request,
 ) -> SavedReportDetail:
     return get_decision_report(get_authenticated_identity(request), report_id)
+
+
+@app.delete("/saved-reports/{report_id}", status_code=204)
+def delete_current_user_report(
+    report_id: UUID,
+    request: Request,
+) -> Response:
+    delete_decision_report(get_authenticated_identity(request), report_id)
+    return Response(status_code=204)
 
 
 @app.get("/regions", response_model=list[RegionOption])

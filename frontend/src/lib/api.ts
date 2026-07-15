@@ -1,5 +1,6 @@
 import type {
   AuthSession,
+  AgreementStatus,
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
@@ -18,6 +19,30 @@ export async function fetchAuthSession() {
   const response = await fetch("/api/backend/auth/me", { cache: "no-store" });
   if (response.status === 401) return null;
   return parseJsonResponse<AuthSession>(response, "로그인 상태를 확인하지 못했습니다.");
+}
+
+export async function fetchAgreementStatus() {
+  const response = await fetch("/api/backend/agreements/me", { cache: "no-store" });
+  if (response.status === 401) return null;
+  return parseJsonResponse<AgreementStatus>(
+    response,
+    "약관 확인 상태를 불러오지 못했습니다.",
+  );
+}
+
+export async function acceptCurrentAgreement() {
+  const response = await fetch("/api/backend/agreements/me", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      terms_accepted: true,
+      privacy_notice_confirmed: true,
+    }),
+  });
+  return parseJsonResponse<AgreementStatus>(
+    response,
+    "약관 확인 내용을 저장하지 못했습니다.",
+  );
 }
 
 export async function createSavedReport(payload: SavedReportCreate) {
@@ -48,6 +73,14 @@ export async function fetchSavedReport(reportId: string) {
     response,
     "저장한 리포트를 불러오지 못했습니다.",
   );
+}
+
+export async function deleteSavedReport(reportId: string) {
+  const response = await fetch(`/api/backend/saved-reports/${encodeURIComponent(reportId)}`, {
+    method: "DELETE",
+  });
+  if (response.status === 204) return;
+  await parseJsonResponse<never>(response, "리포트를 삭제하지 못했습니다.");
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string) {

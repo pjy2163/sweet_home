@@ -14,6 +14,7 @@ from src.api.errors import (
 from src.api.repositories.saved_report_repository import (
     ReportStorageUnavailable,
     create_saved_report as persist_saved_report,
+    delete_saved_report as remove_saved_report,
     get_saved_report as find_saved_report,
     list_saved_reports as find_saved_reports,
 )
@@ -23,7 +24,10 @@ from src.api.schemas import (
     SavedReportSummary,
 )
 from src.api.security import AuthenticatedIdentity
+from src.api.services.agreement_service import require_current_agreement
+from src.api.services.data_service import read_enriched_snapshot
 from src.api.services.explore_service import list_candidate_matches
+from src.api.services.region_service import region_to_response, resolve_region
 
 
 PRIORITY_LABELS = {
@@ -40,6 +44,7 @@ def save_decision_report(
     request: SavedReportCreateRequest,
 ) -> SavedReportDetail:
     current_identity = _require_identity(identity)
+    require_current_agreement(current_identity)
     selected = set(request.priority_keys)
     explored = list_candidate_matches(
         safety="safety" in selected,
@@ -57,21 +62,33 @@ def save_decision_report(
             message="저장할 지역의 최신 데이터를 찾지 못했습니다.",
         )
 
-    region_names = [region.display_name for region in explored.regions]
+    regions_by_id = {region.region_id: region for region in explored.regions}
+    ordered_regions = [regions_by_id[region_id] for region_id in request.region_ids]
+    snapshot = read_enriched_snapshot()
+    detailed_regions = [
+        region_to_response(resolve_region(snapshot, region_id)).model_dump(mode="json")
+        for region_id in request.region_ids
+    ]
+    region_names = [region.display_name for region in ordered_regions]
     priority_labels = [PRIORITY_LABELS[key] for key in request.priority_keys]
-    title = " · ".join(region_names)
+    title = _history_title(region_names)
     summary = (
         f"{', '.join(priority_labels)} 기준으로 "
-        f"{len(region_names)}개 지역의 비교 근거를 저장했습니다."
+        + (
+            f"{region_names[0]}과 {region_names[1]}의 비교 근거를 저장했습니다."
+            if len(region_names) == 2
+            else f"{region_names[0]}의 분석 근거를 저장했습니다."
+        )
     )
     evidence_snapshot: dict[str, Any] = {
         "selected_priorities": request.priority_keys,
-        "regions": [region.model_dump(mode="json") for region in explored.regions],
+        "regions": [region.model_dump(mode="json") for region in ordered_regions],
+        "detailed_regions": detailed_regions,
         "metadata": explored.metadata.model_dump(mode="json"),
     }
     data_dates = sorted({
         metric.data_date
-        for region in explored.regions
+        for region in ordered_regions
         for metric in region.evidence_metrics
         if metric.data_date
     })
@@ -92,7 +109,13 @@ def save_decision_report(
             "comparison_basis": request.comparison_basis,
             "notice": "추천이나 종합 순위가 아닌, 저장 시점의 비교 근거입니다.",
         },
-        "regions": [region.model_dump(mode="json") for region in explored.regions],
+        "decision_context": (
+            request.decision_context.model_dump(mode="json")
+            if request.decision_context
+            else None
+        ),
+        "regions": [region.model_dump(mode="json") for region in ordered_regions],
+        "detailed_regions": detailed_regions,
         "source": explored.metadata.source,
         "limitation": explored.metadata.limitation,
     }
@@ -151,6 +174,27 @@ def get_decision_report(
     return SavedReportDetail.model_validate(report)
 
 
+def delete_decision_report(
+    identity: AuthenticatedIdentity | None,
+    report_id: UUID,
+) -> None:
+    current_identity = _require_identity(identity)
+    try:
+        deleted = remove_saved_report(
+            auth_issuer=current_identity.provider,
+            auth_subject=current_identity.subject,
+            report_id=report_id,
+        )
+    except ReportStorageUnavailable as error:
+        raise _storage_error() from error
+    if not deleted:
+        raise ApiError(
+            status_code=404,
+            code=SAVED_REPORT_NOT_FOUND,
+            message="삭제할 리포트를 찾지 못했습니다.",
+        )
+
+
 def _require_identity(
     identity: AuthenticatedIdentity | None,
 ) -> AuthenticatedIdentity:
@@ -169,3 +213,9 @@ def _storage_error() -> ApiError:
         code=REPORT_STORAGE_UNAVAILABLE,
         message="리포트 저장소 연결을 확인하고 있습니다. 잠시 후 다시 시도해 주세요.",
     )
+
+
+def _history_title(region_names: list[str]) -> str:
+    if len(region_names) == 2:
+        return f"{region_names[0]} ↔ {region_names[1]} 비교"
+    return f"{region_names[0]} 살펴보기"

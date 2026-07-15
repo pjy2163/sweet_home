@@ -54,6 +54,7 @@ export function SiteFooter() {
             <p className="mt-5 max-w-[220px] text-xs leading-6 text-muted">
               집을 추천하는 대신, 후보 지역을 같은 데이터 기준으로 비교해 주거 의사결정을 돕습니다.
             </p>
+            <p className="mt-4 text-[11px] font-semibold text-muted">운영 · parang</p>
           </div>
           {FOOTER_GROUPS.map((group) => (
             <div key={group.title}>

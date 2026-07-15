@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
-import { fetchAuthSession, fetchSavedReports } from "@/lib/api";
+import { ReportDeleteButton } from "@/components/saved-report/report-delete-button";
+import { fetchAgreementStatus, fetchAuthSession, fetchSavedReports } from "@/lib/api";
+import { reportHistoryRoute, reportHistoryTitle } from "@/lib/report-history";
 import type { ExploreCondition, SavedReportSummary } from "@/types/sweethome";
 
 const PRIORITY_LABELS: Record<ExploreCondition, string> = {
@@ -19,6 +21,9 @@ export default function MyPage() {
   const [reports, setReports] = useState<SavedReportSummary[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("");
+  const logoutUrl = process.env.NODE_ENV === "development"
+    ? "/api/dev-auth?mode=logout&redirect=/"
+    : "/.auth/logout?post_logout_redirect_uri=/";
 
   useEffect(() => {
     let active = true;
@@ -27,6 +32,11 @@ export default function MyPage() {
         const session = await fetchAuthSession();
         if (!session) {
           window.location.replace(`/login?redirect=${encodeURIComponent("/mypage")}`);
+          return;
+        }
+        const agreement = await fetchAgreementStatus();
+        if (!agreement?.accepted) {
+          window.location.replace(`/auth/complete?redirect=${encodeURIComponent("/mypage")}`);
           return;
         }
         const savedReports = await fetchSavedReports();
@@ -52,7 +62,7 @@ export default function MyPage() {
           <Link className="w-40" href="/"><BrandLogo /></Link>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Link className="rounded-lg px-3 py-2 text-muted hover:text-ink" href="/app">새 비교</Link>
-            <a className="rounded-lg px-3 py-2 text-muted hover:text-ink" href="/.auth/logout?post_logout_redirect_uri=/">로그아웃</a>
+            <a className="rounded-lg px-3 py-2 text-muted hover:text-ink" href={logoutUrl}>로그아웃</a>
           </div>
         </div>
       </header>
@@ -86,24 +96,39 @@ export default function MyPage() {
         {status === "ready" && reports.length > 0 ? (
           <div className="mt-12 grid gap-4">
             {reports.map((report, index) => (
-              <Link
-                className="group grid gap-5 rounded-2xl border border-line bg-white/88 p-6 shadow-[0_12px_36px_rgba(52,78,68,0.05)] transition hover:-translate-y-0.5 hover:border-sage-line hover:shadow-[0_18px_46px_rgba(52,78,68,0.09)] sm:grid-cols-[80px_1fr_auto] sm:items-center"
-                href={`/mypage/reports/${report.report_id}`}
+              <article
+                className="relative rounded-2xl border border-line bg-white/88 shadow-[0_12px_36px_rgba(52,78,68,0.05)] transition hover:-translate-y-0.5 hover:border-sage-line hover:shadow-[0_18px_46px_rgba(52,78,68,0.09)]"
                 key={report.report_id}
               >
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sage-soft text-sm font-bold text-sage-strong">{String(index + 1).padStart(2, "0")}</div>
-                <div>
-                  <p className="text-xs font-semibold text-subtle">{formatCreatedAt(report.created_at)} 저장</p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em]">{report.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-muted">{report.summary}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {report.priority_keys.map((priority) => (
-                      <span className="rounded-full border border-line bg-surface-soft px-3 py-1.5 text-xs font-semibold text-muted" key={priority}>{PRIORITY_LABELS[priority]}</span>
-                    ))}
+                <Link
+                  className="group grid gap-5 p-6 pr-28 sm:grid-cols-[80px_1fr_auto] sm:items-center sm:pr-6"
+                  href={`/mypage/reports/${report.report_id}`}
+                >
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-sage-soft text-sm font-bold text-sage-strong">{String(index + 1).padStart(2, "0")}</div>
+                  <div>
+                    <p className="text-xs font-semibold text-subtle">{formatCreatedAt(report.created_at)} 저장</p>
+                    <h2 className="mt-2 text-xl font-semibold tracking-[-0.025em]">{reportHistoryTitle(report.region_names)}</h2>
+                    <p className="mt-2 text-sm font-semibold text-[#6257a6]">{reportHistoryRoute(report.region_names)}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted">{report.summary}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {report.priority_keys.map((priority, priorityIndex) => (
+                        <span className="inline-flex items-center gap-2 rounded-full border border-[#d9d4ed] bg-[#f5f2ff] py-1.5 pl-2 pr-3 text-xs font-bold text-[#6257a6]" key={priority}>
+                          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#6257a6] text-[9px] text-white">{priorityIndex + 1}</span>
+                          {PRIORITY_LABELS[priority]}
+                        </span>
+                      ))}
+                    </div>
                   </div>
+                  <span className="hidden text-sm font-bold text-sage-strong transition group-hover:translate-x-1 sm:block">자세히 보기 →</span>
+                </Link>
+                <div className="absolute right-5 top-5">
+                  <ReportDeleteButton
+                    iconOnly
+                    onDeleted={() => setReports((current) => current.filter((item) => item.report_id !== report.report_id))}
+                    reportId={report.report_id}
+                  />
                 </div>
-                <span className="text-sm font-bold text-sage-strong transition group-hover:translate-x-1">자세히 보기 →</span>
-              </Link>
+              </article>
             ))}
           </div>
         ) : null}
