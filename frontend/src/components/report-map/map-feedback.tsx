@@ -6,8 +6,8 @@ export type MapClickNoticeState = {
 export function MapClickNotice({ notice }: { notice: MapClickNoticeState }) {
   const toneClass = {
     guide: "border-white/10 bg-black/55 text-[#d8d8dc]",
-    loading: "border-[#847dff]/35 bg-[#17152b]/90 text-[#d8d6ff]",
-    success: "border-[#5bc89a]/35 bg-[#10251d]/90 text-[#b8f0d8]",
+    loading: "border-[#65a68f]/45 bg-[#263a33]/92 text-sage-soft",
+    success: "border-[#65a68f]/50 bg-[#214033]/92 text-[#e3f5ee]",
     error: "border-[#e8988f]/35 bg-[#2a1716]/90 text-[#ffc7c2]",
   }[notice.tone];
 
@@ -35,7 +35,7 @@ export function MapStatusBanner({
       className={`absolute right-8 top-8 z-50 max-w-sm rounded-xl border px-4 py-3 text-xs leading-5 shadow-lg backdrop-blur ${
         tone === "error"
           ? "border-[#e8988f]/35 bg-[#2a1716]/95 text-[#ffc7c2]"
-          : "border-[#847dff]/30 bg-[#17152b]/90 text-[#d8d6ff]"
+          : "border-[#65a68f]/40 bg-[#263a33]/92 text-sage-soft"
       }`}
       role={tone === "error" ? "alert" : "status"}
     >

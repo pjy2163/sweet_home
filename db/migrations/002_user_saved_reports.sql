@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
 CREATE TABLE IF NOT EXISTS app.saved_report (
     report_id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES identity.user_account (user_id) ON DELETE CASCADE,
+    client_request_id uuid NOT NULL,
     region_ids varchar(10)[] NOT NULL,
     priority_keys text[] NOT NULL DEFAULT '{}',
     comparison_basis text NOT NULL CHECK (
@@ -46,10 +47,11 @@ CREATE TABLE IF NOT EXISTS app.saved_report (
         cardinality(region_ids) = 1
         OR region_ids[1] <> region_ids[2]
     ),
-    CHECK (cardinality(priority_keys) <= 3),
+    CHECK (cardinality(priority_keys) BETWEEN 1 AND 5),
     CHECK (
-        priority_keys <@ ARRAY['price', 'population', 'safety', 'convenience']::text[]
-    )
+        priority_keys <@ ARRAY['price', 'population', 'safety', 'convenience', 'transport']::text[]
+    ),
+    UNIQUE (user_id, client_request_id)
 );
 
 CREATE INDEX IF NOT EXISTS ix_saved_report_user_created

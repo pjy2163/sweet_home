@@ -9,12 +9,45 @@ import type {
   HeatmapResponse,
   Metadata,
   RegionOption,
+  SavedReportCreate,
+  SavedReportDetail,
+  SavedReportSummary,
 } from "@/types/sweethome";
 
 export async function fetchAuthSession() {
   const response = await fetch("/api/backend/auth/me", { cache: "no-store" });
   if (response.status === 401) return null;
   return parseJsonResponse<AuthSession>(response, "로그인 상태를 확인하지 못했습니다.");
+}
+
+export async function createSavedReport(payload: SavedReportCreate) {
+  const response = await fetch("/api/backend/saved-reports", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return parseJsonResponse<SavedReportDetail>(
+    response,
+    "나만의 리포트를 저장하지 못했습니다.",
+  );
+}
+
+export async function fetchSavedReports() {
+  const response = await fetch("/api/backend/saved-reports", { cache: "no-store" });
+  return parseJsonResponse<SavedReportSummary[]>(
+    response,
+    "저장한 리포트를 불러오지 못했습니다.",
+  );
+}
+
+export async function fetchSavedReport(reportId: string) {
+  const response = await fetch(`/api/backend/saved-reports/${encodeURIComponent(reportId)}`, {
+    cache: "no-store",
+  });
+  return parseJsonResponse<SavedReportDetail>(
+    response,
+    "저장한 리포트를 불러오지 못했습니다.",
+  );
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string) {

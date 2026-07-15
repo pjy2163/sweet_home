@@ -34,8 +34,10 @@ def test_saved_report_contract_enforces_ownership_and_minimal_history() -> None:
 
     assert "create table if not exists app.saved_report" in migration
     assert "references identity.user_account (user_id) on delete cascade" in migration
+    assert "client_request_id uuid not null" in migration
+    assert "unique (user_id, client_request_id)" in migration
     assert "cardinality(region_ids) between 1 and 2" in migration
-    assert "cardinality(priority_keys) <= 3" in migration
+    assert "cardinality(priority_keys) between 1 and 5" in migration
     assert "evidence_hash char(64)" in migration
     assert "evidence_snapshot jsonb not null" in migration
     assert "report_content jsonb not null" in migration

@@ -3,6 +3,10 @@ param prefix string
 param location string = resourceGroup().location
 @secure()
 param internalApiKey string
+@secure()
+param databaseUrl string
+param privacyControllerName string
+param privacyContactEmail string
 param backendImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 param frontendImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 param kakaoMapAppKey string = ''
@@ -81,7 +85,10 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
         allowInsecure: false
         traffic: [{ latestRevision: true, weight: 100 }]
       }
-      secrets: [{ name: 'internal-api-key', value: internalApiKey }]
+      secrets: [
+        { name: 'internal-api-key', value: internalApiKey }
+        { name: 'database-url', value: databaseUrl }
+      ]
       registries: [{ server: registry.properties.loginServer, identity: pullIdentity.id }]
     }
     template: {
@@ -92,6 +99,7 @@ resource backend 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'SWEETHOME_REQUIRE_INTERNAL_PROXY', value: 'true' }
           { name: 'SWEETHOME_INTERNAL_API_KEY', secretRef: 'internal-api-key' }
           { name: 'SWEETHOME_AI_REPORT_ENABLED', value: 'false' }
+          { name: 'DATABASE_URL', secretRef: 'database-url' }
         ]
         resources: { cpu: json('0.5'), memory: '1Gi' }
         probes: [
@@ -144,6 +152,8 @@ resource frontend 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'SWEETHOME_API_BASE_URL', value: 'https://${backend.properties.configuration.ingress.fqdn}' }
           { name: 'SWEETHOME_INTERNAL_API_KEY', secretRef: 'internal-api-key' }
           { name: 'NEXT_PUBLIC_KAKAO_MAP_APP_KEY', value: kakaoMapAppKey }
+          { name: 'SWEETHOME_PRIVACY_CONTROLLER_NAME', value: privacyControllerName }
+          { name: 'SWEETHOME_PRIVACY_CONTACT_EMAIL', value: privacyContactEmail }
         ]
         resources: { cpu: json('0.5'), memory: '1Gi' }
       }]

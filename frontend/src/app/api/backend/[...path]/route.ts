@@ -9,7 +9,9 @@ const ALLOWED_GET_PATHS = new Set([
   "compare",
   "explore",
   "map/heatmap",
+  "saved-reports",
 ]);
+const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f-]{36}$/i;
 const BACKEND_UNAVAILABLE_MESSAGE =
   "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -41,7 +43,7 @@ export async function GET(
   const { path } = await context.params;
   const resource = path.join("/");
 
-  if (!ALLOWED_GET_PATHS.has(resource)) {
+  if (!ALLOWED_GET_PATHS.has(resource) && !SAVED_REPORT_DETAIL_PATH.test(resource)) {
     return NextResponse.json(
       { code: "NOT_FOUND", message: "지원하지 않는 API 경로입니다." },
       { status: 404 },
@@ -58,6 +60,43 @@ export async function GET(
     });
     const payload = await response.json();
 
+    return NextResponse.json(payload, { status: response.status });
+  } catch {
+    return NextResponse.json(
+      {
+        code: "BACKEND_UNAVAILABLE",
+        message: BACKEND_UNAVAILABLE_MESSAGE,
+      },
+      { status: 503 },
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await context.params;
+  const resource = path.join("/");
+  if (resource !== "saved-reports") {
+    return NextResponse.json(
+      { code: "NOT_FOUND", message: "지원하지 않는 API 경로입니다." },
+      { status: 404 },
+    );
+  }
+
+  const targetUrl = new URL("/saved-reports", API_BASE_URL);
+  const headers = backendHeaders(request);
+  headers.set("content-type", "application/json");
+
+  try {
+    const response = await fetch(targetUrl, {
+      method: "POST",
+      headers,
+      body: await request.text(),
+      cache: "no-store",
+    });
+    const payload = await response.json();
     return NextResponse.json(payload, { status: response.status });
   } catch {
     return NextResponse.json(

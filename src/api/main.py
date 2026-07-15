@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from uuid import UUID
 
 from fastapi import FastAPI, Query, Request
 from typing import List, Literal, Optional
@@ -27,6 +28,9 @@ from src.api.schemas import (
     HealthResponse,
     MetadataResponse,
     RegionOption,
+    SavedReportCreateRequest,
+    SavedReportDetail,
+    SavedReportSummary,
 )
 from src.api.security import (
     get_authenticated_identity,
@@ -38,6 +42,11 @@ from src.api.services.data_service import warm_data_cache
 from src.api.services.explore_service import list_candidate_matches
 from src.api.services.heatmap_service import get_heatmap
 from src.api.services.region_service import get_data_metadata, list_region_options
+from src.api.services.saved_report_service import (
+    get_decision_report,
+    list_decision_reports,
+    save_decision_report,
+)
 
 
 @asynccontextmanager
@@ -73,7 +82,7 @@ async def add_security_headers(request: Request, call_next):
         response = await call_next(request)
     for header, value in API_SECURITY_HEADERS.items():
         response.headers[header] = value
-    if request.url.path.startswith("/ai/reports"):
+    if request.url.path.startswith(("/ai/reports", "/saved-reports", "/auth/me")):
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -93,6 +102,27 @@ def get_current_user(request: Request) -> AuthMeResponse:
             message="로그인이 필요합니다.",
         )
     return AuthMeResponse(authenticated=True, provider=identity.provider)
+
+
+@app.get("/saved-reports", response_model=list[SavedReportSummary])
+def list_current_user_reports(request: Request) -> list[SavedReportSummary]:
+    return list_decision_reports(get_authenticated_identity(request))
+
+
+@app.post("/saved-reports", response_model=SavedReportDetail, status_code=201)
+def create_current_user_report(
+    payload: SavedReportCreateRequest,
+    request: Request,
+) -> SavedReportDetail:
+    return save_decision_report(get_authenticated_identity(request), payload)
+
+
+@app.get("/saved-reports/{report_id}", response_model=SavedReportDetail)
+def get_current_user_report(
+    report_id: UUID,
+    request: Request,
+) -> SavedReportDetail:
+    return get_decision_report(get_authenticated_identity(request), report_id)
 
 
 @app.get("/regions", response_model=list[RegionOption])

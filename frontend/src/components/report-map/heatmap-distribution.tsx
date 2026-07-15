@@ -28,12 +28,12 @@ export function HeatmapDistribution({
   const range = Math.max(maxValue - minValue, 1);
 
   const levelColor: Record<HeatmapLevel, string> = {
-    very_high: "#847dff",
-    high: "#00b3dd",
-    medium: "#6a6b6b",
-    low: "#3f4041",
-    very_low: "#252829",
-    no_data: "#191b1c",
+    very_high: "#5d7b70",
+    high: "#7f9b91",
+    medium: "#9f9187",
+    low: "#6b6765",
+    very_low: "#474846",
+    no_data: "#303230",
   };
 
   return (
@@ -41,7 +41,7 @@ export function HeatmapDistribution({
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-            Distribution Chart
+            지역별 비교 데이터
           </p>
           <h3 className="mt-1 text-lg font-medium text-[#f5f5f7]">
             상위 20개 행정동 지표 분포
@@ -75,7 +75,7 @@ export function HeatmapDistribution({
                 >
                   {region.dong_name}
                   {isTopRegion ? (
-                    <span className="ml-1 text-[9px] font-bold text-[#847dff]">
+                    <span className="ml-1 text-[9px] font-bold text-sage">
                       ●
                     </span>
                   ) : null}
@@ -101,7 +101,7 @@ export function HeatmapDistribution({
 
       {topRegions.length > 0 ? (
         <p className="mt-4 text-[10px] text-[#6a6b6b]">
-          <span className="text-[#847dff]">●</span> 후보군에 포함된 행정동
+          <span className="text-sage">●</span> 후보군에 포함된 행정동
         </p>
       ) : null}
     </div>

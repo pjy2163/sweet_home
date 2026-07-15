@@ -1,20 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f7f7f5;
+  --canvas: #f8fbfa;
   --surface: #ffffff;
-  --surface-soft: #fbfaf8;
-  --ink: #303234;
-  --ink-strong: #282a2c;
-  --text-muted: #737679;
-  --text-subtle: #9a9c9e;
-  --line: #e7e7e4;
-  --blush: #f3dfe6;
-  --peach: #f6eadc;
-  --mint: #e6f1ef;
-  --sage: #657f76;
-  --sage-soft: #dfeae6;
-  --charcoal: #242826;
+  --surface-soft: #f7faf8;
+  --ink: #303534;
+  --ink-strong: #262d2b;
+  --text-muted: #717573;
+  --text-subtle: #989b99;
+  --line: #e3ebe7;
+  --blush: #f7e7ed;
+  --peach: #faeee2;
+  --mint: #eaf7f3;
+  --sage: #5d9b86;
+  --sage-strong: #3f7866;
+  --sage-soft: #e5f3ee;
+  --sage-line: #b9ddcf;
+  --charcoal: #26302c;
   --danger: #b1453f;
   --warning: #8a6429;
   --background: var(--canvas);
@@ -36,7 +38,9 @@
   --color-peach: var(--peach);
   --color-mint: var(--mint);
   --color-sage: var(--sage);
+  --color-sage-strong: var(--sage-strong);
   --color-sage-soft: var(--sage-soft);
+  --color-sage-line: var(--sage-line);
   --color-charcoal: var(--charcoal);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
@@ -50,6 +54,15 @@ body {
   font-family: var(--font-noto-sans-kr), sans-serif;
   font-feature-settings: "tnum" 1;
   font-variant-numeric: tabular-nums;
+}
+
+.warm-canvas {
+  background-color: var(--canvas);
+  background-image:
+    radial-gradient(circle at 8% 12%, rgb(247 231 237 / 40%), transparent 28rem),
+    radial-gradient(circle at 88% 20%, rgb(218 244 235 / 76%), transparent 32rem),
+    radial-gradient(circle at 52% 88%, rgb(250 238 226 / 44%), transparent 34rem);
+  background-attachment: fixed;
 }
 
 html {
@@ -87,23 +100,32 @@ select {
   font: inherit;
 }
 
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--sage);
+}
+
+:where(a, button, input, select, textarea):focus-visible {
+  outline-color: var(--sage);
+}
+
 ::selection {
-  background: #176b57;
+  background: var(--sage-strong);
   color: #ffffff;
 }
 
 /* Brand landing */
 .landing {
-  --ink: #121d17;
-  --green: #15382e;
-  --midnight: #101815;
-  --graphite: #27342f;
-  --fog: #9ca9a1;
-  --cloud: #f5f4ee;
-  --acid: #dfff62;
-  --paper: #edf1ec;
+  --ink: #303534;
+  --green: #3f7866;
+  --midnight: #26302c;
+  --graphite: #303534;
+  --fog: #989b99;
+  --cloud: #f8fbfa;
+  --acid: #f7e7ed;
+  --paper: #f8fbfa;
   overflow: clip;
-  background: var(--paper);
+  background-color: var(--canvas);
   color: var(--ink);
 }
 
@@ -973,17 +995,11 @@ select {
 .final-orbit::before { position: absolute; inset: 100px; border: 1px solid rgb(223 255 98 / 18%); border-radius: 50%; content: ""; }
 .final-orbit span { position: absolute; top: 84px; left: 84px; width: 12px; height: 12px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 30px var(--acid); }
 
-.landing footer {
-  display: grid;
-  min-height: 180px;
-  padding: 50px max(24px, calc((100vw - 1240px) / 2));
-  grid-template-columns: 1fr auto 1fr;
-  align-items: end;
+.landing footer.site-footer {
   background: #0f241c;
   color: white;
 }
-.landing footer p { color: rgb(255 255 255 / 50%); font-size: 12px; }
-.landing footer p:last-child { justify-self: end; }
+.landing footer.site-footer p { color: rgb(255 255 255 / 50%); }
 
 @keyframes mapPulse {
   50% { transform: scale(1.35); box-shadow: 0 0 0 14px rgb(223 255 98 / 8%); }
@@ -1055,8 +1071,6 @@ select {
   .visual-compare { padding: 25px; }
   .final-cta { min-height: 680px; }
   .final-button { width: 100%; min-width: 0; max-width: 360px; }
-  .landing footer { gap: 28px; grid-template-columns: 1fr; align-items: start; }
-  .landing footer p:last-child { justify-self: start; }
   .workspace { padding-left: 0; padding-bottom: 66px; }
   .workspace.workspace-rail-collapsed { padding-left: 0; }
   .workspace-rail {

@@ -31,7 +31,7 @@ export function SingleRegionResult({
         <div className="border-b border-[#d7e6df] p-8 sm:p-12">
           <p className={textStyles.eyebrow}>후보 한 곳 살펴보기</p>
           <p className="mt-5 text-sm font-semibold text-[#718078]">{region.gu_name}</p>
-          <h2 className="mt-2 text-5xl font-medium tracking-[-0.055em] text-[#17203b] sm:text-7xl">
+          <h2 className="mt-2 text-5xl font-medium tracking-[-0.055em] text-ink sm:text-7xl">
             {region.dong_name}
           </h2>
           <p className="mt-6 max-w-3xl text-base leading-7 text-[#5e7069]">
@@ -40,7 +40,7 @@ export function SingleRegionResult({
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
             {selectedConditions.map((condition, index) => (
-              <span className="rounded-full border border-[#cfe2f4] bg-[#edf7ff] px-3 py-1.5 text-xs font-semibold text-[#2475d0]" key={condition}>
+              <span className="rounded-full border border-sage-line bg-sage-soft px-3 py-1.5 text-xs font-semibold text-sage" key={condition}>
                 {index + 1}. {CONDITION_LABELS[condition]}
               </span>
             ))}
@@ -72,7 +72,7 @@ export function SingleRegionResult({
                 생활인구, 인프라, 야간 환경과 교통 근거를 지도 위 위치와 함께 살펴봅니다.
               </p>
             </div>
-            <Link className="inline-flex items-center rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" href={mapHref}>
+            <Link className="inline-flex items-center rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white" href={mapHref}>
               지도에서 {region.dong_name} 확인 →
             </Link>
           </div>
@@ -94,7 +94,7 @@ function SingleConditionCard({
   return (
     <article className="overflow-hidden rounded-xl border border-[#dfe4ea] bg-white">
       <div className="border-b border-[#e6e9ee] bg-[#fafbfd] px-5 py-5 sm:px-7">
-        <h3 className="text-lg font-semibold text-[#17203b]">{CONDITION_LABELS[condition]}</h3>
+        <h3 className="text-lg font-semibold text-ink">{CONDITION_LABELS[condition]}</h3>
         {summary ? <p className="mt-2 text-sm leading-6 text-[#697184]">{summary}</p> : null}
       </div>
       {metrics.length ? (
@@ -108,7 +108,7 @@ function SingleConditionCard({
                   primaryDate={metric.data_date}
                 />
               </div>
-              <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[#17203b]">
+              <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-ink">
                 {metric.display_value}
               </p>
               <p className="mt-3 text-sm leading-6 text-[#657083]">{metric.interpretation}</p>

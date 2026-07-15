@@ -6,8 +6,15 @@ LOCATION="${LOCATION:-koreacentral}"
 PREFIX="${PREFIX:-sweethome-prod}"
 TAG="${TAG:-$(git rev-parse --short HEAD)}"
 
-for command in az openssl git; do
+for command in az openssl git psql; do
   command -v "${command}" >/dev/null || { echo "Missing command: ${command}" >&2; exit 1; }
+done
+
+for variable in DATABASE_URL SWEETHOME_PRIVACY_CONTROLLER_NAME SWEETHOME_PRIVACY_CONTACT_EMAIL; do
+  if [[ -z "${!variable:-}" ]]; then
+    echo "Missing required environment variable: ${variable}" >&2
+    exit 1
+  fi
 done
 
 if [[ ! -f data/processed/housing_rent_snapshot.csv ]]; then
@@ -16,6 +23,11 @@ if [[ ! -f data/processed/housing_rent_snapshot.csv ]]; then
 fi
 
 INTERNAL_API_KEY="$(openssl rand -hex 32)"
+
+for migration in db/migrations/*.sql; do
+  psql "${DATABASE_URL}" --set ON_ERROR_STOP=1 --file "${migration}"
+done
+
 az group create --name "${RESOURCE_GROUP}" --location "${LOCATION}" --output none
 az deployment group create \
   --name sweethome-registry \
@@ -37,6 +49,9 @@ az deployment group create \
   --resource-group "${RESOURCE_GROUP}" \
   --template-file infra/main.bicep \
   --parameters prefix="${PREFIX}" location="${LOCATION}" internalApiKey="${INTERNAL_API_KEY}" \
+    databaseUrl="${DATABASE_URL}" \
+    privacyControllerName="${SWEETHOME_PRIVACY_CONTROLLER_NAME}" \
+    privacyContactEmail="${SWEETHOME_PRIVACY_CONTACT_EMAIL}" \
     backendImage="${ACR_SERVER}/sweethome-backend:${TAG}" \
     frontendImage="${ACR_SERVER}/sweethome-frontend:${TAG}" \
     kakaoMapAppKey="${NEXT_PUBLIC_KAKAO_MAP_APP_KEY:-}" \

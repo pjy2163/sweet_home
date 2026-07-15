@@ -28,16 +28,16 @@ export function ReportControls({
   return (
     <section
       aria-label="지도 표시 설정"
-      className="mb-4 rounded-xl border border-[#dce1e8] bg-white p-3 shadow-[0_8px_24px_rgba(23,32,59,.08)] sm:p-4"
+      className="mb-4 rounded-xl border border-line bg-white p-3 shadow-[0_8px_24px_rgba(67,62,63,.08)] sm:p-4"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex shrink-0 rounded-lg bg-[#f2f4f7] p-1" role="group" aria-label="보기 방식">
+        <div className="flex shrink-0 rounded-lg bg-surface-soft p-1" role="group" aria-label="보기 방식">
           {VIEW_OPTIONS.map((option) => (
             <button
               aria-pressed={view === option.id}
               className={`rounded-md px-4 py-2 text-sm font-semibold transition ${
                 view === option.id
-                  ? "bg-white text-[#17203b] shadow-sm"
+                  ? "bg-white text-ink shadow-sm"
                   : "text-[#747d8f] hover:text-[#3f4a60]"
               }`}
               key={option.id}
@@ -57,8 +57,8 @@ export function ReportControls({
               aria-pressed={metric === option.id}
               className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
                 metric === option.id
-                  ? "border-[#17203b] bg-[#17203b] text-white"
-                  : "border-[#dce1e8] bg-white text-[#626b7d] hover:border-[#9aa5b5]"
+                  ? "border-ink bg-ink text-white"
+                  : "border-line bg-white text-[#626b7d] hover:border-[#9aa5b5]"
               }`}
               key={option.id}
               onClick={() => onMetricChange(option.id)}

@@ -24,12 +24,15 @@ export function AuthMenu({ className = "" }: { className?: string }) {
 
   if (authenticated) {
     return (
-      <a
-        className={className}
-        href="/.auth/logout?post_logout_redirect_uri=/"
-      >
-        로그아웃
-      </a>
+      <span className="flex items-center gap-1">
+        <Link className={className} href="/mypage">내 기록</Link>
+        <a
+          className={`${className} opacity-65`}
+          href="/.auth/logout?post_logout_redirect_uri=/"
+        >
+          로그아웃
+        </a>
+      </span>
     );
   }
 

@@ -10,9 +10,12 @@ import {
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
+  createSavedReport,
   fetchCandidateMatches,
+  fetchAuthSession,
   fetchHeatmap,
 } from "@/lib/api";
 import { DataBasis } from "@/components/data-provenance";
@@ -127,6 +130,11 @@ function ReportMapContent() {
   }, [searchParams]);
   const focusSavedCandidates = searchParams.get("focus") === "true";
   const directSelectionMode = searchParams.get("mode") === "direct";
+  const pendingSaveRequestId = searchParams.get("save_request");
+  const pendingReportRegionIds = useMemo(
+    () => searchParams.get("report_regions")?.split(",").filter(Boolean).slice(0, 2) ?? [],
+    [searchParams],
+  );
   const [selectedConditions, setSelectedConditions] = useState<ExploreCondition[]>(
     initialConditions,
   );
@@ -219,9 +227,9 @@ function ReportMapContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7f9] p-4 text-[#17203b]">
-      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-[#e3e4e8] bg-white shadow-[0_12px_40px_rgba(17,26,74,0.06)] lg:grid-cols-[360px_1fr]">
-        <aside className="border-b border-[#e3e6ed] bg-white p-8 lg:border-b-0 lg:border-r">
+    <main className="warm-canvas min-h-screen p-4 text-ink">
+      <section className="grid min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.5rem] border border-line bg-white/88 shadow-[0_12px_40px_rgba(67,62,63,0.08)] backdrop-blur-xl lg:grid-cols-[360px_1fr]">
+        <aside className="border-b border-line bg-white/76 p-8 lg:border-b-0 lg:border-r">
           <Link
             className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#9f9fa0]"
             href="/app"
@@ -241,8 +249,8 @@ function ReportMapContent() {
           </p>
 
           {contractType && budgetMaxKrw10k ? (
-            <div className="mt-5 rounded-xl border border-[#b9dcfb] bg-[#edf7ff] p-4 text-[#17203b]">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2475d0]">
+            <div className="mt-5 rounded-xl border border-sage-line bg-sage-soft p-4 text-ink">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-sage">
                 비교 조건
               </p>
               <p className="mt-2 text-sm font-semibold">
@@ -254,10 +262,10 @@ function ReportMapContent() {
             </div>
           ) : null}
 
-          <div className="mt-6 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
-            <div className="rounded-lg border border-[#dce5ef] bg-white p-3">
-              <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#2475d0]">비교 기준</p>
-              <p className="mt-2 text-sm font-semibold text-[#17203b]">서울 전체 분포 기준</p>
+          <div className="mt-6 rounded-xl border border-line bg-surface-soft p-4">
+            <div className="rounded-lg border border-sage-soft bg-white p-3">
+              <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-sage">비교 기준</p>
+              <p className="mt-2 text-sm font-semibold text-ink">서울 전체 분포 기준</p>
               <p className="mt-1 text-xs leading-5 text-[#748095]">모든 후보는 동일한 서울 기준 데이터로 비교합니다.</p>
             </div>
             <div className="mt-5">
@@ -273,8 +281,8 @@ function ReportMapContent() {
                       aria-pressed={selected}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         selected
-                          ? "border-[#9bcdf7] bg-[#eaf4ff] text-[#1479ca]"
-                          : "border-[#dce1e8] bg-white text-[#6f7788] hover:border-[#aeb7c5]"
+                          ? "border-sage-line bg-sage-soft text-sage-strong"
+                          : "border-line bg-white text-[#6f7788] hover:border-[#aeb7c5]"
                       }`}
                       key={condition}
                       onClick={() => toggleCondition(condition)}
@@ -330,7 +338,7 @@ function ReportMapContent() {
           ) : null}
         </aside>
 
-        <div className="relative min-h-[760px] bg-[#eef1f3] p-5 sm:p-8">
+        <div className="relative min-h-[760px] bg-[#f1f7f4] p-5 sm:p-8">
           {!directSelectionMode ? (
             <ReportControls
               metric={metric}
@@ -344,6 +352,8 @@ function ReportMapContent() {
             <>
               <ReportVisual
                 directSelectionMode={directSelectionMode}
+                pendingReportRegionIds={pendingReportRegionIds}
+                pendingSaveRequestId={pendingSaveRequestId}
                 regions={heatmap.regions}
                 savedRegionIds={savedRegionIds}
                 selectedConditions={selectedConditions}
@@ -389,9 +399,9 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] }) {
   return (
-    <section className="mt-8 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4" aria-labelledby="data-provenance-title">
-      <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#2475d0]" id="data-provenance-title">데이터 출처</p>
-      <p className="mt-3 text-sm font-semibold leading-5 text-[#17203b]">{metadata.source_name}</p>
+    <section className="mt-8 rounded-xl border border-line bg-surface-soft p-4" aria-labelledby="data-provenance-title">
+      <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-sage" id="data-provenance-title">데이터 출처</p>
+      <p className="mt-3 text-sm font-semibold leading-5 text-ink">{metadata.source_name}</p>
       <dl className="mt-4 space-y-3 text-xs leading-5 text-[#667083]">
         <div><dt className="inline font-semibold text-[#596174]">기준일 </dt><dd className="inline"><DataBasis primaryDate={metadata.data_date ?? "원천별 확인 필요"} showLabel={false} /></dd></div>
         <div><dt className="inline font-semibold text-[#596174]">산출 방식 </dt><dd className="inline">{metadata.methodology}</dd></div>
@@ -399,8 +409,8 @@ function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] })
         {metadata.source_license ? <div><dt className="inline font-semibold text-[#596174]">이용 조건 </dt><dd className="inline">{metadata.source_license}</dd></div> : null}
       </dl>
       <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-        {metadata.source_url ? <a className="text-[#2475d0] hover:text-[#155ba6]" href={metadata.source_url} rel="noreferrer" target="_blank">공식 원천 ↗</a> : null}
-        <a className="text-[#2475d0] hover:text-[#155ba6]" href={DATA_INVENTORY_URL} rel="noreferrer" target="_blank">전체 출처·한계 ↗</a>
+        {metadata.source_url ? <a className="text-sage hover:text-sage-strong" href={metadata.source_url} rel="noreferrer" target="_blank">공식 원천 ↗</a> : null}
+        <a className="text-sage hover:text-sage-strong" href={DATA_INVENTORY_URL} rel="noreferrer" target="_blank">전체 출처·한계 ↗</a>
       </div>
     </section>
   );
@@ -408,6 +418,8 @@ function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] })
 
 function ReportVisual({
   directSelectionMode,
+  pendingReportRegionIds,
+  pendingSaveRequestId,
   regions,
   savedRegionIds,
   selectedConditions,
@@ -418,6 +430,8 @@ function ReportVisual({
   view,
 }: {
   directSelectionMode: boolean;
+  pendingReportRegionIds: string[];
+  pendingSaveRequestId: string | null;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
   selectedConditions: ExploreCondition[];
@@ -445,6 +459,8 @@ function ReportVisual({
   return (
     <KakaoReportMap
       directSelectionMode={directSelectionMode}
+      pendingReportRegionIds={pendingReportRegionIds}
+      pendingSaveRequestId={pendingSaveRequestId}
       regions={regions}
       savedRegionIds={savedRegionIds}
       selectedConditions={selectedConditions}
@@ -458,6 +474,8 @@ function ReportVisual({
 
 function KakaoReportMap({
   directSelectionMode,
+  pendingReportRegionIds,
+  pendingSaveRequestId,
   regions,
   savedRegionIds,
   selectedConditions,
@@ -467,6 +485,8 @@ function KakaoReportMap({
   unit,
 }: {
   directSelectionMode: boolean;
+  pendingReportRegionIds: string[];
+  pendingSaveRequestId: string | null;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
   selectedConditions: ExploreCondition[];
@@ -489,6 +509,30 @@ function KakaoReportMap({
       : "지도에서 궁금한 위치를 클릭해 행정동 데이터를 확인하세요.",
   });
   const appKey = process.env.NEXT_PUBLIC_KAKAO_MAP_APP_KEY;
+
+  useEffect(() => {
+    if (pendingReportRegionIds.length === 0) return;
+    let ignore = false;
+    fetchCandidateMatches(
+      selectedConditions.length > 0 ? selectedConditions : CONDITION_OPTIONS,
+      2,
+      { regionIds: pendingReportRegionIds },
+    ).then((result) => {
+      if (!ignore) {
+        setOpenReports(result.regions.map((region) => ({
+          region: toReportRegion(region, "map_click"),
+        })));
+      }
+    }).catch(() => {
+      if (!ignore) {
+        setMapClickNotice({
+          tone: "error",
+          text: "로그인 전에 선택한 지역을 다시 불러오지 못했습니다.",
+        });
+      }
+    });
+    return () => { ignore = true; };
+  }, [pendingReportRegionIds, selectedConditions]);
 
   function updateCandidateState(regionId: string, nextState: CandidateState) {
     setCandidateStates((current) => {
@@ -629,6 +673,11 @@ function KakaoReportMap({
           onCandidateStateChange={updateCandidateState}
           onClose={closeRegionReport}
         />
+        <SaveReportAction
+          pendingSaveRequestId={pendingSaveRequestId}
+          reports={openReports}
+          selectedConditions={selectedConditions}
+        />
       </div>
     );
   }
@@ -674,7 +723,98 @@ function KakaoReportMap({
         onCandidateStateChange={updateCandidateState}
         onClose={closeRegionReport}
       />
+      <SaveReportAction
+        pendingSaveRequestId={pendingSaveRequestId}
+        reports={openReports}
+        selectedConditions={selectedConditions}
+      />
     </div>
+  );
+}
+
+function SaveReportAction({
+  pendingSaveRequestId,
+  reports,
+  selectedConditions,
+}: {
+  pendingSaveRequestId: string | null;
+  reports: OpenCandidateReport[];
+  selectedConditions: ExploreCondition[];
+}) {
+  const router = useRouter();
+  const attemptedRequestRef = useRef<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const regionIds = reports.map((report) => report.region.region_id);
+  const priorities = selectedConditions.length > 0
+    ? selectedConditions
+    : CONDITION_OPTIONS;
+
+  const save = useCallback(async (requestId: string) => {
+    if (regionIds.length === 0) return;
+    setStatus("saving");
+    setMessage("");
+    try {
+      const session = await fetchAuthSession();
+      if (!session) {
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set("report_regions", regionIds.join(","));
+        returnUrl.searchParams.set("save_request", requestId);
+        const redirect = `${returnUrl.pathname}${returnUrl.search}`;
+        window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`);
+        return;
+      }
+      const saved = await createSavedReport({
+        client_request_id: requestId,
+        region_ids: regionIds,
+        priority_keys: priorities,
+        comparison_basis: "direct",
+      });
+      router.replace(`/mypage?created=${encodeURIComponent(saved.report_id)}`);
+    } catch (error) {
+      setStatus("error");
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "나만의 리포트를 저장하지 못했습니다.",
+      );
+    }
+  }, [priorities, regionIds, router]);
+
+  useEffect(() => {
+    if (
+      !pendingSaveRequestId
+      || regionIds.length === 0
+      || attemptedRequestRef.current === pendingSaveRequestId
+    ) return;
+    attemptedRequestRef.current = pendingSaveRequestId;
+    void save(pendingSaveRequestId);
+  }, [pendingSaveRequestId, regionIds.length, save]);
+
+  return (
+    <section className="rounded-2xl border border-sage-line bg-white/92 p-5 shadow-[0_12px_32px_rgba(52,78,68,0.08)]">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-sage-strong">내 비교 기록</p>
+          <h3 className="mt-2 text-lg font-semibold text-ink">지금 확인한 근거를 나만의 리포트로 남기세요</h3>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            선택한 지역과 판단 기준을 저장하고, 나중에 같은 의사결정 흐름을 다시 확인할 수 있습니다.
+          </p>
+        </div>
+        <button
+          className="min-h-11 shrink-0 rounded-xl bg-ink px-5 py-3 text-sm font-bold text-white transition hover:bg-charcoal disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={regionIds.length === 0 || status === "saving"}
+          onClick={() => void save(crypto.randomUUID())}
+          type="button"
+        >
+          {status === "saving" ? "리포트 저장 중…" : "나만의 리포트 만들기"}
+        </button>
+      </div>
+      {regionIds.length === 0 ? (
+        <p className="mt-3 text-xs text-subtle">지도에서 비교할 지역을 1곳 이상 선택하면 저장할 수 있습니다.</p>
+      ) : null}
+      {status === "error" ? <p className="mt-3 text-xs font-semibold text-[#b84d61]">{message}</p> : null}
+    </section>
   );
 }
 

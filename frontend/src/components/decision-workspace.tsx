@@ -244,15 +244,15 @@ export function DecisionWorkspace() {
   }
 
   return (
-    <main className="decision-workspace min-h-screen bg-[#f6f7f9] text-[#17203b]">
+    <main className="decision-workspace warm-canvas min-h-screen text-ink">
       <WorkspaceSidebar step={step} onStepChange={setStep} />
       <div className="min-h-screen lg:pl-[260px]">
-        <header className="flex min-h-16 items-center justify-between border-b border-[#e3e6ed] bg-white px-5 sm:px-8 lg:px-12">
+        <header className="flex min-h-16 items-center justify-between border-b border-line bg-white/80 px-5 backdrop-blur-xl sm:px-8 lg:px-12">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.08em] text-[#8a91a3]">주거 후보 비교</p>
             <p className="mt-1 text-sm text-[#5f6678]">서울 행정동 · 최신 가용 데이터 기준</p>
           </div>
-          <span className="rounded-full bg-[#eef5ff] px-3 py-1.5 text-xs font-semibold text-[#2475d0]">서울 행정동</span>
+          <span className="rounded-full bg-sage-soft px-3 py-1.5 text-xs font-semibold text-sage">서울 행정동</span>
         </header>
 
         <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
@@ -304,7 +304,7 @@ export function DecisionWorkspace() {
             <div>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <PageIntro eyebrow={singleRegion ? "후보 한 곳 살펴보기" : "선택 후보 비교"} title={singleRegion ? "알고 있는 후보를 크게 살펴봅니다" : "내가 고른 조건만 집중해서 비교합니다"} description={singleRegion ? "선택한 한 지역의 데이터 근거와 다음 확인 항목을 봅니다." : "관측된 차이와 지도에서 다시 확인할 항목을 분리해 봅니다."} />
-                <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep(entryMode === "known" ? "profile" : "candidates")} type="button">{entryMode === "known" ? "← 후보 다시 선택" : "← 후보 보드"}</button>
+                <button className="rounded-lg border border-[#dfe8e3] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep(entryMode === "known" ? "profile" : "candidates")} type="button">{entryMode === "known" ? "← 후보 다시 선택" : "← 후보 보드"}</button>
               </div>
               {singleRegion ? (
                 <SingleRegionResult mapHref={buildReportMapUrl(profile, [singleRegion], true)} region={singleRegion} selectedConditions={profile.conditions} />
@@ -327,8 +327,8 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
     { id: "comparison", label: "지역 비교", number: "04" },
   ];
   return (
-    <aside className="hidden border-r border-[#e2e5eb] bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[260px] lg:flex-col">
-      <Link className="flex h-24 items-center border-b border-[#e2e5eb] px-8" href="/" aria-label="SweetHome 홈">
+    <aside className="hidden border-r border-line bg-white/88 backdrop-blur-xl lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-[260px] lg:flex-col">
+      <Link className="flex h-24 items-center border-b border-line px-8" href="/" aria-label="SweetHome 홈">
         <BrandLogo />
       </Link>
       <div className="px-8 py-9">
@@ -338,7 +338,7 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
       <nav className="px-4">
         {items.map((item) => (
           <button
-            className={`mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm transition ${step === item.id ? "bg-[#eaf4ff] font-semibold text-[#1888e8]" : "text-[#666e80] hover:bg-[#f5f6f8]"}`}
+            className={`mb-1 flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm transition ${step === item.id ? "bg-sage-soft font-semibold text-sage" : "text-[#666e80] hover:bg-surface-soft"}`}
             key={item.id}
             onClick={() => onStepChange(item.id)}
             type="button"
@@ -348,10 +348,10 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
         ))}
       </nav>
       <div className="mt-auto">
-        <div className="border-t border-[#e2e5eb] p-4">
-          <AuthMenu className="block rounded-lg px-4 py-3 text-sm font-semibold text-[#666e80] transition hover:bg-[#f5f6f8]" />
+        <div className="border-t border-line p-4">
+          <AuthMenu className="block rounded-lg px-4 py-3 text-sm font-semibold text-[#666e80] transition hover:bg-surface-soft" />
         </div>
-        <div className="border-t border-[#e2e5eb] p-6 text-xs leading-5 text-[#8a91a3]">AI가 결정을 대신하지 않습니다.<br />근거를 정리해 판단을 돕습니다.</div>
+        <div className="border-t border-line p-6 text-xs leading-5 text-[#8a91a3]">AI가 결정을 대신하지 않습니다.<br />근거를 정리해 판단을 돕습니다.</div>
       </div>
     </aside>
   );
@@ -362,13 +362,13 @@ function EntryPanel({ onSelect }: { onSelect: (mode: EntryMode) => void }) {
     <section>
       <PageIntro eyebrow="비교 시작하기" title="지금 어떤 단계에 있나요?" description="후보가 있다면 직접 추가하고, 아직 없다면 내 조건으로 서울의 후보 지역을 찾아보세요." />
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("known")} type="button">
-          <span className="text-xs font-semibold tracking-[.06em] text-[#1888e8]">후보 지역이 있어요</span>
+        <button className="min-h-64 rounded-xl border border-line bg-white p-7 text-left shadow-[0_8px_24px_rgba(67,62,63,.05)] transition hover:border-sage" onClick={() => onSelect("known")} type="button">
+          <span className="text-xs font-semibold tracking-[.06em] text-sage">후보 지역이 있어요</span>
           <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">고민 중인 지역이 있어요</strong>
           <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">후보 한 곳은 상세하게 살펴보고, 두 곳은 같은 조건으로 바로 비교합니다.</span>
         </button>
-        <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("unknown")} type="button">
-          <span className="text-xs font-semibold tracking-[.06em] text-[#1888e8]">조건으로 찾아볼게요</span>
+        <button className="min-h-64 rounded-xl border border-line bg-white p-7 text-left shadow-[0_8px_24px_rgba(67,62,63,.05)] transition hover:border-sage" onClick={() => onSelect("unknown")} type="button">
+          <span className="text-xs font-semibold tracking-[.06em] text-sage">조건으로 찾아볼게요</span>
           <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">어디부터 볼지 모르겠어요</strong>
           <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">예산과 생활 조건을 입력해 살펴볼 행정동 후보를 좁힙니다.</span>
         </button>
@@ -378,7 +378,7 @@ function EntryPanel({ onSelect }: { onSelect: (mode: EntryMode) => void }) {
 }
 
 function PageIntro({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#1888e8]">{eyebrow}</p><h2 className="mt-3 text-3xl font-medium tracking-[-0.035em] sm:text-4xl">{title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-[#6d7485] sm:text-base">{description}</p></div>;
+  return <div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sage">{eyebrow}</p><h2 className="mt-3 text-3xl font-medium tracking-[-0.035em] sm:text-4xl">{title}</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-[#6d7485] sm:text-base">{description}</p></div>;
 }
 
 function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, error, isLoading, onContractChange, onBudgetChange, onBuildingTypeChange, onAreaBandChange, onDirectRegionChange, onEntryBack, onToggleCondition, onContinue }: {
@@ -396,12 +396,12 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageIntro eyebrow="내 조건" title="어떤 집을 찾고 계신가요?" description="조건을 구조화하면 동일한 기준으로 살펴볼 지역을 좁힐 수 있습니다." />
-        <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#596174]" onClick={onEntryBack} type="button">← 시작 방식 변경</button>
+        <button className="rounded-lg border border-[#dfe8e3] bg-white px-4 py-2.5 text-sm font-semibold text-[#596174]" onClick={onEntryBack} type="button">← 시작 방식 변경</button>
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
-        <div className="rounded-xl border border-[#e0e4eb] bg-white p-6 shadow-[0_6px_20px_rgba(25,39,74,.04)] sm:p-8">
+        <div className="rounded-xl border border-line bg-white p-6 shadow-[0_6px_20px_rgba(67,62,63,.04)] sm:p-8">
           {entryMode === "known" ? (
-            <fieldset className="mb-8 border-b border-[#eceef2] pb-8">
+            <fieldset className="mb-8 border-b border-[#edf2ef] pb-8">
               <legend className="text-sm font-semibold">알고 있는 후보 지역 <span className="font-normal text-[#8b92a1]">· 한 곳 이상</span></legend>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[0, 1].map((index) => (
@@ -421,22 +421,22 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
           <fieldset>
             <legend className="text-sm font-semibold">계약 유형</legend>
             <div className="mt-3 grid grid-cols-2 gap-3">
-              {(["monthly", "jeonse"] as const).map((type) => <button aria-pressed={profile.contractType === type} className={`rounded-lg border px-4 py-4 text-sm font-semibold ${profile.contractType === type ? "border-[#1888e8] bg-[#edf7ff] text-[#1479ca]" : "border-[#dfe3ea] text-[#5f6678]"}`} key={type} onClick={() => onContractChange(type)} type="button">{type === "monthly" ? "월세" : "전세"}</button>)}
+              {(["monthly", "jeonse"] as const).map((type) => <button aria-pressed={profile.contractType === type} className={`rounded-lg border px-4 py-4 text-sm font-semibold ${profile.contractType === type ? "border-sage bg-sage-soft text-sage-strong" : "border-line text-[#5f6678]"}`} key={type} onClick={() => onContractChange(type)} type="button">{type === "monthly" ? "월세" : "전세"}</button>)}
             </div>
           </fieldset>
           <label className="mt-7 block text-sm font-semibold" htmlFor="budget">{profile.contractType === "monthly" ? "월세 상한 · 관리비 제외" : "전세 보증금 상한"}</label>
-          <div className="mt-3 flex items-center rounded-lg border border-[#dfe3ea] bg-white px-4 focus-within:border-[#1888e8]">
+          <div className="mt-3 flex items-center rounded-lg border border-line bg-white px-4 focus-within:border-sage">
             <input className="h-14 min-w-0 flex-1 outline-none" id="budget" inputMode="numeric" onChange={(event) => onBudgetChange(event.target.value.replace(/[^0-9]/g, ""))} value={profile.budget} />
             <span className="text-sm text-[#737b8d]">만원</span>
           </div>
           <div className="mt-7 grid gap-5 sm:grid-cols-2">
             <label className="text-sm font-semibold">주택유형
-              <select className="mt-3 h-14 w-full rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm font-normal outline-none focus:border-[#1888e8]" onChange={(event) => onBuildingTypeChange(event.target.value as DecisionProfile["buildingType"])} value={profile.buildingType}>
+              <select className="mt-3 h-14 w-full rounded-lg border border-line bg-white px-4 text-sm font-normal outline-none focus:border-sage" onChange={(event) => onBuildingTypeChange(event.target.value as DecisionProfile["buildingType"])} value={profile.buildingType}>
                 <option value="any">전체 유형</option><option value="apartment">아파트</option><option value="officetel">오피스텔</option><option value="multi_family">연립·다세대</option><option value="detached_multiunit">단독·다가구</option>
               </select>
             </label>
             <label className="text-sm font-semibold">면적구간
-              <select className="mt-3 h-14 w-full rounded-lg border border-[#dfe3ea] bg-white px-4 text-sm font-normal outline-none focus:border-[#1888e8]" onChange={(event) => onAreaBandChange(event.target.value as DecisionProfile["areaBand"])} value={profile.areaBand}>
+              <select className="mt-3 h-14 w-full rounded-lg border border-line bg-white px-4 text-sm font-normal outline-none focus:border-sage" onChange={(event) => onAreaBandChange(event.target.value as DecisionProfile["areaBand"])} value={profile.areaBand}>
                 <option value="any">전체 면적</option><option value="compact">소형</option><option value="mid_size">중형</option><option value="large">대형</option>
               </select>
             </label>
@@ -444,17 +444,17 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
           <fieldset className="mt-8">
             <legend className="text-sm font-semibold">중요하게 볼 조건 <span className="font-normal text-[#8b92a1]">· 복수 선택</span></legend>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              {CONDITION_OPTIONS.map((condition) => { const selected = profile.conditions.includes(condition.id); return <button aria-pressed={selected} className={`rounded-lg border p-4 text-left transition ${selected ? "border-[#1888e8] bg-[#edf7ff]" : "border-[#dfe3ea] hover:border-[#aeb6c5]"}`} key={condition.id} onClick={() => onToggleCondition(condition.id)} type="button"><span className="flex items-center justify-between font-semibold"><span>{condition.label}</span><span className={`grid h-5 w-5 place-items-center rounded-full text-xs ${selected ? "bg-[#1888e8] text-white" : "border border-[#cbd1dc]"}`}>{selected ? "✓" : ""}</span></span><span className="mt-2 block text-xs leading-5 text-[#7b8292]">{condition.description}</span></button>; })}
+              {CONDITION_OPTIONS.map((condition) => { const selected = profile.conditions.includes(condition.id); return <button aria-pressed={selected} className={`rounded-lg border p-4 text-left transition ${selected ? "border-sage bg-sage-soft" : "border-line hover:border-[#aeb6c5]"}`} key={condition.id} onClick={() => onToggleCondition(condition.id)} type="button"><span className="flex items-center justify-between font-semibold"><span>{condition.label}</span><span className={`grid h-5 w-5 place-items-center rounded-full text-xs ${selected ? "bg-sage text-white" : "border border-[#cbd1dc]"}`}>{selected ? "✓" : ""}</span></span><span className="mt-2 block text-xs leading-5 text-[#7b8292]">{condition.description}</span></button>; })}
             </div>
           </fieldset>
           {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-          <button className="mt-8 h-13 w-full rounded-lg bg-[#17203b] px-5 font-semibold text-white transition hover:bg-[#263252] disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터 불러오는 중…" : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
+          <button className="mt-8 h-13 w-full rounded-lg bg-ink px-5 font-semibold text-white transition hover:bg-charcoal disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터 불러오는 중…" : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
         </div>
-        <aside className="rounded-xl border border-[#dce5ef] bg-[#f1f8ff] p-6 sm:p-8">
-          <p className="text-xs font-semibold tracking-[0.06em] text-[#2475d0]">입력한 조건</p>
+        <aside className="rounded-xl border border-sage-soft bg-sage-soft p-6 sm:p-8">
+          <p className="text-xs font-semibold tracking-[0.06em] text-sage">입력한 조건</p>
           <h3 className="mt-4 text-xl font-semibold">현재 의사결정 기준</h3>
           <dl className="mt-6 space-y-5 text-sm"><div><dt className="text-[#7b8292]">계약</dt><dd className="mt-1 font-semibold">{profile.contractType === "monthly" ? "월세" : "전세"}</dd></div><div><dt className="text-[#7b8292]">예산 상한</dt><dd className="mt-1 font-semibold">{profile.budget || "미입력"}만원</dd></div><div><dt className="text-[#7b8292]">주거 조건</dt><dd className="mt-1 font-semibold">{profile.buildingType === "any" ? "전체 유형" : { apartment: "아파트", officetel: "오피스텔", multi_family: "연립·다세대", detached_multiunit: "단독·다가구" }[profile.buildingType]} · {profile.areaBand === "any" ? "전체 면적" : { compact: "소형", mid_size: "중형", large: "대형" }[profile.areaBand]}</dd></div><div><dt className="text-[#7b8292]">우선 확인</dt><dd className="mt-2 flex flex-wrap gap-2">{profile.conditions.map((condition) => <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#52627b]" key={condition}>{CONDITION_LABELS[condition]}</span>)}</dd></div></dl>
-          <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 전체 유형이나 전체 면적을 선택하면 비교 가능한 세부 주거유형 중 예산 이내 사례가 있는 지역을 보여줍니다.</p>
+          <p className="mt-8 border-t border-sage-soft pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 전체 유형이나 전체 면적을 선택하면 비교 가능한 세부 주거유형 중 예산 이내 사례가 있는 지역을 보여줍니다.</p>
         </aside>
       </div>
     </section>
@@ -465,33 +465,33 @@ function CandidateBoard({ exploration, profile, candidateStates, candidateNotes,
   exploration: ExploreResponse | null; profile: DecisionProfile; candidateStates: Record<string, CandidateState>; candidateNotes: Record<string, string>; comparisonRegionIds: string[]; exclusionReasons: Record<string, ExclusionReason>; savedCandidates: CandidateMatchRegion[]; error: string; isLoading: boolean;
   onUpdateCandidate: (regionId: string, state: CandidateState) => void; onComparisonToggle: (regionId: string) => void; onExclusionReasonChange: (regionId: string, reason: ExclusionReason) => void; onNoteChange: (regionId: string, note: string) => void; onCompare: () => void; onEditProfile: () => void;
 }) {
-  if (!exploration) return <section><PageIntro eyebrow="후보 지역" title="조건을 먼저 확인해 주세요" description="입력한 조건을 바탕으로 후보 지역을 구성합니다." /><button className="mt-6 rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
+  if (!exploration) return <section><PageIntro eyebrow="후보 지역" title="조건을 먼저 확인해 주세요" description="입력한 조건을 바탕으로 후보 지역을 구성합니다." /><button className="mt-6 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
   const mapUrl = buildReportMapUrl(profile, savedCandidates);
   return (
     <section>
-      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="후보 지역" title="살펴볼 후보를 압축해 보세요" description="최대 3곳을 검토하며 판단 메모를 남기고, 그중 비교할 2곳을 선택하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
+      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="후보 지역" title="살펴볼 후보를 압축해 보세요" description="최대 3곳을 검토하며 판단 메모를 남기고, 그중 비교할 2곳을 선택하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-sage-line bg-sage-soft px-4 py-2.5 text-sm font-semibold text-sage-strong" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#dfe8e3] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
       <div className="mt-7 grid gap-4 sm:grid-cols-3"><SummaryCard label="탐색 후보" value={`${exploration.regions.length}곳`} /><SummaryCard label="검토 후보" value={`${savedCandidates.length}/3`} accent /><SummaryCard label="비교 선택" value={`${comparisonRegionIds.length}/2`} /></div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {exploration.regions.map((region) => <CandidateCard candidateNote={candidateNotes[region.region_id] ?? ""} exclusionReason={exclusionReasons[region.region_id]} isComparisonCandidate={comparisonRegionIds.includes(region.region_id)} key={region.region_id} region={region} state={candidateStates[region.region_id]} onComparisonToggle={onComparisonToggle} onExclusionReasonChange={onExclusionReasonChange} onNoteChange={onNoteChange} onUpdate={onUpdateCandidate} />)}
       </div>
       {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(23,32,59,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">비교 후보 {comparisonRegionIds.length}/2 선택</p><p className="mt-1 text-xs text-[#7b8292]">검토 후보는 3곳까지, 최종 비교는 2곳을 선택합니다.</p></div><button className="rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={comparisonRegionIds.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "근거 불러오는 중…" : "선택한 2곳 비교"}</button></div>
+      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(67,62,63,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">비교 후보 {comparisonRegionIds.length}/2 선택</p><p className="mt-1 text-xs text-[#7b8292]">검토 후보는 3곳까지, 최종 비교는 2곳을 선택합니다.</p></div><button className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={comparisonRegionIds.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "근거 불러오는 중…" : "선택한 2곳 비교"}</button></div>
     </section>
   );
 }
 
-function SummaryCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className={`rounded-xl border p-5 ${accent ? "border-[#b9dcfb] bg-[#edf7ff]" : "border-[#e0e4eb] bg-white"}`}><p className="text-xs text-[#818898]">{label}</p><p className={`mt-2 text-2xl font-semibold ${accent ? "text-[#1888e8]" : "text-[#17203b]"}`}>{value}</p></div>; }
+function SummaryCard({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) { return <div className={`rounded-xl border p-5 ${accent ? "border-sage-line bg-sage-soft" : "border-line bg-white"}`}><p className="text-xs text-[#818898]">{label}</p><p className={`mt-2 text-2xl font-semibold ${accent ? "text-sage" : "text-ink"}`}>{value}</p></div>; }
 
 function CandidateCard({ region, state, candidateNote, exclusionReason, isComparisonCandidate, onUpdate, onComparisonToggle, onExclusionReasonChange, onNoteChange }: { region: CandidateMatchRegion; state?: CandidateState; candidateNote: string; exclusionReason?: ExclusionReason; isComparisonCandidate: boolean; onUpdate: (regionId: string, state: CandidateState) => void; onComparisonToggle: (regionId: string) => void; onExclusionReasonChange: (regionId: string, reason: ExclusionReason) => void; onNoteChange: (regionId: string, note: string) => void }) {
   const statusLabel = state === "excluded" ? "제외됨" : isComparisonCandidate ? "비교 선택" : state === "saved" ? "검토 중" : "발견됨";
   return (
-    <article className={`rounded-xl border bg-white p-6 transition ${isComparisonCandidate ? "border-[#1888e8] ring-1 ring-[#1888e8]" : state === "saved" ? "border-[#b9dcfb]" : state === "excluded" ? "border-[#e1e4e9] bg-[#fafafa]" : "border-[#e0e4eb]"}`}>
-      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#818898]">{region.gu_name}</p><h3 className="mt-1 text-xl font-semibold">{region.dong_name}</h3></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${isComparisonCandidate ? "bg-[#1888e8] text-white" : state === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : state === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{statusLabel}</span></div>
-      <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8b92a1]">포함 근거</p><ul className="mt-3 space-y-2 text-sm leading-6 text-[#596174]">{Object.values(region.indicator_summary).slice(0, 3).map((summary) => <li className="flex gap-2" key={summary}><span className="text-[#1888e8]">•</span>{summary}</li>)}</ul></div>
-      <div className="mt-5 flex flex-wrap gap-2">{region.matched_indicators.map((indicator) => <span className="rounded-full border border-[#e0e4eb] px-2.5 py-1 text-xs text-[#687083]" key={indicator}>{indicator}</span>)}</div>
-      {state === "excluded" ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">제외 이유<select className="mt-2 h-11 w-full rounded-lg border border-[#dfe3ea] bg-white px-3 text-sm font-normal" onChange={(event) => onExclusionReasonChange(region.region_id, event.target.value as ExclusionReason)} value={exclusionReason ?? "other"}><option value="budget">비용 조건</option><option value="transport">교통 접근성</option><option value="night_environment">야간 생활환경</option><option value="convenience">생활 편의</option><option value="housing">주택 조건</option><option value="other">기타</option></select></label> : null}
-      {(state === "saved" || state === "excluded") ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">판단 메모<textarea className="mt-2 min-h-20 w-full resize-y rounded-lg border border-[#dfe3ea] bg-white p-3 text-sm font-normal leading-5 outline-none focus:border-[#1888e8]" maxLength={180} onChange={(event) => onNoteChange(region.region_id, event.target.value)} placeholder="직접 확인할 내용이나 판단 이유를 남겨보세요." value={candidateNote} /></label> : null}
-      <div className={`mt-6 grid gap-2 ${state === "saved" ? "grid-cols-3" : "grid-cols-2"}`}><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "saved" ? "border-[#b9dcfb] bg-[#edf7ff] text-[#1888e8]" : "border-[#dce1e8] text-[#4f586b]"}`} onClick={() => onUpdate(region.region_id, "saved")} type="button">{state === "saved" ? "검토 취소" : "검토 추가"}</button>{state === "saved" ? <button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${isComparisonCandidate ? "border-[#1888e8] bg-[#1888e8] text-white" : "border-[#dce1e8] text-[#4f586b]"}`} onClick={() => onComparisonToggle(region.region_id)} type="button">{isComparisonCandidate ? "비교 해제" : "비교 선택"}</button> : null}<button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "excluded" ? "border-[#cfd4dc] bg-[#f1f2f4] text-[#777e8c]" : "border-[#dce1e8] text-[#757c8b]"}`} onClick={() => onUpdate(region.region_id, "excluded")} type="button">{state === "excluded" ? "제외 취소" : "제외"}</button></div>
+    <article className={`rounded-xl border bg-white p-6 transition ${isComparisonCandidate ? "border-sage ring-1 ring-sage" : state === "saved" ? "border-sage-line" : state === "excluded" ? "border-[#e1e4e9] bg-[#fafafa]" : "border-line"}`}>
+      <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#818898]">{region.gu_name}</p><h3 className="mt-1 text-xl font-semibold">{region.dong_name}</h3></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${isComparisonCandidate ? "bg-sage text-white" : state === "saved" ? "bg-sage-soft text-sage" : state === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{statusLabel}</span></div>
+      <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8b92a1]">포함 근거</p><ul className="mt-3 space-y-2 text-sm leading-6 text-[#596174]">{Object.values(region.indicator_summary).slice(0, 3).map((summary) => <li className="flex gap-2" key={summary}><span className="text-sage">•</span>{summary}</li>)}</ul></div>
+      <div className="mt-5 flex flex-wrap gap-2">{region.matched_indicators.map((indicator) => <span className="rounded-full border border-line px-2.5 py-1 text-xs text-[#687083]" key={indicator}>{indicator}</span>)}</div>
+      {state === "excluded" ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">제외 이유<select className="mt-2 h-11 w-full rounded-lg border border-line bg-white px-3 text-sm font-normal" onChange={(event) => onExclusionReasonChange(region.region_id, event.target.value as ExclusionReason)} value={exclusionReason ?? "other"}><option value="budget">비용 조건</option><option value="transport">교통 접근성</option><option value="night_environment">야간 생활환경</option><option value="convenience">생활 편의</option><option value="housing">주택 조건</option><option value="other">기타</option></select></label> : null}
+      {(state === "saved" || state === "excluded") ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">판단 메모<textarea className="mt-2 min-h-20 w-full resize-y rounded-lg border border-line bg-white p-3 text-sm font-normal leading-5 outline-none focus:border-sage" maxLength={180} onChange={(event) => onNoteChange(region.region_id, event.target.value)} placeholder="직접 확인할 내용이나 판단 이유를 남겨보세요." value={candidateNote} /></label> : null}
+      <div className={`mt-6 grid gap-2 ${state === "saved" ? "grid-cols-3" : "grid-cols-2"}`}><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "saved" ? "border-sage-line bg-sage-soft text-sage" : "border-line text-[#4f586b]"}`} onClick={() => onUpdate(region.region_id, "saved")} type="button">{state === "saved" ? "검토 취소" : "검토 추가"}</button>{state === "saved" ? <button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${isComparisonCandidate ? "border-sage bg-sage text-white" : "border-line text-[#4f586b]"}`} onClick={() => onComparisonToggle(region.region_id)} type="button">{isComparisonCandidate ? "비교 해제" : "비교 선택"}</button> : null}<button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "excluded" ? "border-[#cfd4dc] bg-[#f1f2f4] text-[#777e8c]" : "border-line text-[#757c8b]"}`} onClick={() => onUpdate(region.region_id, "excluded")} type="button">{state === "excluded" ? "제외 취소" : "제외"}</button></div>
     </article>
   );
 }

@@ -10,6 +10,42 @@ export type AuthSession = {
   provider: string;
 };
 
+export type SavedReportCreate = {
+  client_request_id: string;
+  region_ids: string[];
+  priority_keys: ExploreCondition[];
+  comparison_basis: "seoul" | "direct";
+};
+
+export type SavedReportSummary = {
+  report_id: string;
+  region_ids: string[];
+  region_names: string[];
+  priority_keys: ExploreCondition[];
+  comparison_basis: "seoul" | "direct";
+  title: string;
+  summary: string;
+  data_version: string;
+  created_at: string;
+};
+
+export type SavedReportDetail = SavedReportSummary & {
+  report_content: {
+    title: string;
+    summary: string;
+    region_names: string[];
+    priority_labels: string[];
+    decision_flow: {
+      candidate_count: number;
+      comparison_basis: "seoul" | "direct";
+      notice: string;
+    };
+    regions: CandidateMatchRegion[];
+    source: string;
+    limitation: string;
+  };
+};
+
 export type Metadata = {
   region_count: number;
   price_latest_month: string | null;

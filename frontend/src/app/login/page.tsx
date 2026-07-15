@@ -2,8 +2,15 @@ import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
 
-export default function LoginPage() {
-  const redirectPath = "/app";
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string | string[] }>;
+}) {
+  const requestedRedirect = (await searchParams).redirect;
+  const redirectPath = safeRedirectPath(
+    Array.isArray(requestedRedirect) ? requestedRedirect[0] : requestedRedirect,
+  );
   const encodedRedirect = encodeURIComponent(redirectPath);
   const googleLoginUrl = `/.auth/login/google?post_login_redirect_uri=${encodedRedirect}`;
   const githubLoginUrl = `/.auth/login/github?post_login_redirect_uri=${encodedRedirect}`;
@@ -42,7 +49,7 @@ export default function LoginPage() {
               내 비교 기록을<br />안전하게 이어보세요
             </h1>
             <p className="mt-4 text-sm leading-6 text-muted">
-              저장한 후보와 나만의 리포트를 한곳에서 관리할 수 있도록 로그인을 준비했습니다.
+              저장한 후보와 나만의 리포트를 한곳에서 안전하게 이어볼 수 있습니다.
             </p>
 
             <a
@@ -82,11 +89,26 @@ export default function LoginPage() {
                 인증은 Google·GitHub와 Azure가 처리합니다. SweetHome은 비밀번호나 인증 토큰을 저장하지 않습니다.
               </p>
             </div>
+            <p className="mt-3 text-[11px] leading-5 text-subtle">
+              계속하면 <Link className="underline underline-offset-2" href="/terms">이용약관</Link>과{" "}
+              <Link className="underline underline-offset-2" href="/privacy">개인정보처리방침</Link>을 확인한 것으로 봅니다.
+            </p>
           </div>
         </section>
       </div>
     </main>
   );
+}
+
+function safeRedirectPath(value: string | undefined) {
+  if (
+    !value
+    || !value.startsWith("/")
+    || value.startsWith("//")
+    || value.includes("\\")
+    || /[\u0000-\u001f]/.test(value)
+  ) return "/app";
+  return value;
 }
 
 function GoogleMark() {

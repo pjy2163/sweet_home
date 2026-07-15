@@ -65,7 +65,7 @@ export function RegionSearchCombobox({
       }}
     >
       <label className="sr-only" htmlFor={`${listboxId}-input`}>{label}</label>
-      <div className="flex h-14 items-center rounded-lg border border-[#dfe3ea] bg-white px-4 focus-within:border-[#1888e8] focus-within:ring-2 focus-within:ring-[#1888e8]/10">
+      <div className="flex h-14 items-center rounded-lg border border-line bg-white px-4 focus-within:border-sage focus-within:ring-2 focus-within:ring-sage/10">
         <span aria-hidden="true" className="mr-3 text-[#9aa1af]">⌕</span>
         <input
           aria-autocomplete="list"
@@ -123,8 +123,8 @@ export function RegionSearchCombobox({
       </div>
 
       {isOpen ? (
-        <div className="absolute inset-x-0 top-[calc(100%+.4rem)] z-50 overflow-hidden rounded-xl border border-[#dfe3ea] bg-white shadow-[0_18px_45px_rgba(23,32,59,.16)]">
-          <div className="flex items-center justify-between border-b border-[#eceef2] px-4 py-3 text-[11px] text-[#7d8595]">
+        <div className="absolute inset-x-0 top-[calc(100%+.4rem)] z-50 overflow-hidden rounded-xl border border-line bg-white shadow-[0_18px_45px_rgba(67,62,63,.16)]">
+          <div className="flex items-center justify-between border-b border-[#edf2ef] px-4 py-3 text-[11px] text-[#7d8595]">
             <span>구·동 이름 또는 초성으로 검색</span>
             <span>{matchingRegions.length}곳</span>
           </div>
@@ -132,7 +132,7 @@ export function RegionSearchCombobox({
             {visibleRegions.length ? visibleRegions.map((region, index) => (
               <button
                 aria-selected={region.region_id === value}
-                className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition ${index === activeIndex ? "bg-[#edf7ff]" : "hover:bg-[#f6f8fa]"}`}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left transition ${index === activeIndex ? "bg-sage-soft" : "hover:bg-[#f6f8fa]"}`}
                 key={region.region_id}
                 onClick={() => selectRegion(region)}
                 onMouseEnter={() => setActiveIndex(index)}
@@ -141,9 +141,9 @@ export function RegionSearchCombobox({
               >
                 <span>
                   <span className="block text-xs text-[#8a92a1]">{region.gu_name}</span>
-                  <span className="mt-1 block text-sm font-semibold text-[#17203b]">{region.dong_name}</span>
+                  <span className="mt-1 block text-sm font-semibold text-ink">{region.dong_name}</span>
                 </span>
-                {region.region_id === value ? <span className="text-sm font-semibold text-[#1888e8]">선택됨</span> : null}
+                {region.region_id === value ? <span className="text-sm font-semibold text-sage">선택됨</span> : null}
               </button>
             )) : (
               <div className="px-4 py-10 text-center text-sm text-[#818999]">
@@ -152,7 +152,7 @@ export function RegionSearchCombobox({
             )}
           </div>
           {matchingRegions.length > MAX_RESULTS ? (
-            <p className="border-t border-[#eceef2] px-4 py-3 text-[11px] text-[#8a92a1]">검색어를 더 입력하면 결과를 좁힐 수 있습니다.</p>
+            <p className="border-t border-[#edf2ef] px-4 py-3 text-[11px] text-[#8a92a1]">검색어를 더 입력하면 결과를 좁힐 수 있습니다.</p>
           ) : null}
         </div>
       ) : null}

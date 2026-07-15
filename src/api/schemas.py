@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from datetime import datetime
+from typing import Any, Literal, Optional
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class HealthResponse(BaseModel):
@@ -13,6 +15,58 @@ class HealthResponse(BaseModel):
 class AuthMeResponse(BaseModel):
     authenticated: Literal[True]
     provider: str
+
+
+DecisionPriority = Literal[
+    "price",
+    "population",
+    "safety",
+    "convenience",
+    "transport",
+]
+
+
+class SavedReportCreateRequest(BaseModel):
+    client_request_id: UUID
+    region_ids: list[str] = Field(min_length=1, max_length=2)
+    priority_keys: list[DecisionPriority] = Field(min_length=1, max_length=5)
+    comparison_basis: Literal["seoul", "direct"] = "direct"
+
+    @field_validator("region_ids")
+    @classmethod
+    def validate_region_ids(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip() for value in values]
+        if any(not value or len(value) > 10 for value in normalized):
+            raise ValueError("region_ids must contain valid region identifiers")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("region_ids must be unique")
+        return normalized
+
+    @field_validator("priority_keys")
+    @classmethod
+    def validate_priority_keys(
+        cls,
+        values: list[DecisionPriority],
+    ) -> list[DecisionPriority]:
+        if len(set(values)) != len(values):
+            raise ValueError("priority_keys must be unique")
+        return values
+
+
+class SavedReportSummary(BaseModel):
+    report_id: UUID
+    region_ids: list[str]
+    region_names: list[str]
+    priority_keys: list[DecisionPriority]
+    comparison_basis: Literal["seoul", "direct"]
+    title: str
+    summary: str
+    data_version: str
+    created_at: datetime
+
+
+class SavedReportDetail(SavedReportSummary):
+    report_content: dict[str, Any]
 
 
 class RegionOption(BaseModel):

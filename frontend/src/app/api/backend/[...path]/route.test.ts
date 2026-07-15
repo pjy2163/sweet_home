@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { GET } from "./route";
+import { GET, POST } from "./route";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -65,5 +65,42 @@ describe("backend proxy error boundary", () => {
     expect(forwarded.get("x-sweethome-principal-id")).toBe("opaque-subject");
     expect(forwarded.get("x-sweethome-identity-provider")).toBe("github");
     expect(forwarded.has("x-ms-client-principal-name")).toBe(false);
+  });
+
+  it("allows only the saved report write endpoint and forwards its JSON body", async () => {
+    vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ report_id: "saved-report-id" }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const body = JSON.stringify({ region_ids: ["11110530"] });
+
+    const response = await POST(
+      new NextRequest("https://sweethome.test/api/backend/saved-reports", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-ms-client-principal-id": "opaque-subject",
+        },
+        body,
+      }),
+      { params: Promise.resolve({ path: ["saved-reports"] }) },
+    );
+    const rejected = await POST(
+      new NextRequest("https://sweethome.test/api/backend/regions", {
+        method: "POST",
+        body: "{}",
+      }),
+      { params: Promise.resolve({ path: ["regions"] }) },
+    );
+
+    expect(response.status).toBe(201);
+    expect(rejected.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1].body).toBe(body);
+    expect((fetchMock.mock.calls[0][1].headers as Headers).get("x-sweethome-principal-id")).toBe("opaque-subject");
   });
 });

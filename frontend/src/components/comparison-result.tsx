@@ -101,7 +101,7 @@ function ResultPanel({
         <div className="mt-6 flex flex-wrap gap-2">
           {selectedConditions.map((condition, index) => (
             <span
-              className="rounded-full border border-[#cfe2f4] bg-[#edf7ff] px-3 py-1.5 text-xs font-semibold text-[#2475d0]"
+              className="rounded-full border border-sage-line bg-sage-soft px-3 py-1.5 text-xs font-semibold text-sage"
               key={condition}
             >
               {index + 1}. {CONDITION_LABELS[condition]}
@@ -136,11 +136,11 @@ function ComparisonOverview({
   sections: ConditionComparison[];
 }) {
   return (
-    <div className="border-b border-[#d7e6df] bg-[#111a2c] p-6 text-white sm:p-10">
-      <div className="rounded-2xl border border-white/10 bg-[#172238] p-5 sm:p-8">
+    <div className="border-b border-[#d7e6df] bg-charcoal p-6 text-white sm:p-10">
+      <div className="rounded-2xl border border-white/10 bg-[#303633] p-5 sm:p-8">
         <div className="grid grid-cols-[1fr_4rem_1fr] items-center gap-3 border-b border-white/10 pb-5 text-center">
           <p className="text-lg font-semibold sm:text-2xl">{comparison.region_a.display_name}</p>
-          <span className="text-xs font-semibold text-[#8fa0bd]">비교</span>
+          <span className="text-xs font-semibold text-[#b8c2bd]">비교</span>
           <p className="text-lg font-semibold sm:text-2xl">{comparison.region_b.display_name}</p>
         </div>
         <div className="divide-y divide-white/10">
@@ -148,14 +148,14 @@ function ComparisonOverview({
             <div className="grid grid-cols-[1fr_6rem_1fr] items-center gap-3 py-5 text-center sm:grid-cols-[1fr_9rem_1fr]" key={section.id}>
               <p className="text-base font-semibold text-white sm:text-xl">{section.overview.a}</p>
               <div>
-                <p className="text-xs font-semibold text-[#a9b5ca]">{section.title}</p>
-                <p className="mt-1 text-[10px] text-[#70809d]">{section.overview.label}</p>
+                <p className="text-xs font-semibold text-[#c4ccc8]">{section.title}</p>
+                <p className="mt-1 text-[10px] text-[#929d98]">{section.overview.label}</p>
               </div>
               <p className="text-base font-semibold text-white sm:text-xl">{section.overview.b}</p>
             </div>
           ))}
         </div>
-        <p className="border-t border-white/10 pt-5 text-center text-xs leading-5 text-[#91a0b8]">
+        <p className="border-t border-white/10 pt-5 text-center text-xs leading-5 text-[#aeb8b3]">
           두 후보를 같은 시각적 무게로 보여주는 요약입니다. 선택이나 추천을 의미하는 강조는 사용하지 않습니다.
         </p>
       </div>
@@ -177,16 +177,16 @@ function ConditionComparisonCard({
       <div className="border-b border-[#e6e9ee] bg-[#fafbfd] px-5 py-5 sm:px-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex gap-4">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#17203b] text-xs font-semibold text-white">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-xs font-semibold text-white">
               {index + 1}
             </span>
             <div>
-              <h3 className="text-lg font-semibold text-[#17203b]">{section.title}</h3>
+              <h3 className="text-lg font-semibold text-ink">{section.title}</h3>
               <p className="mt-1 text-sm leading-6 text-[#697184]">{section.description}</p>
             </div>
           </div>
           <DataBasis
-            className="rounded-full border border-[#dfe3ea] bg-white px-3 py-1.5 text-xs text-[#778093]"
+            className="rounded-full border border-line bg-white px-3 py-1.5 text-xs text-[#778093]"
             primaryDate={section.basis.primaryDate}
             secondaryDate={section.basis.secondaryDate}
           />
@@ -206,20 +206,20 @@ function ConditionComparisonCard({
             key={metric.label}
           >
             <span className="font-medium text-[#626b7d]">{metric.label}</span>
-            <span className="font-semibold text-[#17203b]">{metric.a}</span>
-            <span className="font-semibold text-[#17203b]">{metric.b}</span>
+            <span className="font-semibold text-ink">{metric.a}</span>
+            <span className="font-semibold text-ink">{metric.b}</span>
           </div>
         ))}
       </div>
 
       <div className="grid gap-px border-t border-[#e6e9ee] bg-[#e6e9ee] md:grid-cols-2">
-        <div className="bg-[#f8fafc] p-5 sm:px-7">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2475d0]">
+        <div className="bg-surface-soft p-5 sm:px-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-sage">
             관측된 차이
           </p>
           <p className="mt-2 text-sm leading-6 text-[#596174]">{section.observation}</p>
         </div>
-        <div className="bg-[#f8fafc] p-5 sm:px-7">
+        <div className="bg-surface-soft p-5 sm:px-7">
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#637083]">
             지도·현장 확인
           </p>
@@ -429,7 +429,7 @@ function MapVerificationPanel({ comparison, mapHref }: { comparison: CompareResp
             주변 맥락을 같은 지도에서 이어서 살펴봅니다.
           </p>
         </div>
-        <Link className="inline-flex items-center rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#263252]" href={mapHref}>
+        <Link className="inline-flex items-center rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-charcoal" href={mapHref}>
           지도에서 두 후보 확인 →
         </Link>
       </div>
