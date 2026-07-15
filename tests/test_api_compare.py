@@ -2,7 +2,7 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.services import comparison_service, data_service
+from src.api.services import data_service
 
 
 def test_compare_regions_returns_structured_report() -> None:

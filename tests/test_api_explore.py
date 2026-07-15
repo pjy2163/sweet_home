@@ -2,7 +2,7 @@ import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.services import comparison_service
+from src.api.services import explore_service
 from src.mart.build_region_indicator_profile import build_indicator_profile
 
 
@@ -39,7 +39,7 @@ def mock_housing_rent_snapshot(monkeypatch) -> None:
             ],
         )
     monkeypatch.setattr(
-        comparison_service,
+        explore_service,
         "read_housing_rent_snapshot",
         lambda: pd.DataFrame(rows),
     )

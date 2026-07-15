@@ -25,11 +25,9 @@ from src.api.schemas import (
     MetadataResponse,
     RegionOption,
 )
-from src.api.services.comparison_service import (
-    compare_region_snapshots,
-    list_candidate_matches,
-)
+from src.api.services.comparison_service import compare_region_snapshots
 from src.api.services.data_service import warm_data_cache
+from src.api.services.explore_service import list_candidate_matches
 from src.api.services.heatmap_service import get_heatmap
 from src.api.services.region_service import get_data_metadata, list_region_options
 
