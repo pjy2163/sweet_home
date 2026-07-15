@@ -1,13 +1,6 @@
 import Link from "next/link";
-import { Noto_Sans_KR } from "next/font/google";
 
 import { BrandLogo } from "@/components/brand-logo";
-
-const notoSansKr = Noto_Sans_KR({
-  display: "swap",
-  subsets: ["latin"],
-  variable: "--font-login",
-});
 
 export default function LoginPage() {
   const redirectPath = "/app";
@@ -16,19 +9,19 @@ export default function LoginPage() {
   const githubLoginUrl = `/.auth/login/github?post_login_redirect_uri=${encodedRedirect}`;
 
   return (
-    <main className={`${notoSansKr.variable} relative min-h-screen overflow-hidden bg-[#f7f7f5] font-[family-name:var(--font-login)] text-[#303234]`}>
+    <main className="relative min-h-screen overflow-hidden bg-canvas text-ink">
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-[12%] top-[48%] h-[34rem] w-[46rem] rounded-full bg-[#f3dfe6]/75 blur-[110px]" />
-        <div className="absolute left-[30%] top-[55%] h-[26rem] w-[38rem] rounded-full bg-[#f6eadc]/80 blur-[105px]" />
-        <div className="absolute -right-[10%] top-[32%] h-[32rem] w-[42rem] rounded-full bg-[#e6f1ef]/85 blur-[120px]" />
+        <div className="absolute -left-[12%] top-[48%] h-[34rem] w-[46rem] rounded-full bg-blush/75 blur-[110px]" />
+        <div className="absolute left-[30%] top-[55%] h-[26rem] w-[38rem] rounded-full bg-peach/80 blur-[105px]" />
+        <div className="absolute -right-[10%] top-[32%] h-[32rem] w-[42rem] rounded-full bg-mint/85 blur-[120px]" />
       </div>
 
       <header className="relative z-10 flex h-20 items-center justify-between px-5 sm:px-8 lg:px-12">
-        <Link className="w-36 text-[#303234] transition hover:opacity-65" href="/" aria-label="SweetHome 홈">
+        <Link className="w-36 text-ink transition hover:opacity-65" href="/" aria-label="SweetHome 홈">
           <BrandLogo />
         </Link>
         <Link
-          className="rounded-full bg-[#303234]/[0.06] px-4 py-2 text-xs font-semibold text-[#65686b] transition hover:bg-[#303234]/10 hover:text-[#303234]"
+          className="rounded-full bg-ink/[0.06] px-4 py-2 text-xs font-semibold text-muted transition hover:bg-ink/10 hover:text-ink"
           href="/app"
         >
           서비스 둘러보기
@@ -38,22 +31,22 @@ export default function LoginPage() {
       <div className="relative z-10 grid min-h-[calc(100vh-5rem)] place-items-center px-5 pb-20 pt-8 sm:pb-28">
         <section className="w-full max-w-[430px] overflow-hidden rounded-[1.75rem] border border-white/90 bg-white/85 shadow-[0_28px_80px_rgba(67,62,63,0.10)] backdrop-blur-xl">
           <div className="px-7 pb-7 pt-8 sm:px-9 sm:pb-9 sm:pt-9">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#f2f2f0] text-[#5f6264]">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-surface-soft text-muted">
               <BrandLogo className="h-7 w-7" markOnly />
             </div>
 
-            <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.18em] text-[#9a8c91]">
+            <p className="mt-8 text-[11px] font-bold uppercase tracking-[0.18em] text-subtle">
               My SweetHome
             </p>
-            <h1 className="mt-3 text-[1.75rem] font-bold leading-[1.25] tracking-[-0.045em] text-[#282a2c] sm:text-[2rem]">
+            <h1 className="mt-3 text-[1.75rem] font-bold leading-[1.25] tracking-[-0.045em] text-ink-strong sm:text-[2rem]">
               내 비교 기록을<br />안전하게 이어보세요
             </h1>
-            <p className="mt-4 text-sm leading-6 text-[#737679]">
+            <p className="mt-4 text-sm leading-6 text-muted">
               저장한 후보와 나만의 리포트를 한곳에서 관리할 수 있도록 로그인을 준비했습니다.
             </p>
 
             <a
-              className="mt-8 flex min-h-13 items-center justify-center gap-3 rounded-xl bg-[#303234] px-5 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(48,50,52,0.16)] transition hover:-translate-y-0.5 hover:bg-[#222426] hover:shadow-[0_14px_30px_rgba(48,50,52,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#303234]"
+              className="mt-8 flex min-h-13 items-center justify-center gap-3 rounded-xl bg-ink px-5 py-3.5 text-sm font-bold text-white shadow-[0_10px_24px_rgba(48,50,52,0.16)] transition hover:-translate-y-0.5 hover:bg-charcoal hover:shadow-[0_14px_30px_rgba(48,50,52,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               href={googleLoginUrl}
             >
               <GoogleMark />
@@ -61,31 +54,31 @@ export default function LoginPage() {
             </a>
 
             <a
-              className="mt-3 flex min-h-12 items-center justify-center gap-3 rounded-xl border border-[#e7e7e4] bg-[#f7f7f5] px-5 py-3 text-sm font-semibold text-[#535659] transition hover:border-[#d7d7d3] hover:bg-[#f1f1ee] hover:text-[#303234] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#303234]"
+              className="mt-3 flex min-h-12 items-center justify-center gap-3 rounded-xl border border-line bg-canvas px-5 py-3 text-sm font-semibold text-ink transition hover:bg-surface-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
               href={githubLoginUrl}
             >
               <GitHubMark />
               GitHub로 계속하기
             </a>
 
-            <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#b0b2b3]">
-              <span className="h-px flex-1 bg-[#ecece9]" />
+            <div className="my-5 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-subtle">
+              <span className="h-px flex-1 bg-line" />
               또는
-              <span className="h-px flex-1 bg-[#ecece9]" />
+              <span className="h-px flex-1 bg-line" />
             </div>
 
             <Link
-              className="flex min-h-10 items-center justify-center text-sm font-semibold text-[#777a7c] transition hover:text-[#303234]"
+              className="flex min-h-10 items-center justify-center text-sm font-semibold text-muted transition hover:text-ink"
               href="/app"
             >
               로그인 없이 둘러보기
             </Link>
           </div>
 
-          <div className="border-t border-[#ecece9] bg-white/55 px-7 py-5 sm:px-9">
+          <div className="border-t border-line bg-white/55 px-7 py-5 sm:px-9">
             <div className="flex items-start gap-3">
               <ShieldIcon />
-              <p className="text-xs leading-5 text-[#85888a]">
+              <p className="text-xs leading-5 text-muted">
                 인증은 Google·GitHub와 Azure가 처리합니다. SweetHome은 비밀번호나 인증 토큰을 저장하지 않습니다.
               </p>
             </div>
@@ -117,7 +110,7 @@ function GitHubMark() {
 
 function ShieldIcon() {
   return (
-    <svg aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#aaa3a5]" fill="none" viewBox="0 0 20 20">
+    <svg aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-subtle" fill="none" viewBox="0 0 20 20">
       <path d="M10 2.5 16 5v4.4c0 3.8-2.4 6.3-6 8.1-3.6-1.8-6-4.3-6-8.1V5l6-2.5Z" stroke="currentColor" strokeWidth="1.5" />
       <path d="m7.4 9.8 1.7 1.7 3.7-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
     </svg>

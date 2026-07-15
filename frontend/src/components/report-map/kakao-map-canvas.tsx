@@ -243,7 +243,7 @@ function createOverlayElement({
   button.style.padding = index === 0 ? "8px 14px" : "6px 11px";
   button.style.fontSize = `${fontSize}px`;
   button.style.fontWeight = "700";
-  button.style.fontFamily = "Apple SD Gothic Neo, sans-serif";
+  button.style.fontFamily = "var(--font-noto-sans-kr), sans-serif";
   button.style.whiteSpace = "nowrap";
   button.style.boxShadow = "0 4px 16px rgba(0,0,0,0.45)";
   button.style.cursor = "pointer";

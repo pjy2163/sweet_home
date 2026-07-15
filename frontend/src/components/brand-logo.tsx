@@ -25,7 +25,7 @@ export function BrandLogo({
       {markOnly ? null : (
         <text
           fill="currentColor"
-          fontFamily="Arial, Helvetica, sans-serif"
+          fontFamily="inherit"
           fontSize="110"
           fontWeight="500"
           letterSpacing="-5.5"
