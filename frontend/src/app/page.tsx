@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { AuthMenu } from "@/components/auth-menu";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 
 const APP_URL = "/app";
@@ -138,6 +139,7 @@ export default function LandingPage() {
           <a className="w-[164px] text-[#17203b]" href="#top" aria-label="SweetHome 홈"><BrandLogo /></a>
           <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
           <div className="flex items-center gap-2">
+            <AuthMenu className="hidden px-3 py-3 text-sm font-semibold text-[#566074] sm:block" />
             <Link className="rounded-lg border border-[#cfd5df] px-3 py-3 text-sm font-semibold text-[#3f4a60] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 비교</Link>
             <ArrowLink className="hidden items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453] sm:inline-flex">내 조건 입력하기</ArrowLink>
           </div>

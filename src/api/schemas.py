@@ -10,6 +10,11 @@ class HealthResponse(BaseModel):
     service: str
 
 
+class AuthMeResponse(BaseModel):
+    authenticated: Literal[True]
+    provider: str
+
+
 class RegionOption(BaseModel):
     region_id: str
     gu_name: str

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { AuthMenu } from "@/components/auth-menu";
 import { ComparisonResult } from "@/components/comparison-result";
 import { RegionSearchCombobox } from "@/components/region-search-combobox";
 import { SingleRegionResult } from "@/components/single-region-result";
@@ -340,7 +341,12 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
           </button>
         ))}
       </nav>
-      <div className="mt-auto border-t border-[#e2e5eb] p-6 text-xs leading-5 text-[#8a91a3]">AI가 결정을 대신하지 않습니다.<br />근거를 정리해 판단을 돕습니다.</div>
+      <div className="mt-auto">
+        <div className="border-t border-[#e2e5eb] p-4">
+          <AuthMenu className="block rounded-lg px-4 py-3 text-sm font-semibold text-[#666e80] transition hover:bg-[#f5f6f8]" />
+        </div>
+        <div className="border-t border-[#e2e5eb] p-6 text-xs leading-5 text-[#8a91a3]">AI가 결정을 대신하지 않습니다.<br />근거를 정리해 판단을 돕습니다.</div>
+      </div>
     </aside>
   );
 }

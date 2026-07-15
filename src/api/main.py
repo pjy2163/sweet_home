@@ -13,10 +13,13 @@ from src.ai_report.contracts import (
 from src.ai_report.evidence import build_evidence_pack
 from src.ai_report.generate_ai_report import generate_ai_report
 from src.api.errors import (
+    AUTHENTICATION_REQUIRED,
+    FEATURE_DISABLED,
     ApiError,
     api_error_handler,
 )
 from src.api.schemas import (
+    AuthMeResponse,
     CompareResponse,
     ExploreResponse,
     HeatmapMetric,
@@ -24,6 +27,11 @@ from src.api.schemas import (
     HealthResponse,
     MetadataResponse,
     RegionOption,
+)
+from src.api.security import (
+    get_authenticated_identity,
+    is_enabled,
+    validate_internal_proxy,
 )
 from src.api.services.comparison_service import compare_region_snapshots
 from src.api.services.data_service import warm_data_cache
@@ -58,7 +66,11 @@ API_SECURITY_HEADERS = {
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
+    proxy_error = validate_internal_proxy(request)
+    if proxy_error is not None:
+        response = proxy_error
+    else:
+        response = await call_next(request)
     for header, value in API_SECURITY_HEADERS.items():
         response.headers[header] = value
     if request.url.path.startswith("/ai/reports"):
@@ -69,6 +81,18 @@ async def add_security_headers(request: Request, call_next):
 @app.get("/health", response_model=HealthResponse)
 def health_check() -> HealthResponse:
     return HealthResponse(status="ok", service="sweethome-api")
+
+
+@app.get("/auth/me", response_model=AuthMeResponse)
+def get_current_user(request: Request) -> AuthMeResponse:
+    identity = get_authenticated_identity(request)
+    if identity is None:
+        raise ApiError(
+            status_code=401,
+            code=AUTHENTICATION_REQUIRED,
+            message="로그인이 필요합니다.",
+        )
+    return AuthMeResponse(authenticated=True, provider=identity.provider)
 
 
 @app.get("/regions", response_model=list[RegionOption])
@@ -88,12 +112,23 @@ def compare_regions(a: str, b: str) -> CompareResponse:
 
 @app.post("/ai/reports/preview", response_model=AIReportEvidencePack)
 def preview_ai_report(request: AIReportPreviewRequest) -> AIReportEvidencePack:
+    require_ai_report_feature()
     return build_evidence_pack(request)
 
 
 @app.post("/ai/reports", response_model=AIReportResponse)
 def create_ai_report(request: AIReportPreviewRequest) -> AIReportResponse:
+    require_ai_report_feature()
     return generate_ai_report(request)
+
+
+def require_ai_report_feature() -> None:
+    if not is_enabled("SWEETHOME_AI_REPORT_ENABLED"):
+        raise ApiError(
+            status_code=404,
+            code=FEATURE_DISABLED,
+            message="현재 제공하지 않는 기능입니다.",
+        )
 
 
 @app.get("/explore", response_model=ExploreResponse)

@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { GET, POST } from "./route";
+import { GET } from "./route";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe("backend proxy error boundary", () => {
@@ -34,15 +35,35 @@ describe("backend proxy error boundary", () => {
       new NextRequest("https://sweethome.test/api/backend/ai/internal"),
       { params: Promise.resolve({ path: ["ai", "internal"] }) },
     );
-    const postResponse = await POST(
-      new NextRequest("https://sweethome.test/api/backend/map/internal", {
-        method: "POST",
+    expect(getResponse.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("forwards only the opaque Azure principal and internal service key", async () => {
+    vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ authenticated: true, provider: "aad" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
       }),
-      { params: Promise.resolve({ path: ["map", "internal"] }) },
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(
+      new NextRequest("https://sweethome.test/api/backend/auth/me", {
+        headers: {
+          "x-ms-client-principal-id": "opaque-subject",
+          "x-ms-client-principal-idp": "aad",
+          "x-ms-client-principal-name": "private@example.com",
+        },
+      }),
+      { params: Promise.resolve({ path: ["auth", "me"] }) },
     );
 
-    expect(getResponse.status).toBe(404);
-    expect(postResponse.status).toBe(404);
-    expect(fetchMock).not.toHaveBeenCalled();
+    const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(forwarded.get("x-sweethome-internal-key")).toBe("internal-test-key");
+    expect(forwarded.get("x-sweethome-principal-id")).toBe("opaque-subject");
+    expect(forwarded.get("x-sweethome-identity-provider")).toBe("aad");
+    expect(forwarded.has("x-ms-client-principal-name")).toBe(false);
   });
 });

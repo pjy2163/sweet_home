@@ -1,7 +1,5 @@
 import type {
-  AIReportEvidencePack,
-  AIReportResponse,
-  AIReportPreviewRequest,
+  AuthSession,
   CompareResponse,
   ExploreCondition,
   ExploreResponse,
@@ -12,6 +10,12 @@ import type {
   Metadata,
   RegionOption,
 } from "@/types/sweethome";
+
+export async function fetchAuthSession() {
+  const response = await fetch("/api/backend/auth/me", { cache: "no-store" });
+  if (response.status === 401) return null;
+  return parseJsonResponse<AuthSession>(response, "로그인 상태를 확인하지 못했습니다.");
+}
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string) {
   const payload = await response.json();
@@ -101,31 +105,5 @@ export async function fetchHeatmap(metric: HeatmapMetric) {
   return parseJsonResponse<HeatmapResponse>(
     response,
     "히트맵 데이터를 불러오지 못했습니다.",
-  );
-}
-
-export async function fetchAIReportPreview(request: AIReportPreviewRequest) {
-  const response = await fetch("/api/backend/ai/reports/preview", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  return parseJsonResponse<AIReportEvidencePack>(
-    response,
-    "후보 비교 근거를 불러오지 못했습니다.",
-  );
-}
-
-export async function fetchAIReport(request: AIReportPreviewRequest) {
-  const response = await fetch("/api/backend/ai/reports", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  return parseJsonResponse<AIReportResponse>(
-    response,
-    "상세 AI 리포트를 생성하지 못했습니다.",
   );
 }
