@@ -137,10 +137,10 @@ export default function LandingPage() {
       <header className="relative z-20 border-b border-[#e1e4ea] bg-white">
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
           <a className="w-[164px] text-[#17203b]" href="#top" aria-label="SweetHome 홈"><BrandLogo /></a>
-          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#principles">원칙</a></nav>
+          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#comparison-method">비교 방식</a></nav>
           <div className="flex items-center gap-2">
             <AuthMenu className="hidden px-3 py-3 text-sm font-semibold text-[#566074] sm:block" />
-            <Link className="rounded-lg border border-[#cfd5df] px-3 py-3 text-sm font-semibold text-[#3f4a60] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 비교</Link>
+            <Link className="rounded-lg border border-[#cfd5df] px-3 py-3 text-sm font-semibold text-[#3f4a60] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 비교하기</Link>
             <ArrowLink className="hidden items-center gap-5 rounded-lg bg-[#17203b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#273453] sm:inline-flex">내 조건 입력하기</ArrowLink>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function LandingPage() {
             <p className="text-xs font-semibold tracking-[.08em] text-[#1888e8]">서울 주거 의사결정 도구</p>
             <h1 className="mt-6 max-w-xl text-5xl font-medium leading-[1.04] tracking-[-.055em] sm:text-6xl">내 조건에 맞는 동네,<br />어디부터 살펴봐야<br />할까요?</h1>
             <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 입력하면 서울의 후보 지역을 좁혀드립니다. 후보가 남은 이유와 지역별 차이를 확인하고, 직접 살펴볼 동네를 결정해 보세요.</p>
-            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 후보 찾기</ArrowLink><Link className="rounded-lg border border-[#cfd5df] px-5 py-3.5 text-sm font-semibold text-[#4e596d] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 직접 비교 ↗</Link><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
+            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-[#17203b] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#273453]">내 조건으로 후보 찾기</ArrowLink><Link className="rounded-lg border border-[#cfd5df] px-5 py-3.5 text-sm font-semibold text-[#4e596d] transition hover:border-[#1888e8] hover:text-[#1479ca]" href={DIRECT_MAP_URL}>지도에서 비교하기 ↗</Link><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
             <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />조건에 맞는 후보와 비교 근거를 제공하고, 최종 선택은 사용자가 합니다.</p>
           </div>
           <div data-scroll-float><WorkspacePreview /></div>
@@ -183,7 +183,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
           <div className="grid gap-8 border-b border-[#dfe3e9] pb-16 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold tracking-[.08em] text-[#7f8797]">서비스가 돕는 일</p><div><h2 className="max-w-4xl text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">정보를 더 보여주는 대신,<br />선택지를 줄여드립니다.</h2><p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">SweetHome은 매물을 추천하거나 지역의 순위를 매기지 않습니다. 사용자의 예산과 생활 조건을 기준으로 후보 지역을 좁히고, 각 후보가 남은 이유와 선택할 때 고려할 차이를 보여줍니다.</p></div></div>
 
-          <div className="mt-16 grid gap-6 lg:grid-cols-2" id="principles">
+          <div className="mt-16 grid gap-6 lg:grid-cols-2" id="comparison-method">
             <DecisionProfilePreview />
             <ComparisonPreview />
           </div>

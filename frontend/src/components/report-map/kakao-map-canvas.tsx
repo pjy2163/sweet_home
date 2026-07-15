@@ -17,6 +17,7 @@ type KakaoMapCanvasProps = {
   appKey: string;
   candidateStates: Record<string, CandidateState>;
   children: ReactNode;
+  label: string;
   mapResetVersion: number;
   mapSize: MapSize;
   regions: ReportRegion[];
@@ -45,6 +46,7 @@ export function KakaoMapCanvas({
   appKey,
   candidateStates,
   children,
+  label,
   mapResetVersion,
   mapSize,
   regions,
@@ -61,7 +63,7 @@ export function KakaoMapCanvas({
 
     let disposed = false;
     let map: KakaoMap | null = null;
-    let clickMarker: KakaoMarker | null = null;
+    const clickMarkers: KakaoMarker[] = [];
     let clickHandler: ((event: { latLng: KakaoLatLng }) => void) | null = null;
     const overlays: KakaoCustomOverlay[] = [];
 
@@ -87,12 +89,15 @@ export function KakaoMapCanvas({
       } else {
         clickHandler = ({ latLng }) => {
           if (!map || disposed) return;
-          clickMarker?.setMap(null);
-          clickMarker = new maps.Marker({
+          const marker = new maps.Marker({
             map,
             position: latLng,
             title: "분석할 위치",
           });
+          clickMarkers.push(marker);
+          if (clickMarkers.length > 2) {
+            clickMarkers.shift()?.setMap(null);
+          }
           onNoticeChange({
             tone: "loading",
             text: "클릭한 위치의 행정동을 확인하는 중입니다.",
@@ -170,7 +175,7 @@ export function KakaoMapCanvas({
     return () => {
       disposed = true;
       overlays.forEach((overlay) => overlay.setMap(null));
-      clickMarker?.setMap(null);
+      clickMarkers.forEach((marker) => marker.setMap(null));
       if (map && clickHandler && window.kakao?.maps) {
         window.kakao.maps.event.removeListener(map, "click", clickHandler);
       }
@@ -201,7 +206,7 @@ export function KakaoMapCanvas({
         <div className="absolute inset-0" ref={mapRef} />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,10,11,0.10),rgba(9,10,11,0.22))]" />
         <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
-          Kakao map layer
+          {label}
         </div>
         {children}
       </div>
@@ -225,11 +230,12 @@ function createOverlayElement({
   onOpenRegion: (region: ReportRegion) => void;
 }) {
   const metricColor = OVERLAY_COLORS[region.level] ?? OVERLAY_COLORS.medium;
-  const color = candidateState === "saved"
-    ? { bg: "#1888e8", text: "#fff", border: "#0f6fbe" }
+  const color = metricColor;
+  const stateBorder = candidateState === "saved"
+    ? "#1888e8"
     : candidateState === "excluded"
-      ? { bg: "#a8afb9", text: "#fff", border: "#858c97" }
-      : metricColor;
+      ? "#858c97"
+      : color.border;
   const scale = index === 0 ? 1.25 : index <= 2 ? 1.05 : 0.9;
   const fontSize = Math.round(13 * scale);
   const rank = index + 1;
@@ -238,7 +244,7 @@ function createOverlayElement({
   button.dataset.reportRegionId = region.region_id;
   button.style.background = color.bg;
   button.style.color = color.text;
-  button.style.border = `1.5px solid ${color.border}`;
+  button.style.border = `${candidateState ? 3 : 1.5}px solid ${stateBorder}`;
   button.style.borderRadius = "999px";
   button.style.padding = index === 0 ? "8px 14px" : "6px 11px";
   button.style.fontSize = `${fontSize}px`;
@@ -249,6 +255,7 @@ function createOverlayElement({
   button.style.cursor = "pointer";
   button.style.lineHeight = "1.3";
   button.style.transition = "transform 0.12s, box-shadow 0.12s";
+  button.style.opacity = candidateState === "excluded" ? "0.58" : "1";
 
   const badgeText = candidateState === "saved"
     ? "★"
@@ -261,7 +268,12 @@ function createOverlayElement({
     badge.style.display = "inline-block";
     badge.style.marginRight = "5px";
     badge.style.fontSize = candidateState ? "10px" : "9px";
-    if (!candidateState) {
+    if (candidateState) {
+      badge.style.background = candidateState === "saved" ? "#1888e8" : "#858c97";
+      badge.style.color = "#fff";
+      badge.style.borderRadius = "99px";
+      badge.style.padding = "1px 5px";
+    } else {
       badge.style.background = color.text;
       badge.style.color = color.bg;
       badge.style.borderRadius = "99px";
@@ -273,15 +285,13 @@ function createOverlayElement({
   }
 
   button.append(document.createTextNode(region.dong_name));
-  if (region.match_count === undefined) {
-    const value = document.createElement("span");
-    value.textContent = formatRegionValue(region, unit);
-    value.style.marginLeft = "5px";
-    value.style.fontSize = `${fontSize - 2}px`;
-    value.style.fontWeight = "400";
-    value.style.opacity = "0.75";
-    button.append(value);
-  }
+  const value = document.createElement("span");
+  value.textContent = formatRegionValue(region, unit);
+  value.style.marginLeft = "5px";
+  value.style.fontSize = `${fontSize - 2}px`;
+  value.style.fontWeight = "400";
+  value.style.opacity = "0.8";
+  button.append(value);
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();

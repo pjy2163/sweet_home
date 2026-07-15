@@ -10,6 +10,7 @@ import type {
   OpenCandidateReport,
   ReportRegion,
 } from "./types";
+import { filterEvidenceMetrics } from "./evidence-filter";
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
   safety: "야간 생활환경",
@@ -87,6 +88,7 @@ export function MapSelectionReports({
   candidateStates,
   directSelectionMode,
   reports,
+  selectedConditions,
   showCautionMetrics,
   unit,
   onCandidateStateChange,
@@ -95,6 +97,7 @@ export function MapSelectionReports({
   candidateStates: Record<string, CandidateState>;
   directSelectionMode: boolean;
   reports: OpenCandidateReport[];
+  selectedConditions: ExploreCondition[];
   showCautionMetrics: boolean;
   unit: string;
   onCandidateStateChange: (regionId: string, state: CandidateState) => void;
@@ -135,6 +138,7 @@ export function MapSelectionReports({
               key={report.region.region_id}
               reportIndex={index}
               region={report.region}
+              selectedConditions={selectedConditions}
               showCautionMetrics={showCautionMetrics}
               unit={unit}
               onCandidateStateChange={(state) => onCandidateStateChange(report.region.region_id, state)}
@@ -184,6 +188,7 @@ function CandidateMiniReport({
   candidateState,
   reportIndex,
   region,
+  selectedConditions,
   showCautionMetrics,
   unit,
   onCandidateStateChange,
@@ -192,16 +197,19 @@ function CandidateMiniReport({
   candidateState?: CandidateState;
   reportIndex: number;
   region: ReportRegion;
+  selectedConditions: ExploreCondition[];
   showCautionMetrics: boolean;
   unit: string;
   onCandidateStateChange: (state: CandidateState) => void;
   onClose: () => void;
 }) {
   const evidence = useMemo(
-    () => (region.evidence_metrics ?? []).filter((metric) =>
-      showCautionMetrics || (metric.level !== "주의" && metric.reliability !== "표본 적음"),
+    () => filterEvidenceMetrics(
+      region.evidence_metrics ?? [],
+      selectedConditions,
+      showCautionMetrics,
     ),
-    [region.evidence_metrics, showCautionMetrics],
+    [region.evidence_metrics, selectedConditions, showCautionMetrics],
   );
   const evidenceProfiles = useMemo(() => buildEvidenceProfiles(evidence), [evidence]);
   return (

@@ -16,6 +16,7 @@ import {
   fetchHeatmap,
 } from "@/lib/api";
 import { DataBasis } from "@/components/data-provenance";
+import { mergeCandidateMetricRegions } from "@/components/report-map/candidate-metric-regions";
 import {
   MapClickNotice,
   MapNotice,
@@ -27,6 +28,10 @@ import {
   MapSizeControl,
   type MapSize,
 } from "@/components/report-map/map-size-control";
+import {
+  ReportControls,
+  type ReportView,
+} from "@/components/report-map/report-controls";
 import { HeatmapDistribution } from "@/components/report-map/heatmap-distribution";
 import { KakaoMapCanvas } from "@/components/report-map/kakao-map-canvas";
 import {
@@ -42,7 +47,6 @@ import type {
 import type {
   CandidateMatchRegion,
   ExploreCondition,
-  HeatmapLevel,
   HeatmapMetric,
   HeatmapRegion,
   HeatmapResponse,
@@ -59,8 +63,6 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "daytime_living_population", label: "주간 체류인구" },
   { id: "nighttime_living_population", label: "야간 체류인구" },
 ];
-
-type ReportView = "heatmap" | "map";
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
   safety: "야간 생활환경",
@@ -197,25 +199,10 @@ function ReportMapContent() {
 
   const topRegions = useMemo<ReportRegion[]>(() => {
     if (visibleCandidateRegions.length > 0) {
-      return visibleCandidateRegions.slice(0, 8).map((r) => ({
-        region_id: r.region_id,
-        gu_name: r.gu_name,
-        dong_name: r.dong_name,
-        display_name: r.display_name,
-        area_km2: r.area_km2,
-        centroid_lon: r.centroid_lon,
-        centroid_lat: r.centroid_lat,
-        map_x: r.map_x,
-        map_y: r.map_y,
-        value: r.match_count,
-        percentile: null,
-        level: "very_high" as HeatmapLevel,
-        has_data: true,
-        match_count: r.match_count,
-        matched_indicators: r.matched_indicators,
-        indicator_summary: r.indicator_summary,
-        evidence_metrics: r.evidence_metrics,
-      }));
+      return mergeCandidateMetricRegions(
+        visibleCandidateRegions.slice(0, 8),
+        heatmap?.regions ?? [],
+      );
     }
     return heatmap?.regions.filter((region) => region.has_data).slice(0, 8) ?? [];
   }, [heatmap, visibleCandidateRegions]);
@@ -223,6 +210,7 @@ function ReportMapContent() {
   function toggleCondition(condition: ExploreCondition) {
     setSelectedConditions((current) => {
       if (current.includes(condition)) {
+        if (current.length === 1) return current;
         return current.filter((item) => item !== condition);
       }
 
@@ -274,18 +262,15 @@ function ReportMapContent() {
             </div>
             <div className="mt-5">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-                지표 카테고리
+                {directSelectionMode ? "비교할 데이터" : "후보를 고를 조건"}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {CONDITION_OPTIONS.map((condition) => {
                   const selected = selectedConditions.includes(condition);
 
-                  return directSelectionMode ? (
-                    <span className="rounded-full border border-[#dce1e8] bg-white px-3 py-1.5 text-xs font-semibold text-[#626b7d]" key={condition}>
-                      {CONDITION_LABELS[condition]}
-                    </span>
-                  ) : (
+                  return (
                     <button
+                      aria-pressed={selected}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                         selected
                           ? "border-[#9bcdf7] bg-[#eaf4ff] text-[#1479ca]"
@@ -293,6 +278,7 @@ function ReportMapContent() {
                       }`}
                       key={condition}
                       onClick={() => toggleCondition(condition)}
+                      title={selected && selectedConditions.length === 1 ? "비교할 데이터는 하나 이상 선택해야 합니다" : undefined}
                       type="button"
                     >
                       {CONDITION_LABELS[condition]}
@@ -302,7 +288,7 @@ function ReportMapContent() {
               </div>
               <p className="mt-3 text-xs text-[#6a6b6b]">
                 {directSelectionMode
-                  ? "지도 클릭으로 비교할 행정동을 최대 2곳 직접 선택합니다"
+                  ? "선택한 데이터만 지도에서 고른 지역의 비교 카드에 표시됩니다"
                   : `후보군 ${visibleCandidateRegions.length}곳이 지도에 표시됩니다${savedRegionIds.size > 0 ? ` · 저장 후보 ${savedRegionIds.size}곳 우선 표시` : ""}`}
               </p>
             </div>
@@ -315,7 +301,7 @@ function ReportMapContent() {
                   onChange={(event) => setExcludeLowVolumePrice(event.target.checked)}
                   type="checkbox"
                 />
-                <span>거래량 적은 가격 지표 제외</span>
+                <span>거래량이 적은 가격 데이터 제외</span>
               </label> : null}
               <label className="flex items-start gap-3 text-xs leading-5 text-[#626b7d]">
                 <input
@@ -324,73 +310,10 @@ function ReportMapContent() {
                   onChange={(event) => setShowCautionMetrics(event.target.checked)}
                   type="checkbox"
                 />
-                <span>주의 지표도 함께 보기</span>
+                <span>주의가 필요한 데이터도 보기</span>
               </label>
             </div>
           </div>
-
-          {!directSelectionMode && selectedConditions.length > 0 && (
-            <div className="mt-4 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-                선택 조건
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedConditions.map((c) => (
-                  <span
-                    key={c}
-                    className="rounded-full border border-[#dce1e8] bg-white px-3 py-1 text-xs font-semibold text-[#626b7d]"
-                  >
-                    {CONDITION_LABELS[c]}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!directSelectionMode ? <><div className="mt-9 grid grid-cols-2 gap-2 rounded-xl border border-[#e0e4eb] bg-[#f2f4f7] p-1">
-            {[
-              { id: "map", label: "지도" },
-              { id: "heatmap", label: "지표 순위" },
-            ].map((item) => {
-              const selected = reportView === item.id;
-
-              return (
-                <button
-                  className={`rounded-lg px-3 py-3 text-sm font-medium transition ${
-                    selected
-                      ? "bg-white text-[#17203b] shadow-sm"
-                      : "text-[#747d8f] hover:bg-white/70"
-                  }`}
-                  key={item.id}
-                  onClick={() => setReportView(item.id as ReportView)}
-                  type="button"
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-7 flex flex-wrap gap-2">
-            {METRICS.map((item) => {
-              const selected = metric === item.id;
-
-              return (
-                <button
-                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
-                    selected
-                      ? "border-[#17203b] bg-[#17203b] text-white"
-                      : "border-[#dce1e8] bg-white text-[#626b7d] hover:border-[#aeb7c5]"
-                  }`}
-                  key={item.id}
-                  onClick={() => setMetric(item.id)}
-                  type="button"
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div></> : null}
 
           {!directSelectionMode && heatmap ? (
             <>
@@ -408,14 +331,25 @@ function ReportMapContent() {
         </aside>
 
         <div className="relative min-h-[760px] bg-[#eef1f3] p-5 sm:p-8">
+          {!directSelectionMode ? (
+            <ReportControls
+              metric={metric}
+              metrics={METRICS}
+              onMetricChange={setMetric}
+              onViewChange={setReportView}
+              view={reportView}
+            />
+          ) : null}
           {heatmap ? (
             <>
               <ReportVisual
                 directSelectionMode={directSelectionMode}
                 regions={heatmap.regions}
                 savedRegionIds={savedRegionIds}
+                selectedConditions={selectedConditions}
                 showCautionMetrics={showCautionMetrics}
                 topRegions={topRegions}
+                metricLabel={heatmap.metadata.metric_label}
                 unit={heatmap.metadata.unit}
                 view={reportView}
               />
@@ -444,29 +378,29 @@ function ReportMapContent() {
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid grid-cols-[5rem_1fr] gap-4 border-t border-white/10 pt-4">
-      <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
+    <div className="grid grid-cols-[5rem_1fr] gap-4 border-t border-[#e3e7ec] pt-4">
+      <dt className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a8292]">
         {label}
       </dt>
-      <dd className="text-[#cacaca]">{value}</dd>
+      <dd className="font-medium text-[#3f4a60]">{value}</dd>
     </div>
   );
 }
 
 function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] }) {
   return (
-    <section className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] p-4" aria-labelledby="data-provenance-title">
-      <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#847dff]" id="data-provenance-title">데이터 출처</p>
-      <p className="mt-3 text-sm font-semibold leading-5 text-[#e1e1e4]">{metadata.source_name}</p>
-      <dl className="mt-4 space-y-3 text-xs leading-5 text-[#9f9fa0]">
-        <div><dt className="inline text-[#6f7073]">기준일 </dt><dd className="inline"><DataBasis primaryDate={metadata.data_date ?? "원천별 확인 필요"} showLabel={false} /></dd></div>
-        <div><dt className="inline text-[#6f7073]">산출 방식 </dt><dd className="inline">{metadata.methodology}</dd></div>
-        <div><dt className="inline text-[#6f7073]">데이터 범위 </dt><dd className="inline">{metadata.data_region_count}개 행정동 · 결측 {metadata.missing_region_count}개</dd></div>
-        {metadata.source_license ? <div><dt className="inline text-[#6f7073]">이용 조건 </dt><dd className="inline">{metadata.source_license}</dd></div> : null}
+    <section className="mt-8 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4" aria-labelledby="data-provenance-title">
+      <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#2475d0]" id="data-provenance-title">데이터 출처</p>
+      <p className="mt-3 text-sm font-semibold leading-5 text-[#17203b]">{metadata.source_name}</p>
+      <dl className="mt-4 space-y-3 text-xs leading-5 text-[#667083]">
+        <div><dt className="inline font-semibold text-[#596174]">기준일 </dt><dd className="inline"><DataBasis primaryDate={metadata.data_date ?? "원천별 확인 필요"} showLabel={false} /></dd></div>
+        <div><dt className="inline font-semibold text-[#596174]">산출 방식 </dt><dd className="inline">{metadata.methodology}</dd></div>
+        <div><dt className="inline font-semibold text-[#596174]">데이터 범위 </dt><dd className="inline">{metadata.data_region_count}개 행정동 · 결측 {metadata.missing_region_count}개</dd></div>
+        {metadata.source_license ? <div><dt className="inline font-semibold text-[#596174]">이용 조건 </dt><dd className="inline">{metadata.source_license}</dd></div> : null}
       </dl>
       <div className="mt-4 flex flex-wrap gap-3 text-xs font-semibold">
-        {metadata.source_url ? <a className="text-[#a9a4ff] hover:text-white" href={metadata.source_url} rel="noreferrer" target="_blank">공식 원천 ↗</a> : null}
-        <a className="text-[#a9a4ff] hover:text-white" href={DATA_INVENTORY_URL} rel="noreferrer" target="_blank">전체 출처·한계 ↗</a>
+        {metadata.source_url ? <a className="text-[#2475d0] hover:text-[#155ba6]" href={metadata.source_url} rel="noreferrer" target="_blank">공식 원천 ↗</a> : null}
+        <a className="text-[#2475d0] hover:text-[#155ba6]" href={DATA_INVENTORY_URL} rel="noreferrer" target="_blank">전체 출처·한계 ↗</a>
       </div>
     </section>
   );
@@ -476,16 +410,20 @@ function ReportVisual({
   directSelectionMode,
   regions,
   savedRegionIds,
+  selectedConditions,
   showCautionMetrics,
   topRegions,
+  metricLabel,
   unit,
   view,
 }: {
   directSelectionMode: boolean;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
+  selectedConditions: ExploreCondition[];
   showCautionMetrics: boolean;
   topRegions: ReportRegion[];
+  metricLabel: string;
   unit: string;
   view: ReportView;
 }) {
@@ -509,8 +447,10 @@ function ReportVisual({
       directSelectionMode={directSelectionMode}
       regions={regions}
       savedRegionIds={savedRegionIds}
+      selectedConditions={selectedConditions}
       showCautionMetrics={showCautionMetrics}
       topRegions={topRegions}
+      metricLabel={metricLabel}
       unit={unit}
     />
   );
@@ -520,15 +460,19 @@ function KakaoReportMap({
   directSelectionMode,
   regions,
   savedRegionIds,
+  selectedConditions,
   showCautionMetrics,
   topRegions,
+  metricLabel,
   unit,
 }: {
   directSelectionMode: boolean;
   regions: HeatmapRegion[];
   savedRegionIds: Set<string>;
+  selectedConditions: ExploreCondition[];
   showCautionMetrics: boolean;
   topRegions: ReportRegion[];
+  metricLabel: string;
   unit: string;
 }) {
   const mapClickRequestRef = useRef(0);
@@ -679,6 +623,7 @@ function KakaoReportMap({
           candidateStates={candidateStates}
           directSelectionMode={directSelectionMode}
           reports={openReports}
+          selectedConditions={selectedConditions}
           showCautionMetrics={showCautionMetrics}
           unit={unit}
           onCandidateStateChange={updateCandidateState}
@@ -693,6 +638,7 @@ function KakaoReportMap({
       <KakaoMapCanvas
         appKey={appKey}
         candidateStates={candidateStates}
+        label={directSelectionMode ? "지도에서 비교할 위치 선택" : `지도에 표시 중 · ${metricLabel}`}
         mapResetVersion={mapResetVersion}
         mapSize={mapSize}
         regions={mappedTopRegions}
@@ -722,6 +668,7 @@ function KakaoReportMap({
         candidateStates={candidateStates}
         directSelectionMode={directSelectionMode}
         reports={openReports}
+        selectedConditions={selectedConditions}
         showCautionMetrics={showCautionMetrics}
         unit={unit}
         onCandidateStateChange={updateCandidateState}
