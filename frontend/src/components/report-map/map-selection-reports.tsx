@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { DataBasis } from "@/components/data-provenance";
 import { formatNumber, formatRatio } from "@/lib/format";
 import type { CandidateEvidenceMetric, ExploreCondition } from "@/types/sweethome";
 
@@ -103,7 +104,7 @@ export function MapSelectionReports({
     <section className="rounded-2xl border border-[#dfe3ea] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,59,.06)] sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e6e9ee] pb-5">
         <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2475d0]">Map comparison</p>
+          <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#2475d0]">지도에서 고른 후보 비교</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#17203b]">
             {directSelectionMode ? "직접 고른 두 지역의 데이터 근거" : "지도에서 선택한 후보 데이터 근거"}
           </h2>
@@ -207,7 +208,7 @@ function CandidateMiniReport({
     <aside className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-white/12 bg-[#111827] p-5 text-[#f5f5f7] shadow-[0_12px_36px_rgba(23,32,59,.12)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">{region.selection_source === "map_click" ? "Map click analysis" : `Mini Report 0${reportIndex + 1}`}</p>
+          <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#6a6b6b]">{region.selection_source === "map_click" ? "지도 선택 지역" : `후보 요약 0${reportIndex + 1}`}</p>
           <h2 className="mt-1 text-xl font-semibold">{region.display_name}</h2>
         </div>
         <button aria-label="미니 리포트 닫기" className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-sm text-[#9f9fa0] transition hover:bg-white/[0.08] hover:text-[#f5f5f7]" onClick={(event) => { event.stopPropagation(); onClose(); }} onPointerDown={(event) => event.stopPropagation()} type="button">×</button>
@@ -223,9 +224,9 @@ function CandidateMiniReport({
         <button className={`rounded-lg px-3 py-2.5 text-xs font-semibold ${candidateState === "excluded" ? "bg-white/15 text-white" : "border border-white/15 text-[#d8d8dc]"}`} onClick={() => onCandidateStateChange("excluded")} type="button">{candidateState === "excluded" ? "제외 취소" : "후보 제외"}</button>
       </div>
       <div className="mt-4">
-        {evidenceProfiles.length > 0 ? <div className="rounded-xl border border-white/10 bg-black/20 p-4"><div className="mb-4 flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#9f9fa0]">지역 데이터 프로필</p><p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#6a6b6b]">Low · Mid · High</p></div><div className="grid gap-4">{evidenceProfiles.map((profile) => <EvidenceProfileRow key={profile.condition} profile={profile} />)}</div></div> : <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-sm font-semibold">{formatMapValue(region.value, unit)}</p><p className="mt-2 text-xs leading-5 text-[#cacaca]">후보 조건 없이 연 지도에서는 선택한 지표의 현재 값만 표시합니다.</p></div>}
+        {evidenceProfiles.length > 0 ? <div className="rounded-xl border border-white/10 bg-black/20 p-4"><div className="mb-4 flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#9f9fa0]">지역 데이터 프로필</p><p className="font-mono text-[10px] tracking-[0.08em] text-[#6a6b6b]">낮음 · 보통 · 높음</p></div><div className="grid gap-4">{evidenceProfiles.map((profile) => <EvidenceProfileRow key={profile.condition} profile={profile} />)}</div></div> : <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-sm font-semibold">{formatMapValue(region.value, unit)}</p><p className="mt-2 text-xs leading-5 text-[#cacaca]">후보 조건 없이 연 지도에서는 선택한 지표의 현재 값만 표시합니다.</p></div>}
       </div>
-      {evidence.length > 0 ? <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#f5f5f7]">상세 데이터 근거</p><span className="text-[10px] text-[#6a6b6b]">{evidence.length}개 지표</span></div><div className="mt-4 grid gap-3">{evidence.map((metric) => <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3" key={`${metric.condition}-${metric.label}-${metric.data_date ?? "none"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold text-[#847dff]">{CONDITION_LABELS[metric.condition]}</p><p className="mt-1 text-xs font-semibold text-[#cacaca]">{metric.label}</p></div><p className="text-lg font-semibold text-white">{metric.display_value}</p></div><p className="mt-2 text-xs leading-5 text-[#9f9fa0]">{metric.interpretation}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#6f7378]"><span>기준 {metric.data_date ?? "확인 필요"}</span><span>{metric.reliability}</span></div></div>)}</div></div> : null}
+      {evidence.length > 0 ? <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#f5f5f7]">상세 데이터 근거</p><span className="text-[10px] text-[#6a6b6b]">{evidence.length}개 지표</span></div><div className="mt-4 grid gap-3">{evidence.map((metric) => <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3" key={`${metric.condition}-${metric.label}-${metric.data_date ?? "none"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold text-[#847dff]">{CONDITION_LABELS[metric.condition]}</p><p className="mt-1 text-xs font-semibold text-[#cacaca]">{metric.label}</p></div><p className="text-lg font-semibold text-white">{metric.display_value}</p></div><p className="mt-2 text-xs leading-5 text-[#9f9fa0]">{metric.interpretation}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#6f7378]"><DataBasis primaryDate={metric.data_date} /><span>{metric.reliability}</span></div></div>)}</div></div> : null}
     </aside>
   );
 }

@@ -82,6 +82,12 @@ export function DecisionWorkspace() {
     fetchRegions().then(setRegions).catch(() => setRegions([]));
   }, []);
 
+  useEffect(() => {
+    if (step === "comparison") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [step]);
+
   const savedCandidates = useMemo(
     () =>
       exploration?.regions.filter(
@@ -243,10 +249,10 @@ export function DecisionWorkspace() {
       <div className="min-h-screen lg:pl-[260px]">
         <header className="flex min-h-16 items-center justify-between border-b border-[#e3e6ed] bg-white px-5 sm:px-8 lg:px-12">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a91a3]">Decision workspace</p>
+            <p className="text-[11px] font-semibold tracking-[0.08em] text-[#8a91a3]">주거 후보 비교</p>
             <p className="mt-1 text-sm text-[#5f6678]">서울 행정동 · 최신 가용 데이터 기준</p>
           </div>
-          <span className="rounded-full bg-[#eef5ff] px-3 py-1.5 text-xs font-semibold text-[#2475d0]">MVP</span>
+          <span className="rounded-full bg-[#eef5ff] px-3 py-1.5 text-xs font-semibold text-[#2475d0]">서울 행정동</span>
         </header>
 
         <div className="mx-auto max-w-[1180px] px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
@@ -297,7 +303,7 @@ export function DecisionWorkspace() {
           {step === "comparison" ? (
             <div>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                <PageIntro eyebrow={singleRegion ? "Candidate analysis" : "Focused comparison"} title={singleRegion ? "알고 있는 후보를 크게 살펴봅니다" : "내가 고른 조건만 집중해서 비교합니다"} description={singleRegion ? "선택한 한 지역의 데이터 근거와 다음 확인 항목을 봅니다." : "관측된 차이와 지도에서 다시 확인할 항목을 분리해 봅니다."} />
+                <PageIntro eyebrow={singleRegion ? "후보 한 곳 살펴보기" : "선택 후보 비교"} title={singleRegion ? "알고 있는 후보를 크게 살펴봅니다" : "내가 고른 조건만 집중해서 비교합니다"} description={singleRegion ? "선택한 한 지역의 데이터 근거와 다음 확인 항목을 봅니다." : "관측된 차이와 지도에서 다시 확인할 항목을 분리해 봅니다."} />
                 <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={() => setStep(entryMode === "known" ? "profile" : "candidates")} type="button">{entryMode === "known" ? "← 후보 다시 선택" : "← 후보 보드"}</button>
               </div>
               {singleRegion ? (
@@ -326,7 +332,7 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
         <BrandLogo />
       </Link>
       <div className="px-8 py-9">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a0a6b4]">My decision</p>
+        <p className="text-[11px] font-semibold tracking-[0.08em] text-[#a0a6b4]">비교 과정</p>
         <h1 className="mt-3 text-2xl font-medium tracking-[-0.03em]">주거 의사결정</h1>
       </div>
       <nav className="px-4">
@@ -354,15 +360,15 @@ function WorkspaceSidebar({ step, onStepChange }: { step: WorkspaceStep; onStepC
 function EntryPanel({ onSelect }: { onSelect: (mode: EntryMode) => void }) {
   return (
     <section>
-      <PageIntro eyebrow="Start" title="지금 어떤 단계에 있나요?" description="후보가 있다면 직접 추가하고, 아직 없다면 내 조건으로 서울의 후보 지역을 찾아보세요." />
+      <PageIntro eyebrow="비교 시작하기" title="지금 어떤 단계에 있나요?" description="후보가 있다면 직접 추가하고, 아직 없다면 내 조건으로 서울의 후보 지역을 찾아보세요." />
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("known")} type="button">
-          <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">I have candidates</span>
+          <span className="text-xs font-semibold tracking-[.06em] text-[#1888e8]">후보 지역이 있어요</span>
           <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">고민 중인 지역이 있어요</strong>
           <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">후보 한 곳은 상세하게 살펴보고, 두 곳은 같은 조건으로 바로 비교합니다.</span>
         </button>
         <button className="min-h-64 rounded-xl border border-[#dfe3ea] bg-white p-7 text-left shadow-[0_8px_24px_rgba(23,32,59,.05)] transition hover:border-[#1888e8]" onClick={() => onSelect("unknown")} type="button">
-          <span className="text-xs font-semibold uppercase tracking-[.14em] text-[#1888e8]">Discover candidates</span>
+          <span className="text-xs font-semibold tracking-[.06em] text-[#1888e8]">조건으로 찾아볼게요</span>
           <strong className="mt-14 block text-2xl font-medium tracking-[-.035em]">어디부터 볼지 모르겠어요</strong>
           <span className="mt-4 block max-w-sm text-sm leading-6 text-[#697184]">예산과 생활 조건을 입력해 살펴볼 행정동 후보를 좁힙니다.</span>
         </button>
@@ -389,7 +395,7 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
   return (
     <section>
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageIntro eyebrow="Decision profile" title="어떤 집을 찾고 계신가요?" description="조건을 구조화하면 동일한 기준으로 살펴볼 지역을 좁힐 수 있습니다." />
+        <PageIntro eyebrow="내 조건" title="어떤 집을 찾고 계신가요?" description="조건을 구조화하면 동일한 기준으로 살펴볼 지역을 좁힐 수 있습니다." />
         <button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#596174]" onClick={onEntryBack} type="button">← 시작 방식 변경</button>
       </div>
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.35fr_.65fr]">
@@ -445,7 +451,7 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
           <button className="mt-8 h-13 w-full rounded-lg bg-[#17203b] px-5 font-semibold text-white transition hover:bg-[#263252] disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터 불러오는 중…" : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
         </div>
         <aside className="rounded-xl border border-[#dce5ef] bg-[#f1f8ff] p-6 sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Profile summary</p>
+          <p className="text-xs font-semibold tracking-[0.06em] text-[#2475d0]">입력한 조건</p>
           <h3 className="mt-4 text-xl font-semibold">현재 의사결정 기준</h3>
           <dl className="mt-6 space-y-5 text-sm"><div><dt className="text-[#7b8292]">계약</dt><dd className="mt-1 font-semibold">{profile.contractType === "monthly" ? "월세" : "전세"}</dd></div><div><dt className="text-[#7b8292]">예산 상한</dt><dd className="mt-1 font-semibold">{profile.budget || "미입력"}만원</dd></div><div><dt className="text-[#7b8292]">주거 조건</dt><dd className="mt-1 font-semibold">{profile.buildingType === "any" ? "전체 유형" : { apartment: "아파트", officetel: "오피스텔", multi_family: "연립·다세대", detached_multiunit: "단독·다가구" }[profile.buildingType]} · {profile.areaBand === "any" ? "전체 면적" : { compact: "소형", mid_size: "중형", large: "대형" }[profile.areaBand]}</dd></div><div><dt className="text-[#7b8292]">우선 확인</dt><dd className="mt-2 flex flex-wrap gap-2">{profile.conditions.map((condition) => <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-[#52627b]" key={condition}>{CONDITION_LABELS[condition]}</span>)}</dd></div></dl>
           <p className="mt-8 border-t border-[#d7e3ef] pt-5 text-xs leading-5 text-[#738197]">월세 예산에는 관리비가 포함되지 않습니다. 전체 유형이나 전체 면적을 선택하면 비교 가능한 세부 주거유형 중 예산 이내 사례가 있는 지역을 보여줍니다.</p>
@@ -459,11 +465,11 @@ function CandidateBoard({ exploration, profile, candidateStates, candidateNotes,
   exploration: ExploreResponse | null; profile: DecisionProfile; candidateStates: Record<string, CandidateState>; candidateNotes: Record<string, string>; comparisonRegionIds: string[]; exclusionReasons: Record<string, ExclusionReason>; savedCandidates: CandidateMatchRegion[]; error: string; isLoading: boolean;
   onUpdateCandidate: (regionId: string, state: CandidateState) => void; onComparisonToggle: (regionId: string) => void; onExclusionReasonChange: (regionId: string, reason: ExclusionReason) => void; onNoteChange: (regionId: string, note: string) => void; onCompare: () => void; onEditProfile: () => void;
 }) {
-  if (!exploration) return <section><PageIntro eyebrow="Candidate board" title="조건을 먼저 확인해 주세요" description="Decision Profile을 바탕으로 후보군을 구성합니다." /><button className="mt-6 rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
+  if (!exploration) return <section><PageIntro eyebrow="후보 지역" title="조건을 먼저 확인해 주세요" description="입력한 조건을 바탕으로 후보 지역을 구성합니다." /><button className="mt-6 rounded-lg bg-[#17203b] px-5 py-3 text-sm font-semibold text-white" onClick={onEditProfile} type="button">내 조건 설정</button></section>;
   const mapUrl = buildReportMapUrl(profile, savedCandidates);
   return (
     <section>
-      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="Candidate board" title="살펴볼 후보를 압축해 보세요" description="최대 3곳을 검토하며 판단 메모를 남기고, 그중 비교할 2곳을 선택하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
+      <div className="flex flex-wrap items-end justify-between gap-5"><PageIntro eyebrow="후보 지역" title="살펴볼 후보를 압축해 보세요" description="최대 3곳을 검토하며 판단 메모를 남기고, 그중 비교할 2곳을 선택하세요." /><div className="flex gap-2"><Link className="rounded-lg border border-[#b9dcfb] bg-[#edf7ff] px-4 py-2.5 text-sm font-semibold text-[#1479ca]" href={mapUrl}>지도에서 보기 ↗</Link><button className="rounded-lg border border-[#d7dce6] bg-white px-4 py-2.5 text-sm font-semibold text-[#4d5568]" onClick={onEditProfile} type="button">조건 수정</button></div></div>
       <div className="mt-7 grid gap-4 sm:grid-cols-3"><SummaryCard label="탐색 후보" value={`${exploration.regions.length}곳`} /><SummaryCard label="검토 후보" value={`${savedCandidates.length}/3`} accent /><SummaryCard label="비교 선택" value={`${comparisonRegionIds.length}/2`} /></div>
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {exploration.regions.map((region) => <CandidateCard candidateNote={candidateNotes[region.region_id] ?? ""} exclusionReason={exclusionReasons[region.region_id]} isComparisonCandidate={comparisonRegionIds.includes(region.region_id)} key={region.region_id} region={region} state={candidateStates[region.region_id]} onComparisonToggle={onComparisonToggle} onExclusionReasonChange={onExclusionReasonChange} onNoteChange={onNoteChange} onUpdate={onUpdateCandidate} />)}

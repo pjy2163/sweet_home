@@ -1,5 +1,13 @@
 import Link from "next/link";
 
+import {
+  DataBasis,
+  OfficialSourceLinks,
+} from "@/components/data-provenance";
+import {
+  COMPARISON_DATA_SOURCES,
+  type DataSourceLink,
+} from "@/lib/data-sources";
 import { formatNumber, formatRatio } from "@/lib/format";
 import { layoutStyles, textStyles } from "@/styles/components";
 import type {
@@ -24,7 +32,11 @@ type ConditionComparison = {
   id: ExploreCondition;
   title: string;
   description: string;
-  basis: string;
+  basis: {
+    primaryDate: string | null;
+    secondaryDate: string | null;
+  };
+  sources: DataSourceLink[];
   metrics: ComparisonMetric[];
   overview: ComparisonMetric;
   observation: string;
@@ -76,7 +88,7 @@ function ResultPanel({
   return (
     <div className={layoutStyles.borderedPanel}>
       <div className="border-b border-[#d7e6df] p-8 sm:p-12">
-        <p className={textStyles.eyebrow}>Focused comparison</p>
+        <p className={textStyles.eyebrow}>선택 후보 비교</p>
         <h2 className={textStyles.sectionTitle}>
           {comparison.region_a.display_name}
           <br />
@@ -162,19 +174,24 @@ function ConditionComparisonCard({
 }) {
   return (
     <article className="overflow-hidden rounded-xl border border-[#dfe4ea] bg-white">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e6e9ee] bg-[#fafbfd] px-5 py-5 sm:px-7">
-        <div className="flex gap-4">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#17203b] text-xs font-semibold text-white">
-            {index + 1}
-          </span>
-          <div>
-            <h3 className="text-lg font-semibold text-[#17203b]">{section.title}</h3>
-            <p className="mt-1 text-sm leading-6 text-[#697184]">{section.description}</p>
+      <div className="border-b border-[#e6e9ee] bg-[#fafbfd] px-5 py-5 sm:px-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex gap-4">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#17203b] text-xs font-semibold text-white">
+              {index + 1}
+            </span>
+            <div>
+              <h3 className="text-lg font-semibold text-[#17203b]">{section.title}</h3>
+              <p className="mt-1 text-sm leading-6 text-[#697184]">{section.description}</p>
+            </div>
           </div>
+          <DataBasis
+            className="rounded-full border border-[#dfe3ea] bg-white px-3 py-1.5 text-xs text-[#778093]"
+            primaryDate={section.basis.primaryDate}
+            secondaryDate={section.basis.secondaryDate}
+          />
         </div>
-        <span className="rounded-full border border-[#dfe3ea] bg-white px-3 py-1.5 text-xs text-[#778093]">
-          {section.basis}
-        </span>
+        <OfficialSourceLinks sources={section.sources} />
       </div>
 
       <div className="overflow-x-auto px-5 py-2 sm:px-7">
@@ -236,8 +253,9 @@ function priceComparison(a: RegionMetrics, b: RegionMetrics): ConditionCompariso
   return {
     id: "price",
     title: "주거 비용",
-    description: "같은 가격 mart에서 관측된 보증금 수준과 표본을 함께 봅니다.",
-    basis: dateBasis(a.price_month, b.price_month),
+    description: "같은 기준월의 서울 전월세 거래에서 보증금 수준과 거래 표본을 함께 봅니다.",
+    basis: { primaryDate: a.price_month, secondaryDate: b.price_month },
+    sources: COMPARISON_DATA_SOURCES.price,
     metrics: [
       { label: "평균 보증금", a: formatNumber(a.deposit, "만원"), b: formatNumber(b.deposit, "만원") },
       { label: "평균 전세가", a: formatNumber(a.jeonse, "만원"), b: formatNumber(b.jeonse, "만원") },
@@ -265,7 +283,8 @@ function convenienceComparison(a: RegionMetrics, b: RegionMetrics): ConditionCom
     id: "convenience",
     title: "생활 편의",
     description: "행정동에서 관측된 생활편의 업종과 점포 규모를 비교합니다.",
-    basis: dateBasis(a.commercial_date, b.commercial_date),
+    basis: { primaryDate: a.commercial_date, secondaryDate: b.commercial_date },
+    sources: COMPARISON_DATA_SOURCES.convenience,
     metrics: [
       { label: "생활편의 업종", a: formatNumber(a.industry_count, "개"), b: formatNumber(b.industry_count, "개") },
       { label: "생활편의 점포", a: formatNumber(a.store_count, "개"), b: formatNumber(b.store_count, "개") },
@@ -288,7 +307,8 @@ function safetyComparison(a: RegionMetrics, b: RegionMetrics): ConditionComparis
     id: "safety",
     title: "야간 생활환경",
     description: "안심 인프라와 야간 상권 관련 시설을 서로 다른 환경 근거로 봅니다.",
-    basis: dateBasis(a.safety_date, b.safety_date),
+    basis: { primaryDate: a.safety_date, secondaryDate: b.safety_date },
+    sources: COMPARISON_DATA_SOURCES.safety,
     metrics: [
       { label: "안심 인프라 시설", a: formatNumber(a.safe_facility_count, "개"), b: formatNumber(b.safe_facility_count, "개") },
       { label: "야간 상권 관련 시설", a: formatNumber(a.nightlife_count, "개"), b: formatNumber(b.nightlife_count, "개") },
@@ -305,7 +325,8 @@ function populationComparison(a: RegionMetrics, b: RegionMetrics): ConditionComp
     id: "population",
     title: "거주·활동 특성",
     description: "거주인구가 아닌 주간·야간 시간대별 체류 추정인구를 비교합니다.",
-    basis: dateBasis(a.population_month, b.population_month),
+    basis: { primaryDate: a.population_month, secondaryDate: b.population_month },
+    sources: COMPARISON_DATA_SOURCES.population,
     metrics: [
       { label: "주간 평균 체류인구", a: formatNumber(a.daytime_living_population, "명"), b: formatNumber(b.daytime_living_population, "명") },
       { label: "야간 평균 체류인구", a: formatNumber(a.nighttime_living_population, "명"), b: formatNumber(b.nighttime_living_population, "명") },
@@ -331,7 +352,8 @@ function transportComparison(a: RegionMetrics, b: RegionMetrics): ConditionCompa
     id: "transport",
     title: "교통 접근성",
     description: "지하철역과 버스정류소의 정적 위치 근거를 비교합니다.",
-    basis: dateBasis(a.transport_date, b.transport_date),
+    basis: { primaryDate: a.transport_date, secondaryDate: b.transport_date },
+    sources: COMPARISON_DATA_SOURCES.transport,
     metrics: [
       { label: "행정동 내부 지하철역", a: formatNumber(a.subway_station_count, "개"), b: formatNumber(b.subway_station_count, "개") },
       { label: "관측 노선", a: formatNumber(a.subway_line_count, "개"), b: formatNumber(b.subway_line_count, "개") },
@@ -351,12 +373,6 @@ function transportComparison(a: RegionMetrics, b: RegionMetrics): ConditionCompa
     verify: "실제 집 위치에서 역·정류장까지의 보행 동선, 경사, 배차와 목적지별 환승을 지도에서 다시 확인해야 합니다.",
     caution: "최근접역 거리는 행정동 대표 중심점 기준 직선거리이며 실제 도보거리나 출퇴근 시간이 아닙니다.",
   };
-}
-
-function dateBasis(a: string | null | undefined, b: string | null | undefined) {
-  if (!a && !b) return "기준일 확인 필요";
-  if (a === b) return `기준 ${a ?? "확인 필요"}`;
-  return `기준 ${a ?? "없음"} · ${b ?? "없음"}`;
 }
 
 function describeDifference(
@@ -406,7 +422,7 @@ function MapVerificationPanel({ comparison, mapHref }: { comparison: CompareResp
     <div className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12">
       <div className="flex flex-wrap items-center justify-between gap-6">
         <div>
-          <p className={textStyles.eyebrow}>Map verification</p>
+          <p className={textStyles.eyebrow}>지도에서 확인하기</p>
           <h3 className="mt-3 text-2xl font-semibold">수치 밖의 생활 동선을 확인하세요</h3>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5e7069]">
             {comparison.region_a.display_name}과 {comparison.region_b.display_name}의 위치와

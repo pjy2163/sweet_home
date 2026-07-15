@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DataBasis } from "@/components/data-provenance";
 import { layoutStyles, textStyles } from "@/styles/components";
 import type {
   CandidateEvidenceMetric,
@@ -28,7 +29,7 @@ export function SingleRegionResult({
     <section className={`${layoutStyles.section} pb-24`}>
       <div className={layoutStyles.borderedPanel}>
         <div className="border-b border-[#d7e6df] p-8 sm:p-12">
-          <p className={textStyles.eyebrow}>Single candidate analysis</p>
+          <p className={textStyles.eyebrow}>후보 한 곳 살펴보기</p>
           <p className="mt-5 text-sm font-semibold text-[#718078]">{region.gu_name}</p>
           <h2 className="mt-2 text-5xl font-medium tracking-[-0.055em] text-[#17203b] sm:text-7xl">
             {region.dong_name}
@@ -65,7 +66,7 @@ export function SingleRegionResult({
         <div className="border-t border-[#d7e6df] bg-[#eef3ef] p-8 sm:p-12">
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div>
-              <p className={textStyles.eyebrow}>Map verification</p>
+              <p className={textStyles.eyebrow}>지도에서 확인하기</p>
               <h3 className="mt-3 text-2xl font-semibold">수치가 실제 어디에 있는지 확인하세요</h3>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5e7069]">
                 생활인구, 인프라, 야간 환경과 교통 근거를 지도 위 위치와 함께 살펴봅니다.
@@ -102,9 +103,10 @@ function SingleConditionCard({
             <div className="bg-white p-5 sm:p-7" key={`${metric.label}-${metric.data_date ?? "none"}`}>
               <div className="flex items-start justify-between gap-4">
                 <p className="text-sm font-semibold text-[#667083]">{metric.label}</p>
-                <span className="rounded-full bg-[#f1f4f7] px-2.5 py-1 text-[10px] text-[#7a8292]">
-                  {metric.data_date ?? "기준일 확인 필요"}
-                </span>
+                <DataBasis
+                  className="rounded-full bg-[#f1f4f7] px-2.5 py-1 text-[10px] text-[#7a8292]"
+                  primaryDate={metric.data_date}
+                />
               </div>
               <p className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-[#17203b]">
                 {metric.display_value}

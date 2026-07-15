@@ -15,6 +15,7 @@ import {
   fetchCandidateMatches,
   fetchHeatmap,
 } from "@/lib/api";
+import { DataBasis } from "@/components/data-provenance";
 import {
   MapClickNotice,
   MapNotice,
@@ -237,10 +238,10 @@ function ReportMapContent() {
             className="font-mono text-xs font-semibold uppercase tracking-[0.16em] text-[#9f9fa0]"
             href="/app"
           >
-            ← Decision Workspace
+            ← 비교 화면
           </Link>
           <p className="mt-12 font-mono text-xs font-semibold uppercase tracking-[0.18em] text-[#6a6b6b]">
-            Detailed Report
+            지도 비교
           </p>
           <h1 className="mt-4 text-4xl font-normal leading-[1.05] tracking-[-0.055em]">
             {directSelectionMode ? "지도에서 두 지역 직접 고르기" : "지도로 보는 후보군 분포"}
@@ -254,7 +255,7 @@ function ReportMapContent() {
           {contractType && budgetMaxKrw10k ? (
             <div className="mt-5 rounded-xl border border-[#b9dcfb] bg-[#edf7ff] p-4 text-[#17203b]">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2475d0]">
-                Decision Profile
+                비교 조건
               </p>
               <p className="mt-2 text-sm font-semibold">
                 {contractType === "monthly_rent" ? "월세" : "전세 보증금"} {budgetMaxKrw10k.toLocaleString()}만원 이하
@@ -267,7 +268,7 @@ function ReportMapContent() {
 
           <div className="mt-6 rounded-xl border border-[#e0e4eb] bg-[#f8fafc] p-4">
             <div className="rounded-lg border border-[#dce5ef] bg-white p-3">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#2475d0]">Evidence basis</p>
+              <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#2475d0]">비교 기준</p>
               <p className="mt-2 text-sm font-semibold text-[#17203b]">서울 전체 분포 기준</p>
               <p className="mt-1 text-xs leading-5 text-[#748095]">모든 후보는 동일한 서울 기준 데이터로 비교합니다.</p>
             </div>
@@ -455,10 +456,10 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 function DataProvenance({ metadata }: { metadata: HeatmapResponse["metadata"] }) {
   return (
     <section className="mt-8 rounded-xl border border-white/10 bg-white/[0.04] p-4" aria-labelledby="data-provenance-title">
-      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#847dff]" id="data-provenance-title">Data provenance</p>
+      <p className="font-mono text-[10px] font-semibold tracking-[0.08em] text-[#847dff]" id="data-provenance-title">데이터 출처</p>
       <p className="mt-3 text-sm font-semibold leading-5 text-[#e1e1e4]">{metadata.source_name}</p>
       <dl className="mt-4 space-y-3 text-xs leading-5 text-[#9f9fa0]">
-        <div><dt className="inline text-[#6f7073]">기준일 </dt><dd className="inline">{metadata.data_date ?? "원천별 확인 필요"}</dd></div>
+        <div><dt className="inline text-[#6f7073]">기준일 </dt><dd className="inline"><DataBasis primaryDate={metadata.data_date ?? "원천별 확인 필요"} showLabel={false} /></dd></div>
         <div><dt className="inline text-[#6f7073]">산출 방식 </dt><dd className="inline">{metadata.methodology}</dd></div>
         <div><dt className="inline text-[#6f7073]">데이터 범위 </dt><dd className="inline">{metadata.data_region_count}개 행정동 · 결측 {metadata.missing_region_count}개</dd></div>
         {metadata.source_license ? <div><dt className="inline text-[#6f7073]">이용 조건 </dt><dd className="inline">{metadata.source_license}</dd></div> : null}
@@ -492,7 +493,7 @@ function ReportVisual({
     return (
       <div className="relative h-full min-h-[700px] overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]">
         <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
-          Internal heatmap
+          지역별 지표
         </div>
       <HeatmapDistribution
         regions={regions}
@@ -651,7 +652,7 @@ function KakaoReportMap({
           className={`relative ${MAP_SIZE_CLASS[mapSize]} overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]`}
         >
           <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#9f9fa0] backdrop-blur">
-            Kakao key required
+            지도 설정 필요
           </div>
           <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
           <HeatmapDistribution
