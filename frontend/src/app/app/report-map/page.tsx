@@ -19,6 +19,24 @@ import {
   fetchHeatmap,
 } from "@/lib/api";
 import { formatNumber, formatRatio } from "@/lib/format";
+import {
+  MapClickNotice,
+  MapNotice,
+  MapStatusBanner,
+  type MapClickNoticeState,
+} from "@/components/report-map/map-feedback";
+import {
+  MAP_SIZE_CLASS,
+  MapSizeControl,
+  type MapSize,
+} from "@/components/report-map/map-size-control";
+import { HeatmapDistribution } from "@/components/report-map/heatmap-distribution";
+import type {
+  CandidateState,
+  EvidenceProfile,
+  OpenCandidateReport,
+  ReportRegion,
+} from "@/components/report-map/types";
 import type {
   AIReportResponse,
   AIReportEvidencePack,
@@ -33,6 +51,10 @@ import type {
   HousingAreaBand,
   HousingBuildingType,
 } from "@/types/sweethome";
+import type {
+  KakaoCustomOverlay,
+  KakaoMarker,
+} from "@/types/kakao-maps";
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "jeonse_ratio", label: "전세가" },
@@ -45,43 +67,6 @@ const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
 ];
 
 type ReportView = "heatmap" | "map";
-
-type MapSize = "compact" | "standard" | "expanded";
-type CandidateState = "saved" | "excluded";
-
-type ReportRegion = HeatmapRegion & {
-  match_count?: number;
-  matched_indicators?: string[];
-  indicator_summary?: Record<string, string>;
-  evidence_metrics?: CandidateEvidenceMetric[];
-  selection_source?: "candidate" | "map_click";
-};
-
-type OpenCandidateReport = {
-  region: ReportRegion;
-};
-
-type EvidenceProfile = {
-  condition: ExploreCondition;
-  label: string;
-  status: string;
-  detail: string;
-  position: number;
-  caution: boolean;
-  matched: boolean;
-};
-
-const MAP_SIZE_OPTIONS: Array<{ id: MapSize; label: string }> = [
-  { id: "compact", label: "S" },
-  { id: "standard", label: "M" },
-  { id: "expanded", label: "L" },
-];
-
-const MAP_SIZE_CLASS: Record<MapSize, string> = {
-  compact: "h-[420px]",
-  standard: "h-[560px]",
-  expanded: "h-[700px]",
-};
 
 const CONDITION_LABELS: Record<ExploreCondition, string> = {
   safety: "야간 생활환경",
@@ -100,86 +85,6 @@ const CONDITION_OPTIONS: ExploreCondition[] = [
 ];
 const AI_REPORT_ENABLED = false;
 const DATA_INVENTORY_URL = "https://github.com/pjy2163/sweet_home#데이터-출처와-산출-기준";
-
-type KakaoLatLng = {
-  getLat: () => number;
-  getLng: () => number;
-};
-
-type KakaoMap = {
-  setCenter: (position: KakaoLatLng) => void;
-  setLevel: (level: number) => void;
-  setBounds: (bounds: KakaoLatLngBounds) => void;
-  relayout: () => void;
-};
-
-type KakaoLatLngBounds = {
-  extend: (position: KakaoLatLng) => void;
-};
-
-type KakaoCustomOverlay = {
-  setMap: (map: KakaoMap | null) => void;
-};
-
-type KakaoMarker = {
-  setMap: (map: KakaoMap | null) => void;
-};
-
-type KakaoRegionResult = {
-  address_name: string;
-  code: string;
-  region_type: "B" | "H";
-};
-
-type KakaoGeocoder = {
-  coord2RegionCode: (
-    longitude: number,
-    latitude: number,
-    callback: (result: KakaoRegionResult[], status: string) => void,
-  ) => void;
-};
-
-type KakaoMaps = {
-  LatLng: new (lat: number, lng: number) => KakaoLatLng;
-  LatLngBounds: new () => KakaoLatLngBounds;
-  Map: new (
-    container: HTMLElement,
-    options: { center: KakaoLatLng; level: number },
-  ) => KakaoMap;
-  Marker: new (options: {
-    map: KakaoMap;
-    position: KakaoLatLng;
-    title: string;
-  }) => KakaoMarker;
-  CustomOverlay: new (options: {
-    map: KakaoMap;
-    position: KakaoLatLng;
-    content: string;
-    yAnchor: number;
-    zIndex?: number;
-  }) => KakaoCustomOverlay;
-  event: {
-    addListener: (
-      target: KakaoMap,
-      eventName: "click",
-      callback: (event: { latLng: KakaoLatLng }) => void,
-    ) => void;
-  };
-  services?: {
-    Geocoder: new () => KakaoGeocoder;
-    Status: { OK: string };
-  };
-  load: (callback: () => void) => void;
-};
-
-declare global {
-  interface Window {
-    kakao?: {
-      maps: KakaoMaps;
-    };
-    __sweetHomeOpenReport?: (regionId: string) => void;
-  }
-}
 
 export default function ReportMapPage() {
   return (
@@ -597,7 +502,11 @@ function ReportVisual({
         <div className="absolute left-5 top-5 z-20 rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
           Internal heatmap
         </div>
-        <MapLayer regions={regions} topRegions={topRegions} unit={unit} />
+      <HeatmapDistribution
+        regions={regions}
+        topRegions={topRegions}
+        unit={unit}
+      />
       </div>
     );
   }
@@ -638,8 +547,8 @@ function KakaoReportMap({
   const [mapSize, setMapSize] = useState<MapSize>("standard");
   const [mapResetVersion, setMapResetVersion] = useState(0);
   const [openReports, setOpenReports] = useState<OpenCandidateReport[]>([]);
-  const [mapClickNotice, setMapClickNotice] = useState({
-    tone: "guide" as "guide" | "loading" | "success" | "error",
+  const [mapClickNotice, setMapClickNotice] = useState<MapClickNoticeState>({
+    tone: "guide",
     text: directSelectionMode
       ? "첫 번째로 비교할 위치를 지도에서 클릭하세요."
       : "지도에서 궁금한 위치를 클릭해 행정동 데이터를 확인하세요.",
@@ -1078,7 +987,11 @@ function KakaoReportMap({
             Kakao key required
           </div>
           <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
-          <MapLayer regions={regions} topRegions={directSelectionMode ? [] : topRegions} unit={unit} />
+          <HeatmapDistribution
+            regions={regions}
+            topRegions={directSelectionMode ? [] : topRegions}
+            unit={unit}
+          />
           {directSelectionMode ? (
             <DirectSelectionProgress
               reports={openReports}
@@ -1440,149 +1353,6 @@ function formatEvidenceValue(value: number | null, unit: string) {
   })}${unit}`;
 }
 
-function MapSizeControl({
-  mapSize,
-  onMapSizeChange,
-}: {
-  mapSize: MapSize;
-  onMapSizeChange: (size: MapSize) => void;
-}) {
-  return (
-    <div className="absolute right-5 top-5 z-20 flex rounded-lg border border-white/10 bg-black/45 p-1 backdrop-blur">
-      {MAP_SIZE_OPTIONS.map((option) => {
-        const selected = option.id === mapSize;
-
-        return (
-          <button
-            aria-label={`지도 크기 ${option.label}`}
-            aria-pressed={selected}
-            className={`h-8 w-8 rounded-md font-mono text-[10px] font-bold transition ${
-              selected
-                ? "bg-white text-black"
-                : "text-[#cacaca] hover:bg-white/[0.08] hover:text-[#f5f5f7]"
-            }`}
-            key={option.id}
-            onClick={() => onMapSizeChange(option.id)}
-            type="button"
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function MapLayer({
-  regions,
-  topRegions,
-  unit,
-}: {
-  regions: HeatmapRegion[];
-  topRegions: ReportRegion[];
-  unit: string;
-}) {
-  // 데이터 있는 지역만, value 높은 순 상위 20개
-  const chartRegions = useMemo(
-    () =>
-      regions
-        .filter((r) => r.has_data && r.value !== null)
-        .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
-        .slice(0, 20),
-    [regions],
-  );
-
-  const maxValue = chartRegions[0]?.value ?? 1;
-  const minValue = chartRegions[chartRegions.length - 1]?.value ?? 0;
-  const range = Math.max(maxValue - minValue, 1);
-
-  const levelColor: Record<HeatmapLevel, string> = {
-    very_high: "#847dff",
-    high:      "#00b3dd",
-    medium:    "#6a6b6b",
-    low:       "#3f4041",
-    very_low:  "#252829",
-    no_data:   "#191b1c",
-  };
-
-  return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden p-6 sm:p-8">
-      {/* 헤더 */}
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-            Distribution Chart
-          </p>
-          <h3 className="mt-1 text-lg font-medium text-[#f5f5f7]">
-            상위 20개 행정동 지표 분포
-          </h3>
-        </div>
-        <p className="text-xs text-[#6a6b6b]">단위: {unit}</p>
-      </div>
-
-      {/* 바 차트 */}
-      <div className="flex-1 overflow-y-auto pr-1">
-        <div className="grid gap-[6px]">
-          {chartRegions.map((region, index) => {
-            const barWidth = ((region.value ?? 0) - minValue) / range * 100;
-            const isTopRegion = topRegions.some((t) => t.region_id === region.region_id);
-            const color = levelColor[region.level];
-
-            return (
-              <div
-                key={region.region_id}
-                className="group flex items-center gap-3"
-                title={`${region.display_name}: ${formatMapValue(region.value, unit)}`}
-              >
-                {/* 순위 */}
-                <span className="w-5 shrink-0 text-right font-mono text-[10px] text-[#6a6b6b]">
-                  {index + 1}
-                </span>
-
-                {/* 동 이름 */}
-                <span
-                  className={`w-[88px] shrink-0 truncate text-xs font-semibold ${
-                    isTopRegion ? "text-[#f5f5f7]" : "text-[#9f9fa0]"
-                  }`}
-                >
-                  {region.dong_name}
-                  {isTopRegion && (
-                    <span className="ml-1 text-[9px] font-bold text-[#847dff]">●</span>
-                  )}
-                </span>
-
-                {/* 바 */}
-                <div className="relative flex-1 h-[18px] overflow-hidden rounded-[3px] bg-white/[0.05]">
-                  <div
-                    className="h-full rounded-[3px] transition-all duration-300"
-                    style={{
-                      width: `${Math.max(barWidth, 2)}%`,
-                      background: color,
-                      opacity: isTopRegion ? 1 : 0.55,
-                    }}
-                  />
-                </div>
-
-                {/* 수치 */}
-                <span className="w-[56px] shrink-0 text-right font-mono text-[10px] text-[#9f9fa0] group-hover:text-[#f5f5f7]">
-                  {formatMapValue(region.value, unit)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 범례: 후보군 표시 설명 */}
-      {topRegions.length > 0 && (
-        <p className="mt-4 text-[10px] text-[#6a6b6b]">
-          <span className="text-[#847dff]">●</span> 후보군에 포함된 행정동
-        </p>
-      )}
-    </div>
-  );
-}
-
 function TopRegionCards({
   candidateStates,
   selectedRegionIds,
@@ -1881,29 +1651,6 @@ function DirectSelectionProgress({
   );
 }
 
-function MapClickNotice({
-  notice,
-}: {
-  notice: {
-    tone: "guide" | "loading" | "success" | "error";
-    text: string;
-  };
-}) {
-  const toneClass = {
-    guide: "border-white/10 bg-black/55 text-[#d8d8dc]",
-    loading: "border-[#847dff]/35 bg-[#17152b]/90 text-[#d8d6ff]",
-    success: "border-[#5bc89a]/35 bg-[#10251d]/90 text-[#b8f0d8]",
-    error: "border-[#e8988f]/35 bg-[#2a1716]/90 text-[#ffc7c2]",
-  }[notice.tone];
-
-  return (
-    <div className={`absolute bottom-5 left-5 z-20 max-w-[28rem] rounded-xl border px-4 py-3 text-xs leading-5 shadow-lg backdrop-blur ${toneClass}`}>
-      <p className="font-semibold">위치 선택 분석</p>
-      <p className="mt-1 opacity-85">{notice.text}</p>
-    </div>
-  );
-}
-
 function toReportRegion(
   region: CandidateMatchRegion,
   selectionSource: ReportRegion["selection_source"] = "candidate",
@@ -2049,32 +1796,6 @@ function evidenceConditionLabel(condition: EvidenceProfile["condition"]) {
   };
 
   return labels[condition];
-}
-
-function MapStatusBanner({
-  onRetry,
-  text,
-  tone = "loading",
-}: {
-  onRetry?: () => void;
-  text: string;
-  tone?: "loading" | "error";
-}) {
-  return (
-    <div className={`absolute right-8 top-8 z-50 max-w-sm rounded-xl border px-4 py-3 text-xs leading-5 shadow-lg backdrop-blur ${tone === "error" ? "border-[#e8988f]/35 bg-[#2a1716]/95 text-[#ffc7c2]" : "border-[#847dff]/30 bg-[#17152b]/90 text-[#d8d6ff]"}`} role={tone === "error" ? "alert" : "status"}>
-      <p>{text}</p>
-      {onRetry ? <button className="mt-2 rounded-lg border border-current/25 px-3 py-1.5 font-semibold hover:bg-white/10" onClick={onRetry} type="button">다시 시도</button> : null}
-    </div>
-  );
-}
-
-function MapNotice({ text, onRetry }: { text: string; onRetry?: () => void }) {
-  return (
-    <div className="absolute left-1/2 top-1/2 w-[min(420px,calc(100%_-_48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#0f1011] p-6 text-center text-sm font-medium text-[#9f9fa0]">
-      <p>{text}</p>
-      {onRetry ? <button className="mt-4 rounded-lg border border-white/15 bg-white/[0.05] px-4 py-2 text-xs font-semibold text-white hover:bg-white/10" onClick={onRetry} type="button">다시 시도</button> : null}
-    </div>
-  );
 }
 
 function formatMapValue(value: number | null, unit: string) {
