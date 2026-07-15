@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from src.api.main import app
-from src.api.services import comparison_service
+from src.api.services import region_service
 
 
 def test_metadata_returns_data_basis() -> None:
@@ -20,7 +20,7 @@ def test_metadata_returns_data_basis() -> None:
 
 
 def test_metadata_supports_snapshot_without_price_lineage_columns(monkeypatch) -> None:
-    snapshot = comparison_service.read_enriched_snapshot().drop(
+    snapshot = region_service.read_enriched_snapshot().drop(
         columns=[
             "가격_최신가용월",
             "가격_선택정책",
@@ -28,8 +28,8 @@ def test_metadata_supports_snapshot_without_price_lineage_columns(monkeypatch) -
         ],
         errors="ignore",
     )
-    monkeypatch.setattr(comparison_service, "read_enriched_snapshot", lambda: snapshot)
+    monkeypatch.setattr(region_service, "read_enriched_snapshot", lambda: snapshot)
 
-    metadata = comparison_service.get_data_metadata()
+    metadata = region_service.get_data_metadata()
 
     assert metadata.price_latest_month == str(snapshot["가격_기준월"].dropna().max())

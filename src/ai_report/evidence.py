@@ -20,11 +20,11 @@ from src.ai_report.contracts import (
     EvidenceSourceDocument,
     InterpretationPolicy,
 )
-from src.api.services.comparison_service import resolve_region
 from src.api.services.data_service import (
     SNAPSHOT_PATH,
     read_enriched_snapshot,
 )
+from src.api.services.region_service import resolve_region
 from src.api.errors import ApiError, REPORT_REGIONS_MUST_DIFFER
 from src.report.generate_report import (
     HIGH_PRICE_THRESHOLD,
