@@ -156,4 +156,5 @@ output registryName string = registry.name
 output backendName string = backend.name
 output frontendName string = frontend.name
 output frontendUrl string = 'https://${frontend.properties.configuration.ingress.fqdn}'
-output authCallbackUrl string = 'https://${frontend.properties.configuration.ingress.fqdn}/.auth/login/aad/callback'
+output googleAuthCallbackUrl string = 'https://${frontend.properties.configuration.ingress.fqdn}/.auth/login/google/callback'
+output githubAuthCallbackUrl string = 'https://${frontend.properties.configuration.ingress.fqdn}/.auth/login/github/callback'

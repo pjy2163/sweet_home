@@ -54,5 +54,5 @@ def get_authenticated_identity(request: Request) -> AuthenticatedIdentity | None
     subject = request.headers.get(PRINCIPAL_ID_HEADER, "").strip()
     if not subject:
         return None
-    provider = request.headers.get(IDENTITY_PROVIDER_HEADER, "").strip() or "aad"
+    provider = request.headers.get(IDENTITY_PROVIDER_HEADER, "").strip() or "unknown"
     return AuthenticatedIdentity(subject=subject, provider=provider)

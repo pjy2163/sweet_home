@@ -42,7 +42,7 @@ describe("backend proxy error boundary", () => {
   it("forwards only the opaque Azure principal and internal service key", async () => {
     vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ authenticated: true, provider: "aad" }), {
+      new Response(JSON.stringify({ authenticated: true, provider: "github" }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
@@ -53,7 +53,7 @@ describe("backend proxy error boundary", () => {
       new NextRequest("https://sweethome.test/api/backend/auth/me", {
         headers: {
           "x-ms-client-principal-id": "opaque-subject",
-          "x-ms-client-principal-idp": "aad",
+          "x-ms-client-principal-idp": "github",
           "x-ms-client-principal-name": "private@example.com",
         },
       }),
@@ -63,7 +63,7 @@ describe("backend proxy error boundary", () => {
     const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
     expect(forwarded.get("x-sweethome-internal-key")).toBe("internal-test-key");
     expect(forwarded.get("x-sweethome-principal-id")).toBe("opaque-subject");
-    expect(forwarded.get("x-sweethome-identity-provider")).toBe("aad");
+    expect(forwarded.get("x-sweethome-identity-provider")).toBe("github");
     expect(forwarded.has("x-ms-client-principal-name")).toBe(false);
   });
 });

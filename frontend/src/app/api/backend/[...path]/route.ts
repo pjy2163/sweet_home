@@ -28,7 +28,7 @@ function backendHeaders(request: NextRequest) {
     headers.set("x-sweethome-principal-id", principal);
     headers.set(
       "x-sweethome-identity-provider",
-      request.headers.get("x-ms-client-principal-idp")?.trim() || "aad",
+      request.headers.get("x-ms-client-principal-idp")?.trim() || "unknown",
     );
   }
   return headers;

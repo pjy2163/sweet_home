@@ -6,14 +6,6 @@ LOCATION="${LOCATION:-koreacentral}"
 PREFIX="${PREFIX:-sweethome-prod}"
 TAG="${TAG:-$(git rev-parse --short HEAD)}"
 
-required=(AZURE_TENANT_ID SWEETHOME_AAD_CLIENT_ID SWEETHOME_AAD_CLIENT_SECRET)
-for name in "${required[@]}"; do
-  if [[ -z "${!name:-}" ]]; then
-    echo "Missing required environment variable: ${name}" >&2
-    exit 1
-  fi
-done
-
 for command in az openssl git; do
   command -v "${command}" >/dev/null || { echo "Missing command: ${command}" >&2; exit 1; }
 done
@@ -52,17 +44,11 @@ az deployment group create \
 
 BACKEND="$(az deployment group show --resource-group "${RESOURCE_GROUP}" --name sweethome-infra --query properties.outputs.backendName.value -o tsv)"
 FRONTEND="$(az deployment group show --resource-group "${RESOURCE_GROUP}" --name sweethome-infra --query properties.outputs.frontendName.value -o tsv)"
-CALLBACK="$(az deployment group show --resource-group "${RESOURCE_GROUP}" --name sweethome-infra --query properties.outputs.authCallbackUrl.value -o tsv)"
-
-az containerapp auth microsoft update \
-  --name "${FRONTEND}" --resource-group "${RESOURCE_GROUP}" \
-  --client-id "${SWEETHOME_AAD_CLIENT_ID}" \
-  --client-secret "${SWEETHOME_AAD_CLIENT_SECRET}" \
-  --tenant-id "${AZURE_TENANT_ID}" --yes --output none
-az containerapp auth update \
-  --name "${FRONTEND}" --resource-group "${RESOURCE_GROUP}" \
-  --unauthenticated-client-action AllowAnonymous --output none
+GOOGLE_CALLBACK="$(az deployment group show --resource-group "${RESOURCE_GROUP}" --name sweethome-infra --query properties.outputs.googleAuthCallbackUrl.value -o tsv)"
+GITHUB_CALLBACK="$(az deployment group show --resource-group "${RESOURCE_GROUP}" --name sweethome-infra --query properties.outputs.githubAuthCallbackUrl.value -o tsv)"
 
 FRONTEND_URL="$(az containerapp show --name "${FRONTEND}" --resource-group "${RESOURCE_GROUP}" --query properties.configuration.ingress.fqdn -o tsv)"
 echo "Deployment complete: https://${FRONTEND_URL}"
-echo "Ensure this redirect URI exists in the Entra app registration: ${CALLBACK}"
+echo "Google redirect URI: ${GOOGLE_CALLBACK}"
+echo "GitHub callback URL: ${GITHUB_CALLBACK}"
+echo "Register both callbacks, export the provider credentials, then run scripts/configure_azure_auth.sh."

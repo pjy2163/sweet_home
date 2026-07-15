@@ -30,7 +30,7 @@ def test_auth_me_accepts_only_identity_forwarded_by_trusted_proxy(monkeypatch) -
             headers={
                 **proxy_headers,
                 "x-sweethome-principal-id": "opaque-subject",
-                "x-sweethome-identity-provider": "aad",
+                "x-sweethome-identity-provider": "google",
             },
         )
         spoofed = client.get(
@@ -40,7 +40,7 @@ def test_auth_me_accepts_only_identity_forwarded_by_trusted_proxy(monkeypatch) -
 
     assert anonymous.status_code == 401
     assert authenticated.status_code == 200
-    assert authenticated.json() == {"authenticated": True, "provider": "aad"}
+    assert authenticated.json() == {"authenticated": True, "provider": "google"}
     assert "subject" not in authenticated.json()
     assert spoofed.status_code == 403
 
