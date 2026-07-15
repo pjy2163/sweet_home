@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Script from "next/script";
 import {
   Suspense,
   useCallback,
@@ -18,7 +17,6 @@ import {
   fetchCandidateMatches,
   fetchHeatmap,
 } from "@/lib/api";
-import { formatNumber, formatRatio } from "@/lib/format";
 import {
   MapClickNotice,
   MapNotice,
@@ -31,16 +29,20 @@ import {
   type MapSize,
 } from "@/components/report-map/map-size-control";
 import { HeatmapDistribution } from "@/components/report-map/heatmap-distribution";
+import { KakaoMapCanvas } from "@/components/report-map/kakao-map-canvas";
+import {
+  DirectSelectionProgress,
+  MapSelectionReports,
+  TopRegionCards,
+} from "@/components/report-map/map-selection-reports";
 import type {
   CandidateState,
-  EvidenceProfile,
   OpenCandidateReport,
   ReportRegion,
 } from "@/components/report-map/types";
 import type {
   AIReportResponse,
   AIReportEvidencePack,
-  CandidateEvidenceMetric,
   CandidateMatchRegion,
   EvidenceChartSpec,
   ExploreCondition,
@@ -51,10 +53,6 @@ import type {
   HousingAreaBand,
   HousingBuildingType,
 } from "@/types/sweethome";
-import type {
-  KakaoCustomOverlay,
-  KakaoMarker,
-} from "@/types/kakao-maps";
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "jeonse_ratio", label: "전세가" },
@@ -538,9 +536,7 @@ function KakaoReportMap({
   topRegions: ReportRegion[];
   unit: string;
 }) {
-  const mapRef = useRef<HTMLDivElement | null>(null);
   const mapClickRequestRef = useRef(0);
-  const [mapReady, setMapReady] = useState(false);
   const [candidateStates, setCandidateStates] = useState<Record<string, CandidateState>>(
     () => Object.fromEntries([...savedRegionIds].map((regionId) => [regionId, "saved"])),
   );
@@ -753,230 +749,6 @@ function KakaoReportMap({
     });
   }, []);
 
-  useEffect(() => {
-    window.__sweetHomeOpenReport = (regionId: string) => {
-      const region = mappedTopRegions.find((item) => item.region_id === regionId);
-      if (region) {
-        openRegionReport(region);
-      }
-    };
-
-    function handleOverlayClick(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof HTMLElement)) return;
-
-      const overlay = target.closest<HTMLElement>("[data-report-region-id]");
-      const regionId = overlay?.dataset.reportRegionId;
-      if (!regionId) return;
-
-      const region = mappedTopRegions.find((item) => item.region_id === regionId);
-      if (region) {
-        openRegionReport(region);
-      }
-    }
-
-    document.addEventListener("click", handleOverlayClick);
-    return () => {
-      document.removeEventListener("click", handleOverlayClick);
-      window.__sweetHomeOpenReport = undefined;
-    };
-  }, [mappedTopRegions, openRegionReport]);
-
-  // SDK 로드 완료 후 또는 데이터가 바뀔 때 지도 재그리기
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) {
-      return;
-    }
-
-    function drawMap() {
-      if (!window.kakao?.maps || !mapRef.current) return;
-
-      const maps = window.kakao.maps;
-      const centerRegion = mappedTopRegions[0];
-      const center = new maps.LatLng(
-        centerRegion?.centroid_lat ?? 37.5665,
-        centerRegion?.centroid_lon ?? 126.978,
-      );
-      const map = new maps.Map(mapRef.current, { center, level: 8 });
-      const bounds = new maps.LatLngBounds();
-      const services = maps.services;
-      const geocoder = services ? new services.Geocoder() : null;
-      let clickMarker: KakaoMarker | null = null;
-
-      if (!geocoder || !services) {
-        setMapClickNotice({
-          tone: "error",
-          text: "위치 분석 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해 주세요.",
-        });
-      } else {
-        maps.event.addListener(map, "click", ({ latLng }) => {
-          if (clickMarker) clickMarker.setMap(null);
-          clickMarker = new maps.Marker({
-            map,
-            position: latLng,
-            title: "분석할 위치",
-          });
-
-          setMapClickNotice({
-            tone: "loading",
-            text: "클릭한 위치의 행정동을 확인하는 중입니다.",
-          });
-          geocoder.coord2RegionCode(
-            latLng.getLng(),
-            latLng.getLat(),
-            (result, status) => {
-              if (status !== services.Status.OK) {
-                setMapClickNotice({
-                  tone: "error",
-                  text: "클릭한 위치의 행정동을 확인하지 못했습니다.",
-                });
-                return;
-              }
-
-              const administrativeRegion = result.find(
-                (region) => region.region_type === "H",
-              );
-              if (!administrativeRegion) {
-                setMapClickNotice({
-                  tone: "error",
-                  text: "이 위치에서는 행정동 정보를 찾을 수 없습니다.",
-                });
-                return;
-              }
-
-              void analyzeClickedRegion(
-                administrativeRegion.code,
-                administrativeRegion.address_name,
-              );
-            },
-          );
-        });
-      }
-
-      // 레벨별 오버레이 색상
-      const overlayColors: Record<HeatmapLevel, { bg: string; text: string; border: string }> = {
-        very_high: { bg: "#847dff", text: "#fff",    border: "#6c65e0" },
-        high:      { bg: "#00b3dd", text: "#fff",    border: "#0090b2" },
-        medium:    { bg: "#3f4041", text: "#cacaca", border: "#5a5b5c" },
-        low:       { bg: "#252829", text: "#9f9fa0", border: "#3a3b3c" },
-        very_low:  { bg: "#191b1c", text: "#6a6b6b", border: "#2a2b2c" },
-        no_data:   { bg: "#191b1c", text: "#6a6b6b", border: "#2a2b2c" },
-      };
-
-      // 오버레이 객체를 배열에 보관해서 호버 시 재삽입으로 앞으로 올림
-      const overlays: KakaoCustomOverlay[] = [];
-
-      mappedTopRegions.forEach((region, index) => {
-        if (region.centroid_lat === null || region.centroid_lon === null) return;
-
-        const position = new maps.LatLng(region.centroid_lat, region.centroid_lon);
-        bounds.extend(position);
-
-        const candidateState = candidateStates[region.region_id];
-        const metricColor = overlayColors[region.level] ?? overlayColors.medium;
-        const color = candidateState === "saved"
-          ? { bg: "#1888e8", text: "#fff", border: "#0f6fbe" }
-          : candidateState === "excluded"
-            ? { bg: "#a8afb9", text: "#fff", border: "#858c97" }
-            : metricColor;
-        const scale = index === 0 ? 1.25 : index <= 2 ? 1.05 : 0.9;
-        const fontSize = Math.round(13 * scale);
-        const padding = index === 0 ? "8px 14px" : "6px 11px";
-        const valueText = formatRegionSummary(region, unit);
-        const rank = index + 1;
-        const rankBadge = candidateState === "saved"
-          ? `<span style="display:inline-block;margin-right:5px;font-size:10px">★</span>`
-          : candidateState === "excluded"
-            ? `<span style="display:inline-block;margin-right:5px;font-size:11px">×</span>`
-            : rank <= 3
-          ? `<span style="
-              display:inline-block;
-              margin-right:5px;
-              background:${color.text};
-              color:${color.bg};
-              border-radius:99px;
-              font-size:9px;
-              font-weight:800;
-              padding:1px 5px;
-              line-height:1.4;
-            ">${rank}</span>`
-            : "";
-
-        const overlayId = `sh-overlay-${region.region_id}`;
-
-        const content = `
-          <div
-            id="${overlayId}"
-            data-report-region-id="${region.region_id}"
-            role="button"
-            tabindex="0"
-            onclick="event.stopPropagation(); window.__sweetHomeOpenReport && window.__sweetHomeOpenReport('${region.region_id}')"
-            onmousedown="event.stopPropagation()"
-            onmouseup="event.stopPropagation()"
-            onpointerdown="event.stopPropagation()"
-            onpointerup="event.stopPropagation()"
-            onmouseenter="this.style.transform='scale(1.1)'; this.style.boxShadow='0 8px 28px rgba(0,0,0,0.65)'; this.parentElement && (this.parentElement.style.zIndex='9999')"
-            onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 16px rgba(0,0,0,0.45)'; this.parentElement && (this.parentElement.style.zIndex='${mappedTopRegions.length - index}')"
-            style="
-              background:${color.bg};
-              color:${color.text};
-              border:1.5px solid ${color.border};
-              border-radius:999px;
-              padding:${padding};
-              font-size:${fontSize}px;
-              font-weight:700;
-              font-family:'Apple SD Gothic Neo',sans-serif;
-              white-space:nowrap;
-              box-shadow:0 4px 16px rgba(0,0,0,0.45);
-              cursor:pointer;
-              line-height:1.3;
-              transition:transform 0.12s,box-shadow 0.12s;
-            "
-          >
-            ${rankBadge}${region.dong_name}
-            <span style="
-              margin-left:5px;
-              font-size:${fontSize - 2}px;
-              font-weight:400;
-              opacity:0.75;
-            ">${region.match_count === undefined ? valueText : ""}</span>
-          </div>`;
-
-        const overlay = new maps.CustomOverlay({
-          map,
-          position,
-          content,
-          yAnchor: 1.3,
-          zIndex: mappedTopRegions.length - index,
-        });
-        overlays.push(overlay);
-
-        // 호버 이벤트는 DOM 삽입 후 연결해야 함 — requestAnimationFrame으로 지연
-        requestAnimationFrame(() => {
-          const el = document.getElementById(overlayId);
-          if (!el) return;
-
-          el.addEventListener("click", () => {
-            openRegionReport(region);
-          });
-        });
-      });
-
-      if (mappedTopRegions.length > 1) {
-        map.setBounds(bounds);
-      } else if (mappedTopRegions.length === 1) {
-        map.setCenter(center);
-        map.setLevel(7);
-      } else {
-        map.setCenter(center);
-        map.setLevel(8);
-      }
-      map.relayout();
-    }
-
-    window.kakao?.maps.load(drawMap);
-  }, [analyzeClickedRegion, candidateStates, mapReady, mapResetVersion, mapSize, mappedTopRegions, openRegionReport, unit]);
-
   if (!appKey) {
     return (
       <div className="grid h-full min-h-[700px] content-start gap-4">
@@ -1032,21 +804,17 @@ function KakaoReportMap({
 
   return (
     <div className="grid h-full min-h-[700px] content-start gap-4">
-      {/* Next.js Script 컴포넌트로 SDK 로드 — CORB 방지 */}
-      <Script
-        src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=services`}
-        strategy="afterInteractive"
-        onReady={() => setMapReady(true)}
-        onError={() => setMapReady(false)}
-      />
-      <div
-        className={`relative ${MAP_SIZE_CLASS[mapSize]} overflow-hidden rounded-2xl border border-white/10 bg-[#0f1011]`}
+      <KakaoMapCanvas
+        appKey={appKey}
+        candidateStates={candidateStates}
+        mapResetVersion={mapResetVersion}
+        mapSize={mapSize}
+        regions={mappedTopRegions}
+        unit={unit}
+        onAnalyzeRegion={analyzeClickedRegion}
+        onNoticeChange={setMapClickNotice}
+        onOpenRegion={openRegionReport}
       >
-        <div ref={mapRef} className="absolute inset-0" />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(9,10,11,0.10),rgba(9,10,11,0.22))]" />
-        <div className="absolute left-5 top-5 rounded-lg border border-white/10 bg-black/45 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#cacaca] backdrop-blur">
-          Kakao map layer
-        </div>
         {directSelectionMode ? (
           <DirectSelectionProgress
             reports={openReports}
@@ -1055,7 +823,7 @@ function KakaoReportMap({
         ) : null}
         <MapClickNotice notice={mapClickNotice} />
         <MapSizeControl mapSize={mapSize} onMapSizeChange={setMapSize} />
-      </div>
+      </KakaoMapCanvas>
       {!directSelectionMode ? <TopRegionCards
         candidateStates={candidateStates}
         selectedRegionIds={openReports.map((report) => report.region.region_id)}
@@ -1353,304 +1121,6 @@ function formatEvidenceValue(value: number | null, unit: string) {
   })}${unit}`;
 }
 
-function TopRegionCards({
-  candidateStates,
-  selectedRegionIds,
-  topRegions,
-  unit,
-  onCandidateStateChange,
-  onSelectRegion,
-}: {
-  candidateStates: Record<string, CandidateState>;
-  selectedRegionIds: string[];
-  topRegions: ReportRegion[];
-  unit: string;
-  onCandidateStateChange: (regionId: string, state: CandidateState) => void;
-  onSelectRegion: (region: ReportRegion) => void;
-}) {
-  return (
-    <div className="grid gap-3 md:grid-cols-4">
-      {topRegions.slice(0, 4).map((region, index) => {
-        const selected = selectedRegionIds.includes(region.region_id);
-        const candidateState = candidateStates[region.region_id];
-
-        return (
-          <article
-            className={`rounded-xl border bg-white p-4 text-[#17203b] shadow-[0_8px_24px_rgba(23,32,59,0.06)] transition ${
-              selected
-                ? "border-[#1888e8] ring-1 ring-[#1888e8]"
-                : candidateState === "excluded"
-                  ? "border-[#e0e4eb] opacity-55"
-                  : "border-[#e0e4eb] hover:border-[#aeb7c5]"
-            }`}
-            key={region.region_id}
-          >
-            <button className="w-full text-left" onClick={() => onSelectRegion(region)} type="button">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a91a0]">0{index + 1}</p>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${candidateState === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : candidateState === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{candidateState === "saved" ? "저장됨" : candidateState === "excluded" ? "제외됨" : "후보"}</span>
-              </div>
-              <h2 className="mt-2 truncate text-lg font-medium">{region.display_name}</h2>
-              <p className="mt-3 text-sm text-[#7a8292]">{region.match_count === undefined ? formatRegionSummary(region, unit) : "근거 보기"}</p>
-            </button>
-            <div className="mt-4 grid grid-cols-2 gap-2 border-t border-[#eceef2] pt-3">
-              <button className={`rounded-lg px-3 py-2 text-xs font-semibold ${candidateState === "saved" ? "bg-[#eaf4ff] text-[#1888e8]" : "border border-[#dce1e8] text-[#596174]"}`} onClick={() => onCandidateStateChange(region.region_id, "saved")} type="button">{candidateState === "saved" ? "저장 취소" : "후보 저장"}</button>
-              <button className={`rounded-lg px-3 py-2 text-xs font-semibold ${candidateState === "excluded" ? "bg-[#f0f1f3] text-[#777e8c]" : "border border-[#dce1e8] text-[#747b89]"}`} onClick={() => onCandidateStateChange(region.region_id, "excluded")} type="button">{candidateState === "excluded" ? "제외 취소" : "제외"}</button>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-
-function MapSelectionReports({
-  candidateStates,
-  directSelectionMode,
-  reports,
-  showCautionMetrics,
-  unit,
-  onCandidateStateChange,
-  onClose,
-}: {
-  candidateStates: Record<string, CandidateState>;
-  directSelectionMode: boolean;
-  reports: OpenCandidateReport[];
-  showCautionMetrics: boolean;
-  unit: string;
-  onCandidateStateChange: (regionId: string, state: CandidateState) => void;
-  onClose: (regionId: string) => void;
-}) {
-  return (
-    <section className="rounded-2xl border border-[#dfe3ea] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,59,.06)] sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e6e9ee] pb-5">
-        <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2475d0]">Map comparison</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#17203b]">
-            {directSelectionMode ? "직접 고른 두 지역의 데이터 근거" : "지도에서 선택한 후보 데이터 근거"}
-          </h2>
-        </div>
-        <p className="text-xs text-[#798294]">선택 {reports.length}/2 · 추천이나 종합 순위가 아닙니다</p>
-      </div>
-      <div className="mt-5 grid items-stretch gap-4 lg:grid-cols-2">
-        {[0, 1].map((index) => {
-          const report = reports[index];
-          if (!report) {
-            return (
-              <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-[#cfd5df] bg-[#f7f9fb] p-8 text-center" key={index}>
-                <div>
-                  <p className="font-mono text-xs font-semibold text-[#1888e8]">0{index + 1}</p>
-                  <p className="mt-3 text-lg font-semibold text-[#3f4a60]">{index === 0 ? "첫 번째 지역을 선택하세요" : "두 번째 지역을 선택하세요"}</p>
-                  <p className="mt-2 text-sm leading-6 text-[#80899a]">
-                    {directSelectionMode
-                      ? "지도에서 궁금한 위치를 클릭하면 이 자리에 행정동 상세 근거가 표시됩니다."
-                      : "지도 라벨이나 아래 후보 카드에서 지역을 선택하면 이 자리에 상세 근거가 표시됩니다."}
-                  </p>
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <CandidateMiniReport
-              candidateState={candidateStates[report.region.region_id]}
-              key={report.region.region_id}
-              reportIndex={index}
-              region={report.region}
-              showCautionMetrics={showCautionMetrics}
-              unit={unit}
-              onCandidateStateChange={(state) => onCandidateStateChange(report.region.region_id, state)}
-              onClose={() => onClose(report.region.region_id)}
-            />
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function CandidateMiniReport({
-  candidateState,
-  reportIndex,
-  region,
-  showCautionMetrics,
-  unit,
-  onCandidateStateChange,
-  onClose,
-}: {
-  candidateState?: CandidateState;
-  reportIndex: number;
-  region: ReportRegion;
-  showCautionMetrics: boolean;
-  unit: string;
-  onCandidateStateChange: (state: CandidateState) => void;
-  onClose: () => void;
-}) {
-  const evidence = useMemo(
-    () =>
-      (region.evidence_metrics ?? []).filter((metric) => {
-        if (showCautionMetrics) return true;
-        return metric.level !== "주의" && metric.reliability !== "표본 적음";
-      }),
-    [region.evidence_metrics, showCautionMetrics],
-  );
-  const evidenceProfiles = useMemo(
-    () => buildEvidenceProfiles(evidence),
-    [evidence],
-  );
-
-  return (
-    <aside className="relative h-full min-h-[420px] overflow-hidden rounded-2xl border border-white/12 bg-[#111827] p-5 text-[#f5f5f7] shadow-[0_12px_36px_rgba(23,32,59,.12)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6a6b6b]">
-            {region.selection_source === "map_click" ? "Map click analysis" : `Mini Report 0${reportIndex + 1}`}
-          </p>
-          <h2 className="mt-1 text-xl font-semibold">{region.display_name}</h2>
-        </div>
-        <button
-          aria-label="미니 리포트 닫기"
-          className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-sm text-[#9f9fa0] transition hover:bg-white/[0.08] hover:text-[#f5f5f7]"
-          onClick={(event) => {
-            event.stopPropagation();
-            onClose();
-          }}
-          onPointerDown={(event) => event.stopPropagation()}
-          type="button"
-        >
-          ×
-        </button>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="text-xs font-semibold text-[#9f9fa0]">
-          {region.selection_source === "map_click" ? "클릭 위치 분석 기준" : "후보로 잡힌 이유"}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {region.selection_source === "map_click" ? (
-            <span className="text-sm leading-6 text-[#cacaca]">
-              클릭한 좌표가 속한 행정동의 데이터입니다. 개별 주소나 건물을 분석한 결과는 아닙니다.
-            </span>
-          ) : (region.matched_indicators ?? []).length > 0 ? (
-            region.matched_indicators?.map((indicator) => (
-              <span
-                className="rounded-full border border-[#847dff]/30 bg-[#847dff]/15 px-3 py-1 text-xs font-semibold text-[#d8d6ff]"
-                key={indicator}
-              >
-                {indicator}
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-[#cacaca]">
-              현재 선택한 지표 기준 상위 지역입니다.
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <button className={`rounded-lg px-3 py-2.5 text-xs font-semibold ${candidateState === "saved" ? "bg-[#1888e8] text-white" : "border border-white/15 text-[#d8d8dc]"}`} onClick={() => onCandidateStateChange("saved")} type="button">{candidateState === "saved" ? "저장 취소" : "후보 저장"}</button>
-        <button className={`rounded-lg px-3 py-2.5 text-xs font-semibold ${candidateState === "excluded" ? "bg-white/15 text-white" : "border border-white/15 text-[#d8d8dc]"}`} onClick={() => onCandidateStateChange("excluded")} type="button">{candidateState === "excluded" ? "제외 취소" : "후보 제외"}</button>
-      </div>
-
-      <div className="mt-4">
-        {evidenceProfiles.length > 0 ? (
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold text-[#9f9fa0]">지역 데이터 프로필</p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#6a6b6b]">
-                Low · Mid · High
-              </p>
-            </div>
-            <div className="grid gap-4">
-              {evidenceProfiles.map((profile) => (
-                <EvidenceProfileRow key={profile.condition} profile={profile} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p className="text-sm font-semibold">{formatMapValue(region.value, unit)}</p>
-            <p className="mt-2 text-xs leading-5 text-[#cacaca]">
-              후보 조건 없이 연 지도에서는 선택한 지표의 현재 값만 표시합니다.
-            </p>
-          </div>
-        )}
-      </div>
-      {evidence.length > 0 ? (
-        <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-[#f5f5f7]">상세 데이터 근거</p>
-            <span className="text-[10px] text-[#6a6b6b]">{evidence.length}개 지표</span>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {evidence.map((metric) => (
-              <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3" key={`${metric.condition}-${metric.label}-${metric.data_date ?? "none"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-semibold text-[#847dff]">
-                      {CONDITION_LABELS[metric.condition]}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-[#cacaca]">{metric.label}</p>
-                  </div>
-                  <p className="text-lg font-semibold text-white">{metric.display_value}</p>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-[#9f9fa0]">{metric.interpretation}</p>
-                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#6f7378]">
-                  <span>기준 {metric.data_date ?? "확인 필요"}</span>
-                  <span>{metric.reliability}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </aside>
-  );
-}
-
-function DirectSelectionProgress({
-  reports,
-  onClear,
-}: {
-  reports: OpenCandidateReport[];
-  onClear: () => void;
-}) {
-  const selectedCount = reports.length;
-  const guide = selectedCount === 0
-    ? "첫 번째 위치를 클릭하세요"
-    : selectedCount === 1
-      ? "두 번째 위치를 클릭하세요"
-      : "두 행정동 선택 완료";
-
-  return (
-    <div className="absolute left-1/2 top-5 z-20 w-[min(34rem,calc(100%-11rem))] -translate-x-1/2 rounded-xl border border-white/15 bg-[#111a2c]/95 p-3 text-white shadow-[0_12px_36px_rgba(0,0,0,.35)] backdrop-blur">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#91cfff]">직접 선택 비교 · {selectedCount}/2</p>
-          <p className="mt-1 text-xs font-semibold">{guide}</p>
-        </div>
-        {selectedCount > 0 ? (
-          <button className="rounded-lg border border-white/15 px-3 py-2 text-[10px] font-semibold text-white/75 transition hover:bg-white/10 hover:text-white" onClick={onClear} type="button">
-            다시 선택
-          </button>
-        ) : null}
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {[0, 1].map((index) => (
-          <div className={`rounded-lg border px-3 py-2 text-xs ${reports[index] ? "border-[#847dff]/40 bg-[#847dff]/15 text-white" : "border-white/10 bg-white/[0.04] text-white/35"}`} key={index}>
-            <span className="mr-2 font-mono text-[9px]">0{index + 1}</span>
-            {reports[index]?.region.display_name ?? "위치 미선택"}
-          </div>
-        ))}
-      </div>
-      {selectedCount === 2 ? (
-        <p className="mt-2 text-[10px] leading-4 text-white/55">두 상세 패널을 나란히 확인하세요. 새 위치를 클릭하면 먼저 고른 지역이 교체됩니다.</p>
-      ) : null}
-    </div>
-  );
-}
-
 function toReportRegion(
   region: CandidateMatchRegion,
   selectionSource: ReportRegion["selection_source"] = "candidate",
@@ -1675,141 +1145,4 @@ function toReportRegion(
     evidence_metrics: region.evidence_metrics,
     selection_source: selectionSource,
   };
-}
-
-function EvidenceProfileRow({ profile }: { profile: EvidenceProfile }) {
-  return (
-    <div className="grid grid-cols-[4.5rem_3rem_1fr] items-center gap-3">
-      <div>
-        <p className="text-sm font-semibold text-[#f5f5f7]">{profile.label}</p>
-        <p className="mt-1 truncate text-[10px] text-[#6a6b6b]" title={profile.detail}>
-          {profile.detail}
-        </p>
-      </div>
-      <span
-        className={`text-xs font-bold ${
-          profile.caution
-            ? "text-[#ffcf70]"
-            : profile.matched
-              ? "text-[#d8d6ff]"
-              : "text-[#9f9fa0]"
-        }`}
-      >
-        {profile.status}
-      </span>
-      <div className="relative h-3 rounded-full bg-white/[0.08]">
-        <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-white/10" />
-        <div
-          className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
-            profile.caution
-              ? "border-[#ffcf70] bg-[#332716]"
-              : profile.matched
-                ? "border-[#d8d6ff] bg-[#847dff]"
-                : "border-[#6a6b6b] bg-[#1f2422]"
-          }`}
-          style={{ left: `${profile.position}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function buildEvidenceProfiles(metrics: CandidateEvidenceMetric[]): EvidenceProfile[] {
-  const grouped = new Map<ExploreCondition, CandidateEvidenceMetric[]>();
-  metrics.forEach((metric) => {
-    const current = grouped.get(metric.condition) ?? [];
-    current.push(metric);
-    grouped.set(metric.condition, current);
-  });
-
-  return (["price", "safety", "convenience", "population", "transport"] as const)
-    .map((condition) => {
-      const conditionMetrics = grouped.get(condition) ?? [];
-      if (!conditionMetrics.length) return null;
-
-      return evidenceProfileForCondition(condition, conditionMetrics);
-    })
-    .filter((profile): profile is EvidenceProfile => profile !== null);
-}
-
-function evidenceProfileForCondition(
-  condition: EvidenceProfile["condition"],
-  metrics: CandidateEvidenceMetric[],
-): EvidenceProfile {
-  const caution = metrics.some(
-    (metric) => metric.level === "주의" || metric.reliability === "표본 적음",
-  );
-  const matched = metrics.some((metric) => metric.is_matched);
-  const primary = metrics.find((metric) => metric.is_matched) ?? metrics[0];
-
-  if (caution) {
-    return {
-      condition,
-      label: evidenceConditionLabel(condition),
-      status: "주의",
-      detail: primary.reliability,
-      position: 18,
-      caution: true,
-      matched,
-    };
-  }
-
-  if (condition === "price") {
-    const priceMetrics = metrics.filter((metric) => metric.unit === "%");
-    const values = priceMetrics
-      .map((metric) => metric.value)
-      .filter((value): value is number => value !== null && !Number.isNaN(value));
-    const average = values.length
-      ? values.reduce((sum, value) => sum + value, 0) / values.length
-      : null;
-    const lowPrice = average !== null && average <= 0;
-
-    return {
-      condition,
-      label: "가격",
-      status: lowPrice ? "낮음" : "높음",
-      detail: primary.display_value,
-      position: lowPrice ? 24 : 82,
-      caution: false,
-      matched,
-    };
-  }
-
-  return {
-    condition,
-    label: evidenceConditionLabel(condition),
-    status: matched ? "높음" : "보통",
-    detail: primary.display_value,
-    position: matched ? 88 : 52,
-    caution: false,
-    matched,
-  };
-}
-
-function evidenceConditionLabel(condition: EvidenceProfile["condition"]) {
-  const labels: Record<EvidenceProfile["condition"], string> = {
-    price: "가격",
-    safety: "야간 생활환경",
-    convenience: "편의",
-    population: "거주·활동 특성",
-    transport: "교통 접근성",
-  };
-
-  return labels[condition];
-}
-
-function formatMapValue(value: number | null, unit: string) {
-  if (value === null) {
-    return "데이터 없음";
-  }
-
-  if (unit === "%") {
-    return formatRatio(value);
-  }
-
-  return formatNumber(value, unit);
-}
-
-function formatRegionSummary(region: ReportRegion, unit: string) {
-  return formatMapValue(region.value, unit);
 }

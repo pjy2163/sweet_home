@@ -51,12 +51,17 @@ export type KakaoMaps = {
   CustomOverlay: new (options: {
     map: KakaoMap;
     position: KakaoLatLng;
-    content: string;
+    content: string | HTMLElement;
     yAnchor: number;
     zIndex?: number;
   }) => KakaoCustomOverlay;
   event: {
     addListener: (
+      target: KakaoMap,
+      eventName: "click",
+      callback: (event: { latLng: KakaoLatLng }) => void,
+    ) => void;
+    removeListener: (
       target: KakaoMap,
       eventName: "click",
       callback: (event: { latLng: KakaoLatLng }) => void,
@@ -74,6 +79,5 @@ declare global {
     kakao?: {
       maps: KakaoMaps;
     };
-    __sweetHomeOpenReport?: (regionId: string) => void;
   }
 }
