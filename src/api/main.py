@@ -28,11 +28,11 @@ from src.api.schemas import (
 from src.api.services.comparison_service import (
     compare_region_snapshots,
     get_data_metadata,
-    get_heatmap,
     list_candidate_matches,
     list_region_options,
 )
 from src.api.services.data_service import warm_data_cache
+from src.api.services.heatmap_service import get_heatmap
 
 
 @asynccontextmanager
