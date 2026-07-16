@@ -38,16 +38,7 @@ jobs:
       - name: Audit backend runtime dependencies
         run: |
           python -m pip install pip-audit==2.9.0
-          # FastAPI 0.128.x still requires Starlette <1.0. SweetHome does not use
-          # form parsing, StaticFiles, or HTTPEndpoint, and request security never
-          # derives trust from request.url/Host. Keep these narrow exceptions until
-          # FastAPI supports the corresponding Starlette 1.x fixes.
-          python -m pip_audit --requirement requirements-runtime.txt \
-            --ignore-vuln PYSEC-2026-161 \
-            --ignore-vuln PYSEC-2026-249 \
-            --ignore-vuln PYSEC-2026-248 \
-            --ignore-vuln PYSEC-2026-2281 \
-            --ignore-vuln PYSEC-2026-2280
+          python -m pip_audit --requirement requirements-runtime.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
