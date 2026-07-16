@@ -1,0 +1,124 @@
+name: Security
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Audit backend runtime dependencies
+        run: |
+          python -m pip install pip-audit==2.9.0
+          # FastAPI 0.128.x still requires Starlette <1.0. SweetHome does not use
+          # form parsing, StaticFiles, or HTTPEndpoint, and request security never
+          # derives trust from request.url/Host. Keep these narrow exceptions until
+          # FastAPI supports the corresponding Starlette 1.x fixes.
+          python -m pip_audit --requirement requirements-runtime.txt \
+            --ignore-vuln PYSEC-2026-161 \
+            --ignore-vuln PYSEC-2026-249 \
+            --ignore-vuln PYSEC-2026-248 \
+            --ignore-vuln PYSEC-2026-2281 \
+            --ignore-vuln PYSEC-2026-2280
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Audit frontend runtime dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=moderate
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+          - python
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Analyze source
+        uses: github/codeql-action/analyze@02c5e83432fe5497fd85b873b6c9f16a8578e1d9 # v3
+
+  container-scan:
+    name: Container scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Build backend image
+        run: >-
+          docker build --file Dockerfile.backend --target dependencies
+          --tag sweethome-backend:scan .
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: sweethome-backend:scan
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      - name: Build frontend image
+        run: docker build --file frontend/Dockerfile --tag sweethome-frontend:scan frontend
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        with:
+          image-ref: sweethome-frontend:scan
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
