@@ -17,6 +17,7 @@ RUN python -m pip install --upgrade pip \
 FROM dependencies AS runtime
 
 COPY src ./src
+COPY db/migrations ./db/migrations
 COPY data/processed/region_comparison_snapshot.csv ./data/processed/region_comparison_snapshot.csv
 COPY data/processed/region_geometry.csv ./data/processed/region_geometry.csv
 COPY data/processed/housing_rent_snapshot.csv ./data/processed/housing_rent_snapshot.csv
