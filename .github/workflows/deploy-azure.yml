@@ -40,6 +40,7 @@ jobs:
       AZURE_ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER }}
       HOUSING_RENT_SNAPSHOT_BLOB: ${{ vars.HOUSING_RENT_SNAPSHOT_BLOB }}
       HOUSING_RENT_SNAPSHOT_SHA256: ${{ vars.HOUSING_RENT_SNAPSHOT_SHA256 }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       GOOGLE_AUTH_CLIENT_ID: ${{ vars.GOOGLE_AUTH_CLIENT_ID }}
       GITHUB_AUTH_CLIENT_ID: ${{ vars.OAUTH_GITHUB_CLIENT_ID }}
 
@@ -69,6 +70,7 @@ jobs:
             "${AZURE_ARTIFACT_CONTAINER}"
             "${HOUSING_RENT_SNAPSHOT_BLOB}"
             "${HOUSING_RENT_SNAPSHOT_SHA256}"
+            "${NEXT_PUBLIC_SITE_URL}"
             "${GOOGLE_AUTH_CLIENT_ID}"
             "${GITHUB_AUTH_CLIENT_ID}"
             "${NEXT_PUBLIC_KAKAO_MAP_APP_KEY}"
@@ -80,6 +82,11 @@ jobs:
               exit 1
             fi
           done
+
+          if [[ "${NEXT_PUBLIC_SITE_URL}" != https://* ]]; then
+            echo "NEXT_PUBLIC_SITE_URL must be an HTTPS origin." >&2
+            exit 1
+          fi
 
       - name: Sign in to Azure with OIDC
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
@@ -158,11 +165,13 @@ jobs:
         env:
           FRONTEND_IMAGE: ${{ steps.registry.outputs.login-server }}/sweethome/frontend:${{ github.sha }}
           NEXT_PUBLIC_KAKAO_MAP_APP_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_MAP_APP_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
         run: |
           set -euo pipefail
           docker build \
             --file frontend/Dockerfile \
             --build-arg NEXT_PUBLIC_KAKAO_MAP_APP_KEY="${NEXT_PUBLIC_KAKAO_MAP_APP_KEY}" \
+            --build-arg NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL}" \
             --tag "${FRONTEND_IMAGE}" \
             frontend
 
@@ -202,6 +211,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_KAKAO_MAP_APP_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_MAP_APP_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           SWEETHOME_INTERNAL_API_KEY: ${{ secrets.SWEETHOME_INTERNAL_API_KEY }}
           GOOGLE_AUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_AUTH_CLIENT_SECRET }}
           GITHUB_AUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}

@@ -13,6 +13,7 @@ param databaseUrl = readEnvironmentVariable('DATABASE_URL')
 param privacyControllerName = 'parang'
 param privacyContactEmail = 'parangofsky@gmail.com'
 param kakaoMapAppKey = readEnvironmentVariable('NEXT_PUBLIC_KAKAO_MAP_APP_KEY')
+param publicSiteUrl = readEnvironmentVariable('NEXT_PUBLIC_SITE_URL')
 param googleAuthClientId = readEnvironmentVariable('GOOGLE_AUTH_CLIENT_ID')
 param googleAuthClientSecret = readEnvironmentVariable('GOOGLE_AUTH_CLIENT_SECRET')
 param githubAuthClientId = readEnvironmentVariable('GITHUB_AUTH_CLIENT_ID')
