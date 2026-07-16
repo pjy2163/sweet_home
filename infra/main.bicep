@@ -60,8 +60,14 @@ param githubAuthClientId string
 @description('GitHub OAuth client secret stored only as a Container Apps secret.')
 param githubAuthClientSecret string
 
-@description('Canonical public origin. Custom-domain binding is intentionally handled after DNS verification.')
+@description('Canonical public origin.')
 param publicSiteUrl string
+
+@description('Verified custom hostname bound to the public frontend app.')
+param frontendCustomDomainName string
+
+@description('Existing managed certificate name for the frontend custom hostname.')
+param frontendManagedCertificateName string
 
 @description('Enable only after Azure Container Apps authentication is configured and verified.')
 param trustAzureIdentityHeaders bool = false
@@ -72,6 +78,11 @@ resource registry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing =
 
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
   name: environmentName
+}
+
+resource frontendManagedCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = {
+  parent: environment
+  name: frontendManagedCertificateName
 }
 
 resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
@@ -124,6 +135,8 @@ module frontend 'modules/frontend-app.bicep' = {
     privacyControllerName: privacyControllerName
     privacyContactEmail: privacyContactEmail
     publicSiteUrl: publicSiteUrl
+    customDomainName: frontendCustomDomainName
+    customDomainCertificateId: frontendManagedCertificate.id
     trustAzureIdentityHeaders: trustAzureIdentityHeaders
   }
 }

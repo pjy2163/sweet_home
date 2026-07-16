@@ -24,6 +24,8 @@ param kakaoMapAppKey string
 param privacyControllerName string
 param privacyContactEmail string
 param publicSiteUrl string
+param customDomainName string
+param customDomainCertificateId string
 param trustAzureIdentityHeaders bool
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
@@ -49,6 +51,13 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           {
             latestRevision: true
             weight: 100
+          }
+        ]
+        customDomains: [
+          {
+            name: customDomainName
+            bindingType: 'SniEnabled'
+            certificateId: customDomainCertificateId
           }
         ]
       }
