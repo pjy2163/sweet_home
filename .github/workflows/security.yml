@@ -103,9 +103,10 @@ jobs:
           --tag sweethome-backend:scan .
 
       - name: Scan backend image
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: sweethome-backend:scan
+          version: v0.72.0
           format: table
           exit-code: "1"
           ignore-unfixed: true
@@ -115,9 +116,10 @@ jobs:
         run: docker build --file frontend/Dockerfile --tag sweethome-frontend:scan frontend
 
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           image-ref: sweethome-frontend:scan
+          version: v0.72.0
           format: table
           exit-code: "1"
           ignore-unfixed: true
