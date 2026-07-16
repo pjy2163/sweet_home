@@ -96,9 +96,6 @@ describe("SweetHome API client", () => {
       expect.objectContaining({
         cache: "no-store",
         credentials: "same-origin",
-        headers: expect.objectContaining({
-          "x-sweethome-request-intent": "accept-current-agreement",
-        }),
         method: "POST",
       }),
     );

@@ -47,10 +47,7 @@ export async function acceptCurrentAgreement() {
     method: "POST",
     cache: "no-store",
     credentials: "same-origin",
-    headers: {
-      "content-type": "application/json",
-      "x-sweethome-request-intent": "accept-current-agreement",
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({
       terms_accepted: true,
       privacy_notice_confirmed: true,

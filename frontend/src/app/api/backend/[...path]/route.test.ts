@@ -291,7 +291,8 @@ describe("backend proxy error boundary", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "x-sweethome-request-intent": "accept-current-agreement",
+          origin: "https://sweethome.example.com",
+          "sec-fetch-site": "cross-site",
           "x-ms-client-principal-id": "opaque-subject",
           "x-ms-client-principal-idp": "google",
         },

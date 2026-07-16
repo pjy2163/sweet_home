@@ -33,7 +33,6 @@ const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-
 const BACKEND_UNAVAILABLE_MESSAGE =
   "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 const BACKEND_REQUEST_TIMEOUT_MS = 10_000;
-const AGREEMENT_REQUEST_INTENT = "accept-current-agreement";
 
 function backendHeaders(request: NextRequest) {
   const headers = new Headers({ accept: "application/json" });
@@ -133,19 +132,10 @@ export async function POST(
       { status: 401 },
     );
   }
-  if (
-    resource === "agreements/me"
-    && request.headers.get("x-sweethome-request-intent") !== AGREEMENT_REQUEST_INTENT
-  ) {
-    return NextResponse.json(
-      { code: "INVALID_REQUEST_INTENT", message: "약관 확인 요청을 다시 시도해 주세요." },
-      { status: 403 },
-    );
-  }
-
   // Azure Easy Auth가 검증해 주입한 사용자 신원이 있는 약관 확인 요청은
-  // 프록시 환경마다 달라질 수 있는 Fetch Metadata 대신 인증 신원과
-  // 브라우저의 교차 출처 폼으로는 보낼 수 없는 명시적 요청 의도를 검증합니다.
+  // 프록시 환경마다 달라질 수 있는 Fetch Metadata보다 인증 경계를 우선합니다.
+  // JSON Content-Type 검증과 Easy Auth의 SameSite 세션 쿠키가 교차 출처 폼 요청을
+  // 차단하며, 인증 신원은 내부 API에 불투명 식별자로만 전달됩니다.
   // 저장 리포트처럼 사용자 데이터를 변경하는 나머지 요청은 기존 출처 검증을 유지합니다.
   if (resource !== "agreements/me") {
     const crossSiteResponse = rejectCrossSiteMutation(request);
@@ -173,8 +163,14 @@ export async function POST(
       signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
     });
     const payload = await response.json();
+    if (!response.ok && resource === "agreements/me") {
+      console.error("Agreement confirmation proxy failed", { status: response.status });
+    }
     return NextResponse.json(payload, { status: response.status });
   } catch {
+    if (resource === "agreements/me") {
+      console.error("Agreement confirmation proxy failed", { status: "unavailable" });
+    }
     return NextResponse.json(
       {
         code: "BACKEND_UNAVAILABLE",
