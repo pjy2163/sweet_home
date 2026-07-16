@@ -273,6 +273,7 @@ describe("backend proxy error boundary", () => {
   });
 
   it("allows the authenticated agreement status and confirmation endpoints", async () => {
+    vi.stubEnv("SWEETHOME_TRUST_AZURE_IDENTITY_HEADERS", "true");
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(
       new Response(JSON.stringify({ accepted: false }), {
         status: 200,
@@ -288,7 +289,12 @@ describe("backend proxy error boundary", () => {
     const postResponse = await POST(
       new NextRequest("https://sweethome.test/api/backend/agreements/me", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-sweethome-request-intent": "accept-current-agreement",
+          "x-ms-client-principal-id": "opaque-subject",
+          "x-ms-client-principal-idp": "google",
+        },
         body: JSON.stringify({
           terms_accepted: true,
           privacy_notice_confirmed: true,
@@ -301,5 +307,25 @@ describe("backend proxy error boundary", () => {
     expect(postResponse.status).toBe(200);
     expect(fetchMock.mock.calls[0][0].toString()).toContain("/agreements/me");
     expect(fetchMock.mock.calls[1][1].method).toBe("POST");
+  });
+
+  it("rejects agreement confirmation before the authenticated proxy boundary", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await POST(
+      new NextRequest("https://sweethome.test/api/backend/agreements/me", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          terms_accepted: true,
+          privacy_notice_confirmed: true,
+        }),
+      }),
+      { params: Promise.resolve({ path: ["agreements", "me"] }) },
+    );
+
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
