@@ -36,6 +36,8 @@ jobs:
       AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT }}
       AZURE_PULL_IDENTITY_NAME: ${{ vars.AZURE_PULL_IDENTITY_NAME }}
       AZURE_MIGRATION_JOB_NAME: ${{ vars.AZURE_MIGRATION_JOB_NAME }}
+      GOOGLE_AUTH_CLIENT_ID: ${{ vars.GOOGLE_AUTH_CLIENT_ID }}
+      GITHUB_AUTH_CLIENT_ID: ${{ vars.OAUTH_GITHUB_CLIENT_ID }}
 
     steps:
       - name: Check out the release commit
@@ -59,6 +61,8 @@ jobs:
             "${AZURE_CONTAINERAPPS_ENVIRONMENT}"
             "${AZURE_PULL_IDENTITY_NAME}"
             "${AZURE_MIGRATION_JOB_NAME}"
+            "${GOOGLE_AUTH_CLIENT_ID}"
+            "${GITHUB_AUTH_CLIENT_ID}"
             "${NEXT_PUBLIC_KAKAO_MAP_APP_KEY}"
           )
 
@@ -148,9 +152,12 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SWEETHOME_INTERNAL_API_KEY: ${{ secrets.SWEETHOME_INTERNAL_API_KEY }}
+          GOOGLE_AUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_AUTH_CLIENT_SECRET }}
+          GITHUB_AUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          if [[ -z "${DATABASE_URL}" || -z "${SWEETHOME_INTERNAL_API_KEY}" ]]; then
+          if [[ -z "${DATABASE_URL}" || -z "${SWEETHOME_INTERNAL_API_KEY}" \
+            || -z "${GOOGLE_AUTH_CLIENT_SECRET}" || -z "${GITHUB_AUTH_CLIENT_SECRET}" ]]; then
             echo "A protected production secret is missing." >&2
             exit 1
           fi
@@ -166,6 +173,8 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_KAKAO_MAP_APP_KEY: ${{ secrets.NEXT_PUBLIC_KAKAO_MAP_APP_KEY }}
           SWEETHOME_INTERNAL_API_KEY: ${{ secrets.SWEETHOME_INTERNAL_API_KEY }}
+          GOOGLE_AUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_AUTH_CLIENT_SECRET }}
+          GITHUB_AUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           SWEETHOME_BACKEND_IMAGE: ${{ steps.registry.outputs.login-server }}/sweethome/backend:${{ github.sha }}
           SWEETHOME_FRONTEND_IMAGE: ${{ steps.registry.outputs.login-server }}/sweethome/frontend:${{ github.sha }}
         run: |

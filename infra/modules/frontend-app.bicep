@@ -10,6 +10,16 @@ param backendFqdn string
 @secure()
 param internalApiKey string
 
+param googleAuthClientId string
+
+@secure()
+param googleAuthClientSecret string
+
+param githubAuthClientId string
+
+@secure()
+param githubAuthClientSecret string
+
 param kakaoMapAppKey string
 param privacyControllerName string
 param privacyContactEmail string
@@ -46,6 +56,14 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'internal-api-key'
           value: internalApiKey
+        }
+        {
+          name: 'google-auth-client-secret'
+          value: googleAuthClientSecret
+        }
+        {
+          name: 'github-auth-client-secret'
+          value: githubAuthClientSecret
         }
       ]
       registries: [
@@ -102,6 +120,54 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       }
     }
     workloadProfileName: 'Consumption'
+  }
+}
+
+resource auth 'Microsoft.App/containerApps/authConfigs@2025-01-01' = {
+  parent: app
+  name: 'current'
+  properties: {
+    platform: {
+      enabled: true
+    }
+    globalValidation: {
+      unauthenticatedClientAction: 'AllowAnonymous'
+    }
+    httpSettings: {
+      requireHttps: true
+    }
+    identityProviders: {
+      google: {
+        enabled: true
+        registration: {
+          clientId: googleAuthClientId
+          clientSecretSettingName: 'google-auth-client-secret'
+        }
+        login: {
+          scopes: [
+            'openid'
+            'profile'
+          ]
+        }
+      }
+      gitHub: {
+        enabled: true
+        registration: {
+          clientId: githubAuthClientId
+          clientSecretSettingName: 'github-auth-client-secret'
+        }
+        login: {
+          scopes: [
+            'read:user'
+          ]
+        }
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: false
+      }
+    }
   }
 }
 

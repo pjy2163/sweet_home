@@ -46,6 +46,20 @@ param privacyContactEmail string
 @description('Browser-visible Kakao Maps JavaScript key restricted by allowed domains.')
 param kakaoMapAppKey string = ''
 
+@description('Google OAuth client identifier configured for Azure Container Apps authentication.')
+param googleAuthClientId string
+
+@secure()
+@description('Google OAuth client secret stored only as a Container Apps secret.')
+param googleAuthClientSecret string
+
+@description('GitHub OAuth client identifier configured for Azure Container Apps authentication.')
+param githubAuthClientId string
+
+@secure()
+@description('GitHub OAuth client secret stored only as a Container Apps secret.')
+param githubAuthClientSecret string
+
 @description('Canonical public origin. Custom-domain binding is intentionally handled after DNS verification.')
 param publicSiteUrl string = 'https://sweethome.paranglabs.com'
 
@@ -102,6 +116,10 @@ module frontend 'modules/frontend-app.bicep' = {
     image: frontendImage
     backendFqdn: backend.outputs.fqdn
     internalApiKey: internalApiKey
+    googleAuthClientId: googleAuthClientId
+    googleAuthClientSecret: googleAuthClientSecret
+    githubAuthClientId: githubAuthClientId
+    githubAuthClientSecret: githubAuthClientSecret
     kakaoMapAppKey: kakaoMapAppKey
     privacyControllerName: privacyControllerName
     privacyContactEmail: privacyContactEmail
