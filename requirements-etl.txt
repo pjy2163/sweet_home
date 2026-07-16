@@ -1,5 +1,5 @@
 pandas==2.3.3
 openpyxl==3.1.5
-geopandas==1.1.2
-pyproj==3.6.1
-shapely==2.0.7
+geopandas==1.1.4
+pyproj==3.7.2
+shapely==2.1.2
