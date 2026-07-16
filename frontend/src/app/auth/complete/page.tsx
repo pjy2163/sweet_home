@@ -1,5 +1,5 @@
 import { AgreementGate } from "@/components/agreement-gate";
-import { safeRedirectPath } from "@/lib/auth";
+import { safePostAuthRedirectPath } from "@/lib/auth";
 
 export default async function AuthCompletePage({
   searchParams,
@@ -7,7 +7,7 @@ export default async function AuthCompletePage({
   searchParams: Promise<{ redirect?: string | string[] }>;
 }) {
   const requestedRedirect = (await searchParams).redirect;
-  const redirectPath = safeRedirectPath(
+  const redirectPath = safePostAuthRedirectPath(
     Array.isArray(requestedRedirect) ? requestedRedirect[0] : requestedRedirect,
   );
   return <AgreementGate redirectPath={redirectPath} />;
