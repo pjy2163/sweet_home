@@ -5,6 +5,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { AuthMenu } from "@/components/auth-menu";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 import { SiteFooter } from "@/components/site-footer";
+import { siteUrl } from "@/lib/site-url";
 
 const APP_URL = "/app";
 const DIRECT_MAP_URL = "/app/report-map?mode=direct&conditions=price,convenience,safety,population,transport";
@@ -132,8 +133,22 @@ function ComparisonPreview() {
 }
 
 export default function LandingPage() {
+  const websiteStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "SweetHome",
+    alternateName: ["스위트홈", "sweethome.paranglabs.com"],
+    url: new URL("/", siteUrl()).toString(),
+  };
+
   return (
     <main className="landing warm-canvas !text-ink">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(websiteStructuredData).replace(/</g, "\\u003c"),
+        }}
+        type="application/ld+json"
+      />
       <LandingScrollEffects />
       <header className="relative z-20 border-b border-line bg-white/85 backdrop-blur-xl">
         <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
