@@ -47,6 +47,23 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 3000
         transport: 'auto'
         allowInsecure: false
+        corsPolicy: {
+          allowCredentials: true
+          maxAge: 3600
+          allowedOrigins: [
+            publicSiteUrl
+          ]
+          allowedMethods: [
+            'GET'
+            'POST'
+            'DELETE'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            'Content-Type'
+          ]
+          exposeHeaders: []
+        }
         traffic: [
           {
             latestRevision: true
@@ -173,6 +190,9 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2025-01-01' = {
       }
     }
     login: {
+      allowedExternalRedirectUrls: [
+        publicSiteUrl
+      ]
       cookieExpiration: {
         convention: 'FixedTime'
         timeToExpiration: '7.00:00:00'
