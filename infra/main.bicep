@@ -61,7 +61,7 @@ param githubAuthClientId string
 param githubAuthClientSecret string
 
 @description('Canonical public origin. Custom-domain binding is intentionally handled after DNS verification.')
-param publicSiteUrl string = 'https://sweethome.paranglabs.com'
+param publicSiteUrl string
 
 @description('Enable only after Azure Container Apps authentication is configured and verified.')
 param trustAzureIdentityHeaders bool = false

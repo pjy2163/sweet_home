@@ -22,6 +22,8 @@ COPY data/processed/region_comparison_snapshot.csv ./data/processed/region_compa
 COPY data/processed/region_geometry.csv ./data/processed/region_geometry.csv
 COPY data/processed/housing_rent_snapshot.csv ./data/processed/housing_rent_snapshot.csv
 
+RUN python -c "from src.api.main import app; assert app is not None"
+
 USER sweethome
 
 EXPOSE 8000
