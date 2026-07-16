@@ -18,7 +18,14 @@ ENV NODE_ENV=production \
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 nextjs
+    && adduser --system --uid 1001 nextjs \
+    && apk upgrade --no-cache libcrypto3 libssl3 \
+    && rm -rf \
+        /usr/local/lib/node_modules/npm \
+        /usr/local/lib/node_modules/corepack \
+        /usr/local/bin/npm \
+        /usr/local/bin/npx \
+        /usr/local/bin/corepack
 
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
