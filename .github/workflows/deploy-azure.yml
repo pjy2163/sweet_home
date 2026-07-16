@@ -36,6 +36,10 @@ jobs:
       AZURE_CONTAINERAPPS_ENVIRONMENT: ${{ vars.AZURE_CONTAINERAPPS_ENVIRONMENT }}
       AZURE_PULL_IDENTITY_NAME: ${{ vars.AZURE_PULL_IDENTITY_NAME }}
       AZURE_MIGRATION_JOB_NAME: ${{ vars.AZURE_MIGRATION_JOB_NAME }}
+      AZURE_ARTIFACT_STORAGE_ACCOUNT: ${{ vars.AZURE_ARTIFACT_STORAGE_ACCOUNT }}
+      AZURE_ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER }}
+      HOUSING_RENT_SNAPSHOT_BLOB: ${{ vars.HOUSING_RENT_SNAPSHOT_BLOB }}
+      HOUSING_RENT_SNAPSHOT_SHA256: ${{ vars.HOUSING_RENT_SNAPSHOT_SHA256 }}
       GOOGLE_AUTH_CLIENT_ID: ${{ vars.GOOGLE_AUTH_CLIENT_ID }}
       GITHUB_AUTH_CLIENT_ID: ${{ vars.OAUTH_GITHUB_CLIENT_ID }}
 
@@ -61,6 +65,10 @@ jobs:
             "${AZURE_CONTAINERAPPS_ENVIRONMENT}"
             "${AZURE_PULL_IDENTITY_NAME}"
             "${AZURE_MIGRATION_JOB_NAME}"
+            "${AZURE_ARTIFACT_STORAGE_ACCOUNT}"
+            "${AZURE_ARTIFACT_CONTAINER}"
+            "${HOUSING_RENT_SNAPSHOT_BLOB}"
+            "${HOUSING_RENT_SNAPSHOT_SHA256}"
             "${GOOGLE_AUTH_CLIENT_ID}"
             "${GITHUB_AUTH_CLIENT_ID}"
             "${NEXT_PUBLIC_KAKAO_MAP_APP_KEY}"
@@ -111,6 +119,28 @@ jobs:
       - name: Sign in to the existing registry
         shell: bash
         run: az acr login --name "${AZURE_ACR_NAME}"
+
+      - name: Download verified private data artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_path="data/processed/housing_rent_snapshot.csv"
+          mkdir -p "$(dirname "${artifact_path}")"
+
+          az storage blob download \
+            --account-name "${AZURE_ARTIFACT_STORAGE_ACCOUNT}" \
+            --container-name "${AZURE_ARTIFACT_CONTAINER}" \
+            --name "${HOUSING_RENT_SNAPSHOT_BLOB}" \
+            --file "${artifact_path}" \
+            --auth-mode login \
+            --overwrite true \
+            --only-show-errors \
+            --output none
+
+          printf '%s  %s\n' \
+            "${HOUSING_RENT_SNAPSHOT_SHA256}" \
+            "${artifact_path}" \
+            | sha256sum --check --strict
 
       - name: Build immutable backend image
         shell: bash
