@@ -8,6 +8,14 @@ import {
   listDevelopmentReports,
 } from "@/lib/dev-user-storage";
 import type { SavedReportCreate } from "@/types/sweethome";
+import {
+  applyRateLimit,
+  READ_RATE_LIMIT,
+  readLimitedJsonBody,
+  rejectCrossSiteMutation,
+  WRITE_RATE_LIMIT,
+} from "@/lib/request-security";
+import { trustedAzureIdentity } from "@/lib/trusted-identity";
 
 const API_BASE_URL = process.env.SWEETHOME_API_BASE_URL ?? "http://127.0.0.1:8000";
 const ALLOWED_GET_PATHS = new Set([
@@ -21,7 +29,7 @@ const ALLOWED_GET_PATHS = new Set([
   "map/heatmap",
   "saved-reports",
 ]);
-const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f-]{36}$/i;
+const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BACKEND_UNAVAILABLE_MESSAGE =
   "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -31,19 +39,19 @@ function backendHeaders(request: NextRequest) {
   const internalKey = process.env.SWEETHOME_INTERNAL_API_KEY?.trim();
   if (internalKey) headers.set("x-sweethome-internal-key", internalKey);
 
-  const azurePrincipal = request.headers.get("x-ms-client-principal-id")?.trim();
+  const azureIdentity = trustedAzureIdentity(request);
   const hasDevelopmentCookie = process.env.NODE_ENV === "development"
     && request.cookies.get("sweethome-dev-auth")?.value === "1";
   const developmentPrincipal = process.env.NODE_ENV === "development"
     ? process.env.SWEETHOME_DEV_AUTH_SUBJECT?.trim()
       || (hasDevelopmentCookie ? "local-development-user" : undefined)
     : undefined;
-  const principal = azurePrincipal || developmentPrincipal;
+  const principal = azureIdentity?.subject || developmentPrincipal;
   if (principal) {
     headers.set("x-sweethome-principal-id", principal);
     headers.set(
       "x-sweethome-identity-provider",
-      request.headers.get("x-ms-client-principal-idp")?.trim()
+      azureIdentity?.provider
         || (hasDevelopmentCookie
           ? request.cookies.get("sweethome-dev-provider")?.value
           : undefined)
@@ -66,6 +74,16 @@ export async function GET(
       { status: 404 },
     );
   }
+
+  const rateLimitScope = SAVED_REPORT_DETAIL_PATH.test(resource)
+    ? "saved-reports:detail"
+    : resource;
+  const rateLimitResponse = applyRateLimit(
+    request,
+    `get:${rateLimitScope}`,
+    READ_RATE_LIMIT,
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const developmentResponse = developmentGetResponse(request, resource);
   if (developmentResponse) return developmentResponse;
@@ -105,10 +123,18 @@ export async function POST(
     );
   }
 
+  const crossSiteResponse = rejectCrossSiteMutation(request);
+  if (crossSiteResponse) return crossSiteResponse;
+  const rateLimitResponse = applyRateLimit(request, `post:${resource}`, WRITE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
+  const bodyResult = await readLimitedJsonBody(request);
+  if (bodyResult.response) return bodyResult.response;
+
   const targetUrl = new URL(`/${resource}`, API_BASE_URL);
   const headers = backendHeaders(request);
   headers.set("content-type", "application/json");
-  const body = await request.text();
+  const body = bodyResult.body;
   const developmentResponse = developmentPostResponse(request, resource, body);
   if (developmentResponse) return developmentResponse;
 
@@ -144,6 +170,11 @@ export async function DELETE(
       { status: 404 },
     );
   }
+
+  const crossSiteResponse = rejectCrossSiteMutation(request);
+  if (crossSiteResponse) return crossSiteResponse;
+  const rateLimitResponse = applyRateLimit(request, "delete:saved-reports", WRITE_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
 
   if (hasDevelopmentSession(request)) {
     return deleteDevelopmentReport(path[1])

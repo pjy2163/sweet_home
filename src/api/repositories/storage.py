@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 
@@ -23,7 +24,26 @@ def database_url() -> str:
     value = os.getenv("DATABASE_URL", "").strip()
     if not value:
         raise StorageUnavailable("DATABASE_URL is not configured")
+    if _database_tls_required() and not _uses_database_tls(value):
+        raise StorageUnavailable("DATABASE_URL must require TLS")
     return value
+
+
+def _database_tls_required() -> bool:
+    values = (
+        os.getenv("SWEETHOME_REQUIRE_DATABASE_TLS", ""),
+        os.getenv("SWEETHOME_REQUIRE_INTERNAL_PROXY", ""),
+    )
+    return any(value.strip().lower() in {"1", "true", "yes", "on"} for value in values)
+
+
+def _uses_database_tls(value: str) -> bool:
+    try:
+        parameters = parse_qs(urlsplit(value).query)
+    except ValueError:
+        return False
+    sslmode = parameters.get("sslmode", [""])[0].lower()
+    return sslmode in {"require", "verify-ca", "verify-full"}
 
 
 def find_user(cursor, *, auth_issuer: str, auth_subject: str):

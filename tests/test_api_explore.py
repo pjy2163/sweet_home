@@ -379,3 +379,19 @@ def test_explore_returns_all_evidence_for_map_clicked_region() -> None:
         metric["condition"]
         for metric in result["regions"][0]["evidence_metrics"]
     } == {"price", "convenience", "safety", "population", "transport"}
+
+
+def test_explore_rejects_more_than_two_direct_region_ids() -> None:
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params=[
+            ("price", "true"),
+            ("region_ids", "11110530"),
+            ("region_ids", "11110540"),
+            ("region_ids", "11110550"),
+        ],
+    )
+
+    assert response.status_code == 422

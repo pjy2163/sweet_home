@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hmac
 import os
+import re
 from dataclasses import dataclass
 
 from fastapi import Request
@@ -11,6 +12,7 @@ from fastapi.responses import JSONResponse
 INTERNAL_KEY_HEADER = "x-sweethome-internal-key"
 PRINCIPAL_ID_HEADER = "x-sweethome-principal-id"
 IDENTITY_PROVIDER_HEADER = "x-sweethome-identity-provider"
+IDENTITY_PROVIDER_PATTERN = re.compile(r"^[a-z0-9._-]{1,64}$")
 
 
 @dataclass(frozen=True)
@@ -24,7 +26,8 @@ def is_enabled(name: str) -> bool:
 
 
 def validate_internal_proxy(request: Request) -> JSONResponse | None:
-    if request.url.path == "/health" or not is_enabled(
+    request_path = str(request.scope.get("path", ""))
+    if request_path == "/health" or not is_enabled(
         "SWEETHOME_REQUIRE_INTERNAL_PROXY",
     ):
         return None
@@ -52,7 +55,9 @@ def validate_internal_proxy(request: Request) -> JSONResponse | None:
 
 def get_authenticated_identity(request: Request) -> AuthenticatedIdentity | None:
     subject = request.headers.get(PRINCIPAL_ID_HEADER, "").strip()
-    if not subject:
+    if not subject or len(subject) > 255:
         return None
     provider = request.headers.get(IDENTITY_PROVIDER_HEADER, "").strip() or "unknown"
+    if not IDENTITY_PROVIDER_PATTERN.fullmatch(provider):
+        return None
     return AuthenticatedIdentity(subject=subject, provider=provider)

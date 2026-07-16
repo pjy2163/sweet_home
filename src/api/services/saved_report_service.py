@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from typing import Any
 from uuid import UUID
 
@@ -9,9 +10,11 @@ from src.api.errors import (
     AUTHENTICATION_REQUIRED,
     REPORT_STORAGE_UNAVAILABLE,
     SAVED_REPORT_NOT_FOUND,
+    SAVED_REPORT_LIMIT_REACHED,
     ApiError,
 )
 from src.api.repositories.saved_report_repository import (
+    ReportLimitExceeded,
     ReportStorageUnavailable,
     create_saved_report as persist_saved_report,
     delete_saved_report as remove_saved_report,
@@ -132,7 +135,14 @@ def save_decision_report(
             evidence_hash=hashlib.sha256(canonical_evidence.encode("utf-8")).hexdigest(),
             evidence_snapshot=evidence_snapshot,
             report_content=report_content,
+            max_reports=_saved_report_limit(),
         )
+    except ReportLimitExceeded as error:
+        raise ApiError(
+            status_code=409,
+            code=SAVED_REPORT_LIMIT_REACHED,
+            message="저장할 수 있는 리포트 수에 도달했습니다. 기존 리포트를 정리해 주세요.",
+        ) from error
     except ReportStorageUnavailable as error:
         raise _storage_error() from error
     return SavedReportDetail.model_validate(stored)
@@ -219,3 +229,12 @@ def _history_title(region_names: list[str]) -> str:
     if len(region_names) == 2:
         return f"{region_names[0]} ↔ {region_names[1]} 비교"
     return f"{region_names[0]} 살펴보기"
+
+
+def _saved_report_limit() -> int:
+    raw_value = os.getenv("SWEETHOME_MAX_SAVED_REPORTS_PER_USER", "50").strip()
+    try:
+        value = int(raw_value)
+    except ValueError:
+        return 50
+    return min(max(value, 1), 500)

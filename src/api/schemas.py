@@ -1,10 +1,25 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
+
+
+RequestRegionId = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, pattern=r"^\d{8,10}$"),
+]
+RegionLookup = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=40,
+        pattern=r"^[^\x00-\x1f\x7f]+$",
+    ),
+]
 
 
 class HealthResponse(BaseModel):
@@ -42,13 +57,18 @@ class SavedReportDecisionContext(BaseModel):
     selection_mode: Literal["candidate", "direct_map"]
     contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
     budget_max_krw_10k: Optional[float] = Field(default=None, gt=0)
-    building_type: Optional[str] = None
-    area_band: Optional[str] = None
+    building_type: Optional[Literal[
+        "apartment",
+        "officetel",
+        "multi_family",
+        "detached_multiunit",
+    ]] = None
+    area_band: Optional[Literal["compact", "mid_size", "large"]] = None
 
 
 class SavedReportCreateRequest(BaseModel):
     client_request_id: UUID
-    region_ids: list[str] = Field(min_length=1, max_length=2)
+    region_ids: list[RequestRegionId] = Field(min_length=1, max_length=2)
     priority_keys: list[DecisionPriority] = Field(min_length=1, max_length=5)
     comparison_basis: Literal["seoul", "direct"] = "direct"
     decision_context: Optional[SavedReportDecisionContext] = None

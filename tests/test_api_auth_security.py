@@ -45,6 +45,24 @@ def test_auth_me_accepts_only_identity_forwarded_by_trusted_proxy(monkeypatch) -
     assert spoofed.status_code == 403
 
 
+def test_auth_me_rejects_oversized_or_malformed_forwarded_identity() -> None:
+    with TestClient(app) as client:
+        oversized = client.get(
+            "/auth/me",
+            headers={"x-sweethome-principal-id": "x" * 256},
+        )
+        malformed_provider = client.get(
+            "/auth/me",
+            headers={
+                "x-sweethome-principal-id": "opaque-subject",
+                "x-sweethome-identity-provider": "google oauth",
+            },
+        )
+
+    assert oversized.status_code == 401
+    assert malformed_provider.status_code == 401
+
+
 def test_ai_report_api_is_disabled_by_default(monkeypatch) -> None:
     monkeypatch.delenv("SWEETHOME_AI_REPORT_ENABLED", raising=False)
     from src.api.main import require_ai_report_feature

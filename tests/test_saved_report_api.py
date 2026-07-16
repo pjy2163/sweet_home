@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from src.api.main import app
 from src.api.services import saved_report_service
 from src.api.services import agreement_service
+from src.api.repositories.saved_report_repository import ReportLimitExceeded
 
 
 def test_saved_report_requires_authenticated_identity() -> None:
@@ -129,6 +130,56 @@ def test_saved_report_request_rejects_duplicate_regions() -> None:
         )
 
     assert response.status_code == 422
+
+
+def test_saved_report_request_rejects_unknown_decision_context_values() -> None:
+    with TestClient(app) as client:
+        response = client.post(
+            "/saved-reports",
+            headers={"x-sweethome-principal-id": "opaque-user-subject"},
+            json={
+                "client_request_id": "4f3bfec8-c5fe-46dc-a6ec-53dfd2cd7637",
+                "region_ids": ["11110530"],
+                "priority_keys": ["price"],
+                "comparison_basis": "direct",
+                "decision_context": {
+                    "selection_mode": "candidate",
+                    "building_type": "<script>alert(1)</script>",
+                    "area_band": "unbounded",
+                },
+            },
+        )
+
+    assert response.status_code == 422
+
+
+def test_saved_report_limit_returns_a_clear_conflict(monkeypatch) -> None:
+    monkeypatch.setattr(
+        saved_report_service,
+        "persist_saved_report",
+        lambda **_: (_ for _ in ()).throw(ReportLimitExceeded()),
+    )
+    monkeypatch.setattr(
+        agreement_service,
+        "get_current_agreement",
+        lambda **_: {"accepted_at": datetime(2026, 7, 15, tzinfo=timezone.utc)},
+    )
+
+    with TestClient(app) as client:
+        region_id = client.get("/regions").json()[0]["region_id"]
+        response = client.post(
+            "/saved-reports",
+            headers={"x-sweethome-principal-id": "opaque-user-subject"},
+            json={
+                "client_request_id": "4f3bfec8-c5fe-46dc-a6ec-53dfd2cd7637",
+                "region_ids": [region_id],
+                "priority_keys": ["price"],
+                "comparison_basis": "direct",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json()["code"] == "SAVED_REPORT_LIMIT_REACHED"
 
 
 def test_saved_report_delete_is_scoped_to_authenticated_owner(monkeypatch) -> None:

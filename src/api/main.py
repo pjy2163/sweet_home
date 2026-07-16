@@ -30,6 +30,8 @@ from src.api.schemas import (
     HealthResponse,
     MetadataResponse,
     RegionOption,
+    RegionLookup,
+    RequestRegionId,
     SavedReportCreateRequest,
     SavedReportDetail,
     SavedReportSummary,
@@ -69,9 +71,12 @@ app.add_exception_handler(ApiError, api_error_handler)
 
 
 API_SECURITY_HEADERS = {
-    "Content-Security-Policy": "base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
+    "Content-Security-Policy": "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "Referrer-Policy": "no-referrer",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
 }
@@ -86,7 +91,8 @@ async def add_security_headers(request: Request, call_next):
         response = await call_next(request)
     for header, value in API_SECURITY_HEADERS.items():
         response.headers[header] = value
-    if request.url.path.startswith((
+    request_path = str(request.scope.get("path", ""))
+    if request_path.startswith((
         "/ai/reports",
         "/saved-reports",
         "/agreements",
@@ -168,7 +174,7 @@ def get_metadata() -> MetadataResponse:
 
 
 @app.get("/compare", response_model=CompareResponse)
-def compare_regions(a: str, b: str) -> CompareResponse:
+def compare_regions(a: RegionLookup, b: RegionLookup) -> CompareResponse:
     return compare_region_snapshots(a, b)
 
 
@@ -210,7 +216,7 @@ def explore_regions(
         "detached_multiunit",
     ]] = None,
     area_band: Optional[Literal["compact", "mid_size", "large"]] = None,
-    region_ids: Optional[List[str]] = Query(default=None),
+    region_ids: Optional[List[RequestRegionId]] = Query(default=None, max_length=2),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> ExploreResponse:
     return list_candidate_matches(

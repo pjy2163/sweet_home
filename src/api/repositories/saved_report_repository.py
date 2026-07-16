@@ -12,6 +12,10 @@ from src.api.repositories.storage import (
 )
 
 
+class ReportLimitExceeded(RuntimeError):
+    pass
+
+
 def create_saved_report(
     *,
     auth_issuer: str,
@@ -24,6 +28,7 @@ def create_saved_report(
     evidence_hash: str,
     evidence_snapshot: dict[str, Any],
     report_content: dict[str, Any],
+    max_reports: int,
 ) -> dict[str, Any]:
     psycopg, jsonb = database_driver()
     connection_url = database_url()
@@ -36,6 +41,33 @@ def create_saved_report(
                     auth_issuer=auth_issuer,
                     auth_subject=auth_subject,
                 )
+                cursor.execute(
+                    "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                    (str(user_id),),
+                )
+                cursor.execute(
+                    """
+                    SELECT report_id
+                    FROM app.saved_report
+                    WHERE user_id = %s AND client_request_id = %s
+                    """,
+                    (user_id, client_request_id),
+                )
+                existing = cursor.fetchone()
+                if existing is not None:
+                    return _fetch_report(
+                        cursor,
+                        user_id=user_id,
+                        report_id=existing[0],
+                    )
+
+                cursor.execute(
+                    "SELECT COUNT(*) FROM app.saved_report WHERE user_id = %s",
+                    (user_id,),
+                )
+                if cursor.fetchone()[0] >= max_reports:
+                    raise ReportLimitExceeded("saved report limit reached")
+
                 cursor.execute(
                     """
                     INSERT INTO app.saved_report (
@@ -60,7 +92,6 @@ def create_saved_report(
                         'saved-report-v1',
                         %s, %s, %s, %s
                     )
-                    ON CONFLICT (user_id, client_request_id) DO NOTHING
                     RETURNING report_id
                     """,
                     (
@@ -76,20 +107,10 @@ def create_saved_report(
                         jsonb(report_content),
                     ),
                 )
-                inserted = cursor.fetchone()
-                if inserted is not None:
-                    report_id = inserted[0]
-                else:
-                    cursor.execute(
-                        """
-                        SELECT report_id
-                        FROM app.saved_report
-                        WHERE user_id = %s AND client_request_id = %s
-                        """,
-                        (user_id, client_request_id),
-                    )
-                    report_id = cursor.fetchone()[0]
+                report_id = cursor.fetchone()[0]
                 return _fetch_report(cursor, user_id=user_id, report_id=report_id)
+    except ReportLimitExceeded:
+        raise
     except ReportStorageUnavailable:
         raise
     except Exception as error:

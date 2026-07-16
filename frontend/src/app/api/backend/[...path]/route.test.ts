@@ -41,6 +41,7 @@ describe("backend proxy error boundary", () => {
 
   it("forwards only the opaque Azure principal and internal service key", async () => {
     vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
+    vi.stubEnv("SWEETHOME_TRUST_AZURE_IDENTITY_HEADERS", "true");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ authenticated: true, provider: "github" }), {
         status: 200,
@@ -65,6 +66,30 @@ describe("backend proxy error boundary", () => {
     expect(forwarded.get("x-sweethome-principal-id")).toBe("opaque-subject");
     expect(forwarded.get("x-sweethome-identity-provider")).toBe("github");
     expect(forwarded.has("x-ms-client-principal-name")).toBe(false);
+  });
+
+  it("ignores Azure identity headers until Easy Auth trust is enabled", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ code: "AUTHENTICATION_REQUIRED" }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await GET(
+      new NextRequest("https://sweethome.test/api/backend/auth/me", {
+        headers: {
+          "x-ms-client-principal-id": "attacker-controlled-subject",
+          "x-ms-client-principal-idp": "google",
+        },
+      }),
+      { params: Promise.resolve({ path: ["auth", "me"] }) },
+    );
+
+    const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(forwarded.has("x-sweethome-principal-id")).toBe(false);
+    expect(forwarded.has("x-sweethome-identity-provider")).toBe(false);
   });
 
   it("recognizes the http-only development login cookie without contacting the backend", async () => {
@@ -211,6 +236,7 @@ describe("backend proxy error boundary", () => {
 
   it("allows only the saved report write endpoint and forwards its JSON body", async () => {
     vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
+    vi.stubEnv("SWEETHOME_TRUST_AZURE_IDENTITY_HEADERS", "true");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ report_id: "saved-report-id" }), {
         status: 201,
