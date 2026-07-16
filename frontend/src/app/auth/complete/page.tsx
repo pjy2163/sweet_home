@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
+
 import { AgreementGate } from "@/components/agreement-gate";
 import { safePostAuthRedirectPath } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  title: "로그인 확인",
+  robots: { index: false, follow: false },
+};
 
 export default async function AuthCompletePage({
   searchParams,

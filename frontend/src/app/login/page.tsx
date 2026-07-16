@@ -1,7 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { safePostAuthRedirectPath } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  title: "로그인",
+  robots: { index: false, follow: false },
+};
 
 export default async function LoginPage({
   searchParams,

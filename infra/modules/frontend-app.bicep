@@ -173,6 +173,10 @@ resource auth 'Microsoft.App/containerApps/authConfigs@2025-01-01' = {
       }
     }
     login: {
+      cookieExpiration: {
+        convention: 'FixedTime'
+        timeToExpiration: '7.00:00:00'
+      }
       tokenStore: {
         enabled: false
       }
