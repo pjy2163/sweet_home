@@ -21,20 +21,23 @@ export const READ_RATE_LIMIT: RateLimitPolicy = { limit: 180, windowMs: 60_000 }
 export const WRITE_RATE_LIMIT: RateLimitPolicy = { limit: 10, windowMs: 60_000 };
 
 export function rejectCrossSiteMutation(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (origin) {
+    try {
+      const requestOrigin = new URL(origin).origin;
+      return trustedRequestOrigins(request).has(requestOrigin)
+        ? null
+        : forbiddenResponse();
+    } catch {
+      return forbiddenResponse();
+    }
+  }
+
   const fetchSite = request.headers.get("sec-fetch-site")?.toLowerCase();
   if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
     return forbiddenResponse();
   }
 
-  const origin = request.headers.get("origin");
-  if (!origin) return null;
-
-  try {
-    const requestOrigin = new URL(origin).origin;
-    if (!trustedRequestOrigins(request).has(requestOrigin)) return forbiddenResponse();
-  } catch {
-    return forbiddenResponse();
-  }
   return null;
 }
 

@@ -47,12 +47,21 @@ describe("request security", () => {
         method: "POST",
         headers: {
           origin: "https://sweethome.example.com",
-          "sec-fetch-site": "same-origin",
+          "sec-fetch-site": "cross-site",
         },
       },
     );
 
     expect(rejectCrossSiteMutation(request)).toBeNull();
+  });
+
+  it("uses fetch metadata only when an Origin header is unavailable", () => {
+    const request = new NextRequest(
+      "https://sweethome.test/api/backend/agreements/me",
+      { method: "POST", headers: { "sec-fetch-site": "cross-site" } },
+    );
+
+    expect(rejectCrossSiteMutation(request)?.status).toBe(403);
   });
 
   it("rejects non-JSON and oversized request bodies", async () => {
