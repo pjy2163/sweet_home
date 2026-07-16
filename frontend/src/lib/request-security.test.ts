@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   applyRateLimit,
@@ -8,7 +8,10 @@ import {
   resetRateLimitsForTests,
 } from "@/lib/request-security";
 
-afterEach(() => resetRateLimitsForTests());
+afterEach(() => {
+  resetRateLimitsForTests();
+  vi.unstubAllEnvs();
+});
 
 describe("request security", () => {
   it("rejects cross-site browser mutations", () => {
@@ -34,6 +37,22 @@ describe("request security", () => {
 
     expect(rejectCrossSiteMutation(browserRequest)).toBeNull();
     expect(rejectCrossSiteMutation(serverRequest)).toBeNull();
+  });
+
+  it("accepts the configured public origin behind a TLS terminating proxy", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://sweethome.example.com");
+    const request = new NextRequest(
+      "http://internal-container:3000/api/backend/agreements/me",
+      {
+        method: "POST",
+        headers: {
+          origin: "https://sweethome.example.com",
+          "sec-fetch-site": "same-origin",
+        },
+      },
+    );
+
+    expect(rejectCrossSiteMutation(request)).toBeNull();
   });
 
   it("rejects non-JSON and oversized request bodies", async () => {

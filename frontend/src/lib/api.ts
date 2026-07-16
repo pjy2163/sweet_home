@@ -15,14 +15,26 @@ import type {
   SavedReportSummary,
 } from "@/types/sweethome";
 
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
+
+function authRequestInit(init: RequestInit = {}): RequestInit {
+  return { ...init, signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS) };
+}
+
 export async function fetchAuthSession() {
-  const response = await fetch("/api/backend/auth/me", { cache: "no-store" });
+  const response = await fetch(
+    "/api/backend/auth/me",
+    authRequestInit({ cache: "no-store" }),
+  );
   if (response.status === 401) return null;
   return parseJsonResponse<AuthSession>(response, "로그인 상태를 확인하지 못했습니다.");
 }
 
 export async function fetchAgreementStatus() {
-  const response = await fetch("/api/backend/agreements/me", { cache: "no-store" });
+  const response = await fetch(
+    "/api/backend/agreements/me",
+    authRequestInit({ cache: "no-store" }),
+  );
   if (response.status === 401) return null;
   return parseJsonResponse<AgreementStatus>(
     response,
@@ -31,14 +43,14 @@ export async function fetchAgreementStatus() {
 }
 
 export async function acceptCurrentAgreement() {
-  const response = await fetch("/api/backend/agreements/me", {
+  const response = await fetch("/api/backend/agreements/me", authRequestInit({
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       terms_accepted: true,
       privacy_notice_confirmed: true,
     }),
-  });
+  }));
   return parseJsonResponse<AgreementStatus>(
     response,
     "약관 확인 내용을 저장하지 못했습니다.",
@@ -84,11 +96,24 @@ export async function deleteSavedReport(reportId: string) {
 }
 
 async function parseJsonResponse<T>(response: Response, fallbackMessage: string) {
-  const payload = await response.json();
+  const responseBody = await response.text();
+  let payload: unknown;
+
+  try {
+    payload = responseBody ? JSON.parse(responseBody) : null;
+  } catch {
+    throw new Error(fallbackMessage);
+  }
 
   if (!response.ok) {
-    throw new Error(payload.message ?? fallbackMessage);
+    const message = payload && typeof payload === "object" && "message" in payload
+      && typeof payload.message === "string"
+      ? payload.message
+      : fallbackMessage;
+    throw new Error(message);
   }
+
+  if (payload === null) throw new Error(fallbackMessage);
 
   return payload as T;
 }

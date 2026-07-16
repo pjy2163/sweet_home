@@ -29,6 +29,14 @@ def database_url() -> str:
     return value
 
 
+def database_connection(psycopg):
+    return psycopg.connect(
+        database_url(),
+        connect_timeout=5,
+        options="-c statement_timeout=10000",
+    )
+
+
 def _database_tls_required() -> bool:
     values = (
         os.getenv("SWEETHOME_REQUIRE_DATABASE_TLS", ""),

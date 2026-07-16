@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 
 from src.api.repositories.storage import (
     StorageUnavailable as ReportStorageUnavailable,
+    database_connection,
     database_driver,
-    database_url,
     find_or_create_user,
     find_user,
 )
@@ -31,10 +31,8 @@ def create_saved_report(
     max_reports: int,
 ) -> dict[str, Any]:
     psycopg, jsonb = database_driver()
-    connection_url = database_url()
-
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_or_create_user(
                     cursor,
@@ -119,10 +117,8 @@ def create_saved_report(
 
 def list_saved_reports(*, auth_issuer: str, auth_subject: str) -> list[dict[str, Any]]:
     psycopg, _ = database_driver()
-    connection_url = database_url()
-
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_user(
                     cursor,
@@ -164,10 +160,8 @@ def get_saved_report(
     report_id: UUID,
 ) -> dict[str, Any] | None:
     psycopg, _ = database_driver()
-    connection_url = database_url()
-
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_user(
                     cursor,
@@ -195,10 +189,8 @@ def delete_saved_report(
     report_id: UUID,
 ) -> bool:
     psycopg, _ = database_driver()
-    connection_url = database_url()
-
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_user(
                     cursor,
