@@ -32,6 +32,7 @@ const ALLOWED_GET_PATHS = new Set([
 const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BACKEND_UNAVAILABLE_MESSAGE =
   "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
+const BACKEND_REQUEST_TIMEOUT_MS = 10_000;
 
 function backendHeaders(request: NextRequest) {
   const headers = new Headers({ accept: "application/json" });
@@ -95,6 +96,7 @@ export async function GET(
     const response = await fetch(targetUrl, {
       headers: backendHeaders(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
     });
     const payload = await response.json();
 
@@ -144,6 +146,7 @@ export async function POST(
       headers,
       body,
       cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
     });
     const payload = await response.json();
     return NextResponse.json(payload, { status: response.status });
@@ -190,6 +193,7 @@ export async function DELETE(
       method: "DELETE",
       headers: backendHeaders(request),
       cache: "no-store",
+      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
     });
     if (response.status === 204) return new NextResponse(null, { status: 204 });
     const payload = await response.json();

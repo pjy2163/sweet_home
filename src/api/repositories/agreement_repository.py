@@ -4,8 +4,8 @@ from uuid import uuid4
 
 from src.api.repositories.storage import (
     StorageUnavailable as AgreementStorageUnavailable,
+    database_connection,
     database_driver,
-    database_url,
     find_or_create_user,
     find_user,
 )
@@ -19,9 +19,8 @@ def get_current_agreement(
     privacy_notice_version: str,
 ) -> dict[str, object] | None:
     psycopg, _ = database_driver()
-    connection_url = database_url()
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_user(
                     cursor,
@@ -62,9 +61,8 @@ def accept_current_agreement(
     privacy_notice_version: str,
 ) -> dict[str, object]:
     psycopg, _ = database_driver()
-    connection_url = database_url()
     try:
-        with psycopg.connect(connection_url) as connection:
+        with database_connection(psycopg) as connection:
             with connection.cursor() as cursor:
                 user_id = find_or_create_user(
                     cursor,

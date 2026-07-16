@@ -30,11 +30,27 @@ export function rejectCrossSiteMutation(request: NextRequest) {
   if (!origin) return null;
 
   try {
-    if (new URL(origin).origin !== request.nextUrl.origin) return forbiddenResponse();
+    const requestOrigin = new URL(origin).origin;
+    if (!trustedRequestOrigins(request).has(requestOrigin)) return forbiddenResponse();
   } catch {
     return forbiddenResponse();
   }
   return null;
+}
+
+function trustedRequestOrigins(request: NextRequest) {
+  const origins = new Set([request.nextUrl.origin]);
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
+  if (configuredSiteUrl) {
+    try {
+      origins.add(new URL(configuredSiteUrl).origin);
+    } catch {
+      // 배포 설정 검증 단계에서 잘못된 URL을 차단하며, 런타임에서는 안전하게 무시합니다.
+    }
+  }
+
+  return origins;
 }
 
 export async function readLimitedJsonBody(request: NextRequest) {

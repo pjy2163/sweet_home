@@ -10,6 +10,9 @@ import {
   fetchAuthSession,
 } from "@/lib/api";
 
+const AGREEMENT_LOAD_ERROR = "확인 내용을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+const AGREEMENT_SAVE_ERROR = "동의 내용을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+
 export function AgreementGate({ redirectPath }: { redirectPath: string }) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
@@ -34,7 +37,7 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
         setStatus("ready");
       } catch (error) {
         if (active) {
-          setMessage(error instanceof Error ? error.message : "약관 확인 상태를 불러오지 못했습니다.");
+          setMessage(publicErrorMessage(error, AGREEMENT_LOAD_ERROR));
           setStatus("error");
         }
       }
@@ -51,7 +54,7 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
       await acceptCurrentAgreement();
       window.location.replace(redirectPath);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "확인 내용을 저장하지 못했습니다.");
+      setMessage(publicErrorMessage(error, AGREEMENT_SAVE_ERROR));
       setStatus("error");
     }
   }
@@ -96,4 +99,18 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
       </section>
     </main>
   );
+}
+
+function publicErrorMessage(error: unknown, fallback: string) {
+  if (!(error instanceof Error)) return fallback;
+
+  const internalErrorPatterns = [
+    /failed to execute/i,
+    /unexpected end of json/i,
+    /json\.parse/i,
+    /syntaxerror/i,
+  ];
+  return internalErrorPatterns.some((pattern) => pattern.test(error.message))
+    ? fallback
+    : error.message || fallback;
 }

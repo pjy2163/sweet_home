@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchCandidateMatches, fetchComparison } from "@/lib/api";
+import { acceptCurrentAgreement, fetchCandidateMatches, fetchComparison } from "@/lib/api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -63,6 +63,17 @@ describe("SweetHome API client", () => {
 
     await expect(fetchComparison("same", "same")).rejects.toThrow(
       "서로 다른 후보를 선택해 주세요.",
+    );
+  });
+
+  it("빈 응답이나 JSON이 아닌 응답을 사용자용 오류로 변환한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 403 })),
+    );
+
+    await expect(acceptCurrentAgreement()).rejects.toThrow(
+      "약관 확인 내용을 저장하지 못했습니다.",
     );
   });
 });
