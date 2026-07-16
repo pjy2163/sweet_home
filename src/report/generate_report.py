@@ -14,13 +14,19 @@ SNAPSHOT_PATH = (
 HIGH_PRICE_THRESHOLD = 10
 LOW_PRICE_THRESHOLD = -10
 MEANINGFUL_GAP_THRESHOLD = 5
-DATA_SOURCE_TEXT = "서울 전월세 실거래, 생활인구, 안전 대체 지표, 상권 점포 데이터 기반"
+DATA_SOURCE_TEXT = (
+    "서울 전월세 실거래, 시간대별 체류인구, 야간 생활환경, 상권 점포, "
+    "지하철역·버스정류소 위치 데이터 기반"
+)
 AGGREGATION_TEXT = "행정동 기준 최신 snapshot mart"
 LIMITATION_TEXT = (
-    "도메인별 기준일자가 다를 수 있으며, 안전 지표는 범죄율이 아니라 "
-    "안전 대체 지표입니다. 가격 지표는 법정동-행정동 매핑 영향으로 "
+    "도메인별 기준일자가 다를 수 있으며, 생활인구는 거주인구가 아니라 시간대별 "
+    "체류 추정치입니다. 야간 생활환경 지표는 범죄율이나 안전도를 뜻하지 않습니다. "
+    "가격 지표는 법정동-행정동 매핑 영향으로 "
     "인접 행정동이 같은 값을 가질 수 있습니다. 상권 지표는 매출이나 "
     "투자성을 뜻하지 않습니다."
+    " 교통 거리는 행정동 대표 중심점 기준 직선거리로 실제 도보거리나 "
+    "출퇴근 시간을 뜻하지 않습니다."
 )
 
 
@@ -40,6 +46,9 @@ class RegionSnapshot:
     low_volume: bool
     population_month: str | None
     living_population: float | None
+    daytime_living_population: float | None
+    nighttime_living_population: float | None
+    day_night_population_ratio: float | None
     safety_date: str | None
     safe_facility_count: float | None
     nightlife_count: float | None
@@ -50,6 +59,21 @@ class RegionSnapshot:
     has_population_data: bool
     has_safety_data: bool
     has_commercial_data: bool
+    transport_date: str | None = None
+    subway_station_count: float | None = None
+    subway_line_count: float | None = None
+    nearest_subway_station_name: str | None = None
+    nearest_subway_distance_m: float | None = None
+    bus_stop_count: float | None = None
+    bus_stop_density: float | None = None
+    has_transport_data: bool = False
+    area_km2: float | None = None
+    safe_facility_density: float | None = None
+    nightlife_density: float | None = None
+    store_density: float | None = None
+    price_latest_available_month: str | None = None
+    price_selection_policy: str | None = None
+    price_month_lag: float | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -84,7 +108,10 @@ def find_region(df: pd.DataFrame, query: str) -> pd.DataFrame:
     normalized = normalize_query(query)
     parts = normalized.split()
 
-    if len(parts) >= 2:
+    region_id_match = df["region_id"].astype(str).eq(normalized)
+    if region_id_match.any():
+        matched = df[region_id_match]
+    elif len(parts) >= 2:
         gu_name = parts[0]
         dong_name = parts[1]
         matched = df[(df["시군구명"] == gu_name) & (df["행정동명"] == dong_name)]
@@ -144,6 +171,9 @@ def to_region_snapshot(row: pd.Series) -> RegionSnapshot:
         low_volume=to_bool(row["거래량_해석주의"]),
         population_month=optional_str(row["생활인구_기준월"]),
         living_population=optional_float(row["생활인구"]),
+        daytime_living_population=optional_float(row.get("주간생활인구")),
+        nighttime_living_population=optional_float(row.get("야간생활인구")),
+        day_night_population_ratio=optional_float(row.get("주야간생활인구비율")),
         safety_date=optional_str(row["안전_기준일자"]),
         safe_facility_count=optional_float(row["안심시설수"]),
         nightlife_count=optional_float(row["유흥시설수"]),
@@ -154,6 +184,21 @@ def to_region_snapshot(row: pd.Series) -> RegionSnapshot:
         has_population_data=to_bool(row["생활인구_데이터여부"]),
         has_safety_data=to_bool(row["안전_데이터여부"]),
         has_commercial_data=to_bool(row["상권_데이터여부"]),
+        transport_date=optional_str(row.get("교통_기준일자")),
+        subway_station_count=optional_float(row.get("지하철역수")),
+        subway_line_count=optional_float(row.get("지하철노선수")),
+        nearest_subway_station_name=optional_str(row.get("최근접지하철역명")),
+        nearest_subway_distance_m=optional_float(row.get("최근접지하철역거리_m")),
+        bus_stop_count=optional_float(row.get("버스정류소수")),
+        bus_stop_density=optional_float(row.get("버스정류소_면적당")),
+        has_transport_data=to_bool(row.get("교통_데이터여부")),
+        area_km2=optional_float(row.get("area_km2")),
+        safe_facility_density=optional_float(row.get("안심시설수_면적당")),
+        nightlife_density=optional_float(row.get("유흥시설수_면적당")),
+        store_density=optional_float(row.get("사업체수_면적당")),
+        price_latest_available_month=optional_str(row.get("가격_최신가용월")),
+        price_selection_policy=optional_str(row.get("가격_선택정책")),
+        price_month_lag=optional_float(row.get("가격_최신월대비개월차")),
     )
 
 
@@ -193,11 +238,20 @@ def price_level_text(value: float | None) -> str:
 def render_region(region: RegionSnapshot) -> list[str]:
     volume = "데이터 없음" if region.volume is None else f"{region.volume:,.1f}건"
     caution = " / 거래량 해석 주의" if region.low_volume else ""
-    population = format_count(region.living_population, "명")
+    daytime_population = format_count(region.daytime_living_population, "명")
+    nighttime_population = format_count(region.nighttime_living_population, "명")
     safe_facilities = format_count(region.safe_facility_count, "개")
     nightlife = format_count(region.nightlife_count, "개")
     industries = format_count(region.industry_count, "개")
     stores = format_count(region.store_count, "개")
+    subway_stations = format_count(region.subway_station_count, "개")
+    subway_lines = format_count(region.subway_line_count, "개")
+    nearest_subway = (
+        "데이터 없음"
+        if region.nearest_subway_distance_m is None
+        else f"{region.nearest_subway_station_name} {region.nearest_subway_distance_m:,.0f}m"
+    )
+    bus_stops = format_count(region.bus_stop_count, "개")
 
     return [
         f"{region.gu_name} {region.dong_name}",
@@ -207,11 +261,17 @@ def render_region(region: RegionSnapshot) -> list[str]:
         f"- 평균 전세가: {format_money(region.jeonse)}",
         f"- 서울 평균 전세가 대비: {format_ratio(region.jeonse_ratio)}",
         f"- 거래량: {volume}{caution}",
-        f"- 생활인구: {population} (기준월: {region.population_month or '데이터 없음'})",
-        f"- 안심시설수: {safe_facilities}",
-        f"- 유흥시설수: {nightlife} (안전 지표 기준일: {region.safety_date or '데이터 없음'})",
+        f"- 주간 평균 체류인구: {daytime_population}",
+        f"- 야간 평균 체류인구: {nighttime_population} "
+        f"(기준월: {region.population_month or '데이터 없음'})",
+        f"- 안심 인프라 시설수: {safe_facilities}",
+        f"- 야간 상권 관련 시설수: {nightlife} "
+        f"(야간 환경 기준일: {region.safety_date or '데이터 없음'})",
         f"- 업종수: {industries}",
         f"- 사업체수: {stores} (상권 기준분기: {region.commercial_date or '데이터 없음'})",
+        f"- 행정동 내부 지하철역: {subway_stations} / 노선: {subway_lines}",
+        f"- 대표 중심점 최근접역: {nearest_subway}",
+        f"- 버스정류소: {bus_stops} (교통 기준일: {region.transport_date or '데이터 없음'})",
     ]
 
 
@@ -245,15 +305,19 @@ def render_summary(region_a: RegionSnapshot, region_b: RegionSnapshot) -> list[s
         )
 
     if not region_a.has_population_data or not region_b.has_population_data:
-        lines.append("- 생활인구 데이터가 없는 지역이 있어 인구 지표 비교에 제한이 있습니다.")
+        lines.append("- 시간대별 체류인구 데이터가 없는 지역이 있어 활동 특성 비교에 제한이 있습니다.")
 
     if not region_a.has_commercial_data or not region_b.has_commercial_data:
         lines.append("- 상권 데이터가 없는 지역이 있어 상권 지표 비교에 제한이 있습니다.")
 
+    if not region_a.has_transport_data or not region_b.has_transport_data:
+        lines.append("- 행정동 경계가 연결되지 않은 지역은 교통 접근성 비교에 제한이 있습니다.")
+
     lines.append(
-        "- 유흥시설수와 안심시설수는 안전을 단정하는 지표가 아니라 생활환경 참고 지표입니다.",
+        "- 야간 상권 관련 시설과 안심 인프라는 범죄율이나 안전도를 단정하는 지표가 아닙니다.",
     )
     lines.append("- 업종수와 사업체수는 상권 규모 참고 지표이며 매출이나 수익성을 뜻하지 않습니다.")
+    lines.append("- 최근접역 거리는 행정동 대표 중심점 기준 직선거리이며 실제 도보거리가 아닙니다.")
     lines.append("- 이 리포트는 투자 추천이 아니라 후보 지역 비교를 위한 참고 정보입니다.")
     return lines
 
@@ -265,12 +329,14 @@ def render_data_basis(region_a: RegionSnapshot, region_b: RegionSnapshot) -> lis
         f"- 집계: {AGGREGATION_TEXT}",
         f"- 가격 기준월: {region_a.dong_name} {region_a.price_month or '데이터 없음'}, "
         f"{region_b.dong_name} {region_b.price_month or '데이터 없음'}",
-        f"- 생활인구 기준월: {region_a.dong_name} {region_a.population_month or '데이터 없음'}, "
+        f"- 체류인구 기준월: {region_a.dong_name} {region_a.population_month or '데이터 없음'}, "
         f"{region_b.dong_name} {region_b.population_month or '데이터 없음'}",
-        f"- 안전 지표 기준일: {region_a.dong_name} {region_a.safety_date or '데이터 없음'}, "
+        f"- 야간 생활환경 기준일: {region_a.dong_name} {region_a.safety_date or '데이터 없음'}, "
         f"{region_b.dong_name} {region_b.safety_date or '데이터 없음'}",
         f"- 상권 기준분기: {region_a.dong_name} {region_a.commercial_date or '데이터 없음'}, "
         f"{region_b.dong_name} {region_b.commercial_date or '데이터 없음'}",
+        f"- 교통 기준일: {region_a.dong_name} {region_a.transport_date or '데이터 없음'}, "
+        f"{region_b.dong_name} {region_b.transport_date or '데이터 없음'}",
         f"- 한계: {LIMITATION_TEXT}",
     ]
 
@@ -279,7 +345,7 @@ def generate_report(region_a: RegionSnapshot, region_b: RegionSnapshot) -> str:
     lines = [
         "[SweetHome 지역 비교 리포트]",
         "",
-        "가격, 생활인구, 안전 대체 지표, 상권 지표를 행정동 기준으로 비교합니다.",
+        "가격, 시간대별 체류 특성, 야간 생활환경, 상권 지표를 행정동 기준으로 비교합니다.",
         f"서울 평균 보증금: {format_money(region_a.seoul_deposit)}",
         f"서울 평균 전세가: {format_money(region_a.seoul_jeonse)}",
         "",

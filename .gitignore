@@ -23,7 +23,6 @@ env/
 # Secrets / local config
 .env
 .env.*
-!.env.example
 *.pem
 *.key
 *.p12
@@ -33,6 +32,9 @@ env/
 secrets.*
 credentials.*
 service-account*.json
+
+# Local-only infrastructure drafts (publish after deployment validation)
+compose.yaml
 
 # Local runtime outputs
 logs/
@@ -47,6 +49,10 @@ data/raw/**
 # Large or generated processed data
 data/processed/*.parquet
 data/processed/*.xlsx
+data/processed/region_indicator_profile.csv
+data/processed/housing_rent_fact.csv
+data/processed/housing_rent_snapshot.csv
+data/processed/housing_rent_comparison.csv
 
 # Keep small CSV schemas/results only when intentionally reviewed.
 # If a processed CSV becomes large or sensitive, move it to data/raw or add it here explicitly.
@@ -56,8 +62,19 @@ data/exports/**
 !data/exports/
 !data/exports/.gitkeep
 
+# Markdown docs are local/internal by default.
+*.md
+*.MD
+!/README.md
+!/frontend/README.md
+
+# Public repository contracts
+!.env.example
+
 # Private/internal operating docs
+study/**
 AGENTS.md
+CLAUDE.md
 docs/agents/**
 docs/workflows/**
 docs/briefing-*.md
@@ -77,3 +94,8 @@ docs/data-inventory.xlsx
 scratch/
 local/
 README.local.md
+scripts/sync_notion_board.py
+
+# Local design image assets
+assets/sweethome-logo.svg
+frontend/public/sweethome-map-background.png

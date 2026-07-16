@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.pytest_cache
+frontend/.next
+frontend/node_modules
+data/raw
+data/exports
+docs
+kiro
+notebooks
+scratch
+study
+.env
+.env.*
+!.env.example

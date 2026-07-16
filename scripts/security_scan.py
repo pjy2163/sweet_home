@@ -18,6 +18,20 @@ SECRET_PATTERNS = [
     re.compile(r"(?i)\b(password|secret|api_key|apikey|credential)\s*=\s*['\"]?[^'\"\s]+"),
 ]
 
+SENSITIVE_CSV_HEADER_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"주민(?:등록)?번호",
+        r"외국인등록번호",
+        r"휴대폰(?:번호)?",
+        r"전화번호",
+        r"이메일",
+        r"email",
+        r"계좌번호",
+        r"카드번호",
+    )
+]
+
 BLOCKED_PATH_PREFIXES = [
     "data/raw/",
     "docs/agents/",
@@ -89,6 +103,14 @@ def scan_file(path: Path) -> list[str]:
     for pattern in SECRET_PATTERNS:
         if pattern.search(text):
             issues.append(f"possible secret pattern in {rel}: {pattern.pattern}")
+
+    if path.suffix.lower() == ".csv":
+        header = text.splitlines()[0] if text else ""
+        for pattern in SENSITIVE_CSV_HEADER_PATTERNS:
+            if pattern.search(header):
+                issues.append(
+                    f"possible sensitive CSV column in {rel}: {pattern.pattern}"
+                )
 
     return issues
 

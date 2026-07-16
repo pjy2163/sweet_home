@@ -1,0 +1,217 @@
+import Link from "next/link";
+import Image from "next/image";
+
+import { BrandLogo } from "@/components/brand-logo";
+import { AuthMenu } from "@/components/auth-menu";
+import { LandingScrollEffects } from "@/components/landing-scroll-effects";
+import { SiteFooter } from "@/components/site-footer";
+
+const APP_URL = "/app";
+const DIRECT_MAP_URL = "/app/report-map?mode=direct&conditions=price,convenience,safety,population,transport";
+
+const FLOW = [
+  {
+    number: "01",
+    label: "내 조건 정리",
+    title: "예산과 생활 조건을\n먼저 정리합니다",
+    description:
+      "계약 유형과 예산, 주택유형과 면적, 생활에서 중요하게 생각하는 기준을 입력합니다. 입력한 조건은 언제든 다시 바꿀 수 있습니다.",
+  },
+  {
+    number: "02",
+    label: "후보 지역 압축",
+    title: "조건에 맞는 지역만\n후보로 남깁니다",
+    description:
+      "후보가 포함된 이유와 데이터 주의사항을 확인하고, 직접 살펴볼 지역을 저장하거나 제외합니다. 지역의 절대 순위는 매기지 않습니다.",
+  },
+  {
+    number: "03",
+    label: "근거 비교",
+    title: "최종 후보의 차이를\n같은 기준으로 비교합니다",
+    description:
+      "비용, 생활 편의, 시간대별 체류 특성과 야간 생활환경의 차이를 비교해 각 선택에서 무엇을 얻고 고려해야 하는지 확인합니다.",
+  },
+];
+
+function ArrowLink({ children, className }: { children: React.ReactNode; className: string }) {
+  return (
+    <Link className={className} href={APP_URL}>
+      {children}
+      <span aria-hidden="true">→</span>
+    </Link>
+  );
+}
+
+function WorkspacePreview() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-line bg-white shadow-[0_24px_70px_rgba(67,62,63,.12)]" aria-label="SweetHome 후보 보드 미리보기">
+      <div className="flex h-12 items-center justify-between border-b border-[#e5e8ee] px-4 text-[10px] font-semibold uppercase tracking-[.14em] text-[#9097a6]">
+        <span>주거 후보 비교</span>
+        <span>서울 행정동 데이터</span>
+      </div>
+      <div className="grid min-h-[430px] sm:grid-cols-[150px_1fr]">
+        <aside className="hidden border-r border-[#e5e8ee] bg-[#fafbfc] p-4 sm:block">
+          <p className="text-[9px] font-semibold tracking-[.08em] text-[#a0a6b3]">비교 과정</p>
+          <p className="mt-2 text-sm font-semibold text-ink">주거 의사결정</p>
+          <div className="mt-8 space-y-1 text-[11px]">
+            <div className="rounded-md px-3 py-2 text-[#747c8d]">01 내 조건</div>
+            <div className="rounded-md bg-sage-soft px-3 py-2 font-semibold text-sage">02 후보 보드</div>
+            <div className="rounded-md px-3 py-2 text-[#747c8d]">03 지역 비교</div>
+          </div>
+        </aside>
+        <div className="bg-canvas p-5 sm:p-7">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[9px] font-semibold tracking-[.08em] text-sage">후보 지역</p>
+              <h3 className="mt-2 text-xl font-semibold tracking-[-.03em] text-ink">살펴볼 후보를 압축해 보세요</h3>
+            </div>
+            <span className="rounded-md border border-line bg-white px-3 py-2 text-[10px] text-[#697184]">조건 수정</span>
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {[["탐색 후보", "8곳"], ["저장한 후보", "2/2"], ["판단 기준", "3개"]].map(([label, value], index) => (
+              <div className={`rounded-lg border p-3 ${index === 1 ? "border-sage-line bg-sage-soft" : "border-line bg-white"}`} key={label}>
+                <p className="text-[9px] text-[#8a91a0]">{label}</p>
+                <p className={`mt-1 text-lg font-semibold ${index === 1 ? "text-sage" : "text-ink"}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <PreviewCandidate district="마포구" dong="망원2동" reasons={["생활 편의 지표 확인", "가격 수준 비교 가능"]} />
+            <PreviewCandidate district="성동구" dong="성수1가1동" reasons={["최근 거래 데이터 확인", "주간·야간 체류 특성 확인"]} />
+          </div>
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3">
+            <p className="text-[11px] font-semibold text-ink">최종 후보 2곳 선택</p>
+            <span className="rounded-md bg-ink px-3 py-2 text-[10px] font-semibold text-white">최종 후보 비교</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewCandidate({ district, dong, reasons }: { district: string; dong: string; reasons: string[] }) {
+  return (
+    <article className="rounded-lg border border-sage bg-white p-4 ring-1 ring-sage">
+      <div className="flex items-start justify-between gap-2">
+        <div><p className="text-[9px] text-[#8a91a0]">{district}</p><p className="mt-1 text-sm font-semibold text-ink">{dong}</p></div>
+        <span className="rounded-full bg-sage-soft px-2 py-1 text-[9px] font-semibold text-sage">최종 후보</span>
+      </div>
+      <p className="mt-4 text-[9px] font-semibold uppercase tracking-[.1em] text-[#9299a8]">포함 근거</p>
+      <ul className="mt-2 space-y-1 text-[10px] text-[#687083]">{reasons.map((reason) => <li key={reason}>· {reason}</li>)}</ul>
+    </article>
+  );
+}
+
+function DecisionProfilePreview() {
+  return (
+    <div className="rounded-xl border border-line bg-white p-5 shadow-[0_10px_30px_rgba(67,62,63,.06)]">
+      <p className="text-[10px] font-semibold tracking-[.08em] text-sage">내 조건</p>
+      <h4 className="mt-3 text-lg font-semibold text-ink">현재 의사결정 기준</h4>
+      <dl className="mt-5 space-y-4 text-sm">
+        <div className="flex justify-between border-b border-[#edf2ef] pb-3"><dt className="text-[#7c8495]">계약 유형</dt><dd className="font-semibold">월세</dd></div>
+        <div className="flex justify-between border-b border-[#edf2ef] pb-3"><dt className="text-[#7c8495]">월 주거비</dt><dd className="font-semibold">80만원 이하</dd></div>
+        <div><dt className="text-[#7c8495]">우선 확인</dt><dd className="mt-3 flex flex-wrap gap-2">{["주거 비용", "생활 편의", "야간 환경"].map((item) => <span className="rounded-full bg-[#f0f4f8] px-3 py-1.5 text-xs text-[#566174]" key={item}>{item}</span>)}</dd></div>
+      </dl>
+    </div>
+  );
+}
+
+function ComparisonPreview() {
+  return (
+    <div className="rounded-xl border border-line bg-white p-5 shadow-[0_10px_30px_rgba(67,62,63,.06)]">
+      <div className="grid grid-cols-[1fr_70px_1fr] items-end border-b border-[#edf2ef] pb-4 text-center">
+        <strong>망원2동</strong><span className="text-[10px] font-semibold text-[#8b92a1]">비교 기준</span><strong>성수1가1동</strong>
+      </div>
+      <div className="divide-y divide-[#edf2ef] text-sm">
+        {[["서울 평균보다 낮음", "가격", "서울 평균보다 높음"], ["데이터 확인", "생활 편의", "데이터 확인"], ["현장 확인 필요", "야간 환경", "현장 확인 필요"]].map((row) => (
+          <div className="grid grid-cols-[1fr_70px_1fr] items-center py-4 text-center" key={row[1]}><span>{row[0]}</span><span className="text-xs text-[#8b92a1]">{row[1]}</span><span>{row[2]}</span></div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <main className="landing warm-canvas !text-ink">
+      <LandingScrollEffects />
+      <header className="relative z-20 border-b border-line bg-white/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-[1240px] items-center justify-between px-5 sm:px-8">
+          <form action="/" method="get">
+            <button className="block w-[164px] cursor-pointer text-ink" aria-label="SweetHome 랜딩 새로 열기" type="submit">
+              <BrandLogo />
+            </button>
+          </form>
+          <nav className="hidden items-center gap-8 text-sm text-[#626a7c] sm:flex"><a href="#product">서비스 소개</a><a href="#process">이용 방법</a><a href="#comparison-method">비교 방식</a></nav>
+          <div className="flex items-center gap-2">
+            <AuthMenu className="hidden px-3 py-3 text-sm font-semibold text-[#566074] sm:block" />
+            <Link className="rounded-lg border border-[#dbe6e1] px-3 py-3 text-sm font-semibold text-[#3f4a60] transition hover:border-sage hover:text-sage-strong" href={DIRECT_MAP_URL}>지도에서 비교하기</Link>
+            <ArrowLink className="hidden items-center gap-5 rounded-lg bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-charcoal sm:inline-flex">내 조건 입력하기</ArrowLink>
+          </div>
+        </div>
+      </header>
+
+      <section className="border-b border-line bg-white/72" id="top">
+        <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[.85fr_1.15fr] lg:items-center lg:py-24">
+          <div data-scroll-reveal>
+            <p className="text-xs font-semibold tracking-[.08em] text-sage">서울 주거 의사결정 도구</p>
+            <h1 className="mt-6 max-w-xl text-[2.65rem] font-medium leading-[1.14] tracking-[-.04em] sm:text-[3.35rem]">내 조건에 맞는 동네,<br />어디부터 살펴봐야<br />할까요?</h1>
+            <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산과 생활 조건을 입력하면 서울의 후보 지역을 좁혀드립니다. 후보가 남은 이유와 지역별 차이를 확인하고, 직접 살펴볼 동네를 결정해 보세요.</p>
+            <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-ink px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-charcoal">내 조건으로 후보 찾기</ArrowLink><Link className="rounded-lg border border-[#dbe6e1] px-5 py-3.5 text-sm font-semibold text-[#4e596d] transition hover:border-sage hover:text-sage-strong" href={DIRECT_MAP_URL}>지도에서 비교하기 ↗</Link><a className="text-sm font-semibold text-[#566074]" href="#product">서비스 둘러보기 ↓</a></div>
+            <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />조건에 맞는 후보와 비교 근거를 제공하고, 최종 선택은 사용자가 합니다.</p>
+          </div>
+          <div data-scroll-float><WorkspacePreview /></div>
+        </div>
+      </section>
+
+      <section className="bg-transparent">
+        <div className="mx-auto grid max-w-[1240px] gap-8 px-5 py-16 sm:px-8 lg:grid-cols-[1.25fr_.75fr] lg:items-center lg:py-20" data-scroll-reveal>
+          <div className="overflow-hidden rounded-xl border border-sage-line bg-mint">
+            <Image
+              alt="서울 지도 위에서 두 후보 지역의 생활 데이터를 비교하는 SweetHome 집 캐릭터"
+              className="h-auto w-full"
+              height={941}
+              priority
+              src="/sweethome-brand-illustration.png"
+              width={1672}
+            />
+          </div>
+          <div className="lg:pl-6">
+            <p className="text-xs font-semibold tracking-[.08em] text-sage">비교를 시작하는 더 분명한 방법</p>
+            <h2 className="mt-5 text-3xl font-medium leading-[1.15] tracking-[-.04em] sm:text-4xl">서울이 낯설어도,<br />내게 맞는 동네를 찾는<br />기준은 만들 수 있습니다.</h2>
+            <p className="mt-6 max-w-md text-sm leading-7 text-[#626a7c]">여러 부동산 서비스를 오가며 찾던 가격, 생활 편의, 시간대별 체류 특성과 야간 생활환경 데이터를 한곳에서 비교하고 실제로 확인할 후보 지역만 남겨보세요.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white/28" id="product">
+        <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
+          <div className="grid gap-8 border-b border-[#dfe3e9] pb-16 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold tracking-[.08em] text-[#7f8797]">서비스가 돕는 일</p><div><h2 className="max-w-4xl text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">정보를 더 보여주는 대신,<br />선택지를 줄여드립니다.</h2><p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">SweetHome은 매물을 추천하거나 지역의 순위를 매기지 않습니다. 사용자의 예산과 생활 조건을 기준으로 후보 지역을 좁히고, 각 후보가 남은 이유와 선택할 때 고려할 차이를 보여줍니다.</p></div></div>
+
+          <div className="mt-16 grid gap-6 lg:grid-cols-2" id="comparison-method">
+            <DecisionProfilePreview />
+            <ComparisonPreview />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-line bg-white/72" id="process">
+        <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-28">
+          <div className="grid gap-8 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal><p className="text-xs font-semibold tracking-[.08em] text-[#7f8797]">이용 방법</p><h2 className="text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">찾는 과정부터<br />결정하는 과정까지</h2></div>
+          <div className="mt-16 border-t border-[#dfe3e9]">
+            {FLOW.map((item) => <article className="grid gap-6 border-b border-[#dfe3e9] py-10 sm:grid-cols-[90px_1fr_1fr] sm:items-start" data-scroll-reveal key={item.number}><p className="text-xs font-semibold text-sage">{item.number}</p><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8a91a0]">{item.label}</p><h3 className="mt-3 text-2xl font-medium leading-tight tracking-[-.035em]">{item.title.split("\n").map((line) => <span className="block" key={line}>{line}</span>)}</h3></div><p className="max-w-lg text-sm leading-7 text-[#656d7e] sm:pt-7">{item.description}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-ink text-white">
+        <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-end lg:py-24" data-scroll-reveal>
+          <div><p className="text-xs font-semibold tracking-[.08em] text-sage-soft">비교 시작하기</p><h2 className="mt-5 text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">집을 보러 가기 전에,<br />살펴볼 동네부터 정리해 보세요.</h2></div>
+          <ArrowLink className="inline-flex items-center justify-between gap-12 rounded-lg bg-white px-5 py-4 text-sm font-semibold text-ink transition hover:bg-surface-soft">내 조건으로 후보 찾기</ArrowLink>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </main>
+  );
+}

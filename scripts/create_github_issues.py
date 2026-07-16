@@ -35,7 +35,7 @@ MVP 비교 리포트에 인구/환경 지표를 넣기 위해 행정동 기준 �
 ## Expected Output
 - 확정 데이터 출처
 - raw 파일 또는 API 접근 방식
-- docs/data-inventory.md 업데이트
+- docs/data-engineering/data-inventory.md 업데이트
 """,
     ),
     Issue(
@@ -119,7 +119,7 @@ real_estate_fact.csv의 컬럼과 집계 기준을 정의합니다.
 - [ ] 샘플 리포트 문구 작성
 
 ## Expected Output
-- docs/report-spec.md
+- docs/backend/report-spec.md
 """,
     ),
 ]
