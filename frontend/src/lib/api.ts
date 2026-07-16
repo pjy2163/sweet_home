@@ -45,16 +45,30 @@ export async function fetchAgreementStatus() {
 export async function acceptCurrentAgreement() {
   const response = await fetch("/api/backend/agreements/me", authRequestInit({
     method: "POST",
-    headers: { "content-type": "application/json" },
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: {
+      "content-type": "application/json",
+      "x-sweethome-request-intent": "accept-current-agreement",
+    },
     body: JSON.stringify({
       terms_accepted: true,
       privacy_notice_confirmed: true,
     }),
   }));
-  return parseJsonResponse<AgreementStatus>(
+  const savedAgreement = await parseJsonResponse<AgreementStatus>(
     response,
     "약관 확인 내용을 저장하지 못했습니다.",
   );
+  if (!savedAgreement.accepted) {
+    throw new Error("약관 확인 내용을 저장하지 못했습니다.");
+  }
+
+  const confirmedAgreement = await fetchAgreementStatus();
+  if (!confirmedAgreement?.accepted) {
+    throw new Error("약관 확인 내용을 저장하지 못했습니다.");
+  }
+  return confirmedAgreement;
 }
 
 export async function createSavedReport(payload: SavedReportCreate) {

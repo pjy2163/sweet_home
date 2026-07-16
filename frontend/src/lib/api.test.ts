@@ -76,4 +76,36 @@ describe("SweetHome API client", () => {
       "약관 확인 내용을 저장하지 못했습니다.",
     );
   });
+
+  it("약관 저장 뒤 조회 결과로 실제 반영을 확인한다", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accepted: true }), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accepted: true }), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(acceptCurrentAgreement()).resolves.toMatchObject({ accepted: true });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "/api/backend/agreements/me",
+      expect.objectContaining({
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: expect.objectContaining({
+          "x-sweethome-request-intent": "accept-current-agreement",
+        }),
+        method: "POST",
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/backend/agreements/me",
+      expect.objectContaining({ cache: "no-store" }),
+    );
+  });
 });
