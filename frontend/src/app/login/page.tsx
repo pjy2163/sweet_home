@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/brand-logo";
-import { safeRedirectPath } from "@/lib/auth";
+import { safePostAuthRedirectPath } from "@/lib/auth";
 
 export default async function LoginPage({
   searchParams,
@@ -9,7 +9,7 @@ export default async function LoginPage({
   searchParams: Promise<{ redirect?: string | string[] }>;
 }) {
   const requestedRedirect = (await searchParams).redirect;
-  const redirectPath = safeRedirectPath(
+  const redirectPath = safePostAuthRedirectPath(
     Array.isArray(requestedRedirect) ? requestedRedirect[0] : requestedRedirect,
   );
   const completionPath = `/auth/complete?redirect=${encodeURIComponent(redirectPath)}`;
@@ -89,14 +89,6 @@ export default async function LoginPage({
             </Link>
           </div>
 
-          <div className="border-t border-line bg-white/55 px-7 py-5 sm:px-9">
-            <div className="flex items-start gap-3">
-              <ShieldIcon />
-              <p className="text-xs leading-5 text-muted">
-                인증은 Google·GitHub와 Azure가 처리합니다. SweetHome은 비밀번호나 인증 토큰을 저장하지 않습니다.
-              </p>
-            </div>
-          </div>
         </section>
       </div>
     </main>
@@ -118,15 +110,6 @@ function GitHubMark() {
   return (
     <svg aria-hidden="true" className="h-[19px] w-[19px]" fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.9-2.78.62-3.37-1.2-3.37-1.2-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .08 1.53 1.06 1.53 1.06.9 1.57 2.35 1.12 2.92.85.09-.66.35-1.12.64-1.37-2.22-.26-4.56-1.14-4.56-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.35 9.35 0 0 1 12 6.93a9.3 9.3 0 0 1 2.5.35c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.06.36.32.68.95.68 1.92 0 1.38-.01 2.5-.01 2.84 0 .27.18.59.69.49A10.22 10.22 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-subtle" fill="none" viewBox="0 0 20 20">
-      <path d="M10 2.5 16 5v4.4c0 3.8-2.4 6.3-6 8.1-3.6-1.8-6-4.3-6-8.1V5l6-2.5Z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="m7.4 9.8 1.7 1.7 3.7-4" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
     </svg>
   );
 }

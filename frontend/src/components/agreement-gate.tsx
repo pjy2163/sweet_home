@@ -9,11 +9,13 @@ import {
   fetchAgreementStatus,
   fetchAuthSession,
 } from "@/lib/api";
+import { safePostAuthRedirectPath } from "@/lib/auth";
 
 const AGREEMENT_LOAD_ERROR = "확인 내용을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const AGREEMENT_SAVE_ERROR = "동의 내용을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 
 export function AgreementGate({ redirectPath }: { redirectPath: string }) {
+  const destination = safePostAuthRedirectPath(redirectPath);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyConfirmed, setPrivacyConfirmed] = useState(false);
   const [status, setStatus] = useState<"loading" | "ready" | "submitting" | "error">("loading");
@@ -25,13 +27,13 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
       try {
         const session = await fetchAuthSession();
         if (!session) {
-          window.location.replace(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+          window.location.replace(`/login?redirect=${encodeURIComponent(destination)}`);
           return;
         }
         const agreement = await fetchAgreementStatus();
         if (!active) return;
         if (agreement?.accepted) {
-          window.location.replace(redirectPath);
+          window.location.replace(destination);
           return;
         }
         setStatus("ready");
@@ -44,7 +46,7 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
     }
     void check();
     return () => { active = false; };
-  }, [redirectPath]);
+  }, [destination]);
 
   async function submitAgreement() {
     if (!termsAccepted || !privacyConfirmed) return;
@@ -52,7 +54,7 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
     setMessage("");
     try {
       await acceptCurrentAgreement();
-      window.location.replace(redirectPath);
+      window.location.replace(destination);
     } catch (error) {
       setMessage(publicErrorMessage(error, AGREEMENT_SAVE_ERROR));
       setStatus("error");
