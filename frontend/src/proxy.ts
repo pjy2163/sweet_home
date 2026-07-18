@@ -15,7 +15,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL("/parang-labs", request.url));
   }
 
-  if (request.nextUrl.pathname === "/robots.txt") {
+  if (["/ads.txt", "/robots.txt"].includes(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

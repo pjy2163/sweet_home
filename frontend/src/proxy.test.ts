@@ -26,6 +26,16 @@ describe("apex domain routing", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
+  it("keeps the apex authorized seller file available to ad crawlers", () => {
+    const response = proxy(
+      new NextRequest("https://paranglabs.com/ads.txt", {
+        headers: { host: "paranglabs.com" },
+      }),
+    );
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
   it("redirects other apex paths to the canonical SweetHome origin", () => {
     const response = proxy(
       new NextRequest("https://paranglabs.com/privacy?from=review", {
