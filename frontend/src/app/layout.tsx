@@ -85,13 +85,6 @@ export default function RootLayout({
             `,
           }}
         />
-        <Script
-          async
-          crossOrigin="anonymous"
-          id="google-adsense"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7211753432405785"
-          strategy="beforeInteractive"
-        />
       </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>

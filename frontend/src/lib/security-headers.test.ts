@@ -21,9 +21,6 @@ describe("public response security headers", () => {
     expect(headers["Content-Security-Policy"]).toContain(
       "https://*.analytics.google.com",
     );
-    expect(headers["Content-Security-Policy"]).toContain(
-      "https://pagead2.googlesyndication.com",
-    );
     expect(headers["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
     expect(headers["Permissions-Policy"]).toBe(
       "camera=(), microphone=(), geolocation=()",
