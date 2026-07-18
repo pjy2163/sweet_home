@@ -12,6 +12,15 @@ describe("public response security headers", () => {
     expect(headers["Content-Security-Policy"]).toContain("script-src 'self'");
     expect(headers["Content-Security-Policy"]).toContain("connect-src 'self'");
     expect(headers["Content-Security-Policy"]).toContain("https://dapi.kakao.com");
+    expect(headers["Content-Security-Policy"]).toContain(
+      "https://*.googletagmanager.com",
+    );
+    expect(headers["Content-Security-Policy"]).toContain(
+      "https://*.google-analytics.com",
+    );
+    expect(headers["Content-Security-Policy"]).toContain(
+      "https://*.analytics.google.com",
+    );
     expect(headers["Content-Security-Policy"]).toContain("frame-ancestors 'none'");
     expect(headers["Permissions-Policy"]).toBe(
       "camera=(), microphone=(), geolocation=()",

@@ -2,12 +2,12 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://dapi.kakao.com https://t1.daumcdn.net`,
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://dapi.kakao.com https://t1.daumcdn.net https://*.googletagmanager.com`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://dapi.kakao.com https://*.daumcdn.net https://*.kakao.com",
+  "connect-src 'self' https://dapi.kakao.com https://*.daumcdn.net https://*.kakao.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "media-src 'none'",

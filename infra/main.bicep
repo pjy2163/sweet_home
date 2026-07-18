@@ -69,6 +69,12 @@ param frontendCustomDomainName string
 @description('Existing managed certificate name for the frontend custom hostname.')
 param frontendManagedCertificateName string
 
+@description('Apex hostname used for the Parang Labs introduction page.')
+param frontendApexDomainName string
+
+@description('Existing managed certificate name for the apex hostname.')
+param frontendApexManagedCertificateName string
+
 @description('Enable only after Azure Container Apps authentication is configured and verified.')
 param trustAzureIdentityHeaders bool = false
 
@@ -83,6 +89,11 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' existing = {
 resource frontendManagedCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = {
   parent: environment
   name: frontendManagedCertificateName
+}
+
+resource frontendApexManagedCertificate 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' existing = {
+  parent: environment
+  name: frontendApexManagedCertificateName
 }
 
 resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
@@ -137,6 +148,8 @@ module frontend 'modules/frontend-app.bicep' = {
     publicSiteUrl: publicSiteUrl
     customDomainName: frontendCustomDomainName
     customDomainCertificateId: frontendManagedCertificate.id
+    apexDomainName: frontendApexDomainName
+    apexDomainCertificateId: frontendApexManagedCertificate.id
     trustAzureIdentityHeaders: trustAzureIdentityHeaders
   }
 }

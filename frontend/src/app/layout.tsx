@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import Script from "next/script";
 import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
   description: "서울 동네 추천이 필요할 때 정답 대신 예산, 주거 비용, 생활 편의, 교통과 야간 생활환경 데이터를 같은 기준으로 비교해 후보를 좁혀보세요.",
   applicationName: "SweetHome",
   category: "real estate decision support",
+  other: {
+    "google-adsense-account": "ca-pub-7211753432405785",
+  },
   robots: {
     index: true,
     follow: true,
@@ -62,6 +66,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${notoSansKr.variable} h-full`}>
+      <head>
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-RNBTG5PPDM"
+          strategy="beforeInteractive"
+        />
+        <Script
+          id="google-analytics"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+
+              gtag('config', 'G-RNBTG5PPDM');
+            `,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

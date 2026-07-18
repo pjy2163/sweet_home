@@ -26,6 +26,8 @@ param privacyContactEmail string
 param publicSiteUrl string
 param customDomainName string
 param customDomainCertificateId string
+param apexDomainName string
+param apexDomainCertificateId string
 param trustAzureIdentityHeaders bool
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
@@ -75,6 +77,11 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
             name: customDomainName
             bindingType: 'SniEnabled'
             certificateId: customDomainCertificateId
+          }
+          {
+            name: apexDomainName
+            bindingType: 'SniEnabled'
+            certificateId: apexDomainCertificateId
           }
         ]
       }

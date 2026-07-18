@@ -19,7 +19,7 @@ describe("AgreementGate", () => {
     api.fetchAgreementStatus.mockResolvedValue({
       accepted: false,
       terms_version: "2026-07-15",
-      privacy_notice_version: "2026-07-15",
+      privacy_notice_version: "2026-07-18",
       accepted_at: null,
     });
   });

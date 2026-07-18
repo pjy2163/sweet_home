@@ -10,7 +10,7 @@ import type {
 } from "@/types/sweethome";
 
 const TERMS_VERSION = "2026-07-15";
-const PRIVACY_NOTICE_VERSION = "2026-07-15";
+const PRIVACY_NOTICE_VERSION = "2026-07-18";
 
 const PRIORITY_LABELS: Record<ExploreCondition, string> = {
   price: "주거 비용",

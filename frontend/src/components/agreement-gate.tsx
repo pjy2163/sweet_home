@@ -81,7 +81,7 @@ export function AgreementGate({ redirectPath }: { redirectPath: string }) {
               </div>
               <div className="flex items-start gap-3 rounded-xl border border-line bg-white p-4 transition hover:border-sage-line">
                 <input className="mt-1 h-4 w-4" id="privacy-confirmation" checked={privacyConfirmed} onChange={(event) => setPrivacyConfirmed(event.target.checked)} type="checkbox" />
-                <div className="text-sm leading-6"><label className="cursor-pointer font-bold" htmlFor="privacy-confirmation">[필수] 개인정보 처리 안내 확인</label><br /><span className="text-xs text-muted">인증 제공자·불투명 식별자·저장 리포트 · 이용 종료 또는 삭제 요청 시까지</span><br /><Link className="text-xs text-sage-strong underline underline-offset-4" href="/privacy" target="_blank">개인정보처리방침 보기</Link></div>
+                <div className="text-sm leading-6"><label className="cursor-pointer font-bold" htmlFor="privacy-confirmation">[필수] 개인정보 처리 안내 확인</label><br /><span className="text-xs text-muted">로그인·저장 리포트·서비스 분석·광고 연결 정보 처리 안내</span><br /><Link className="text-xs text-sage-strong underline underline-offset-4" href="/privacy" target="_blank">개인정보처리방침 보기</Link></div>
               </div>
             </div>
           ) : null}

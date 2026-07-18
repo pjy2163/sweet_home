@@ -16,7 +16,7 @@ from src.api.security import AuthenticatedIdentity
 
 
 CURRENT_TERMS_VERSION = "2026-07-15"
-CURRENT_PRIVACY_NOTICE_VERSION = "2026-07-15"
+CURRENT_PRIVACY_NOTICE_VERSION = "2026-07-18"
 
 
 def get_agreement_status(
