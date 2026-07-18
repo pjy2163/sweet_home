@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   description: "서울 동네 추천이 필요할 때 정답 대신 예산, 주거 비용, 생활 편의, 교통과 야간 생활환경 데이터를 같은 기준으로 비교해 후보를 좁혀보세요.",
   applicationName: "SweetHome",
   category: "real estate decision support",
+  other: {
+    "google-adsense-account": "ca-pub-7211753432405785",
+  },
   robots: {
     index: true,
     follow: true,
@@ -81,6 +84,13 @@ export default function RootLayout({
               gtag('config', 'G-RNBTG5PPDM');
             `,
           }}
+        />
+        <Script
+          async
+          crossOrigin="anonymous"
+          id="google-adsense"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7211753432405785"
+          strategy="beforeInteractive"
         />
       </head>
       <body className="flex min-h-full flex-col">{children}</body>

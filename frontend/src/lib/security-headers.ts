@@ -2,7 +2,7 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://dapi.kakao.com https://t1.daumcdn.net https://*.googletagmanager.com`,
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""} https://dapi.kakao.com https://t1.daumcdn.net https://*.googletagmanager.com https://pagead2.googlesyndication.com`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
