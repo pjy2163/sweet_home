@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/site-url";
 
 const PUBLIC_ROUTES = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
+  { path: "/seoul-neighborhood-guide", priority: 0.9, changeFrequency: "monthly" },
   { path: "/app", priority: 0.9, changeFrequency: "weekly" },
   { path: "/app/report-map", priority: 0.8, changeFrequency: "weekly" },
   { path: "/data-policy", priority: 0.4, changeFrequency: "monthly" },

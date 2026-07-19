@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { StructuredData } from "@/components/structured-data";
+
 export const metadata: Metadata = {
   title: "Parang Labs | 데이터로 더 나은 선택",
   description:
@@ -14,8 +16,18 @@ export const metadata: Metadata = {
 };
 
 export default function ParangLabsPage() {
+  const organizationStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://paranglabs.com/#organization",
+    name: "Parang Labs",
+    url: "https://paranglabs.com/",
+    description: "데이터를 이해하기 쉬운 비교 근거로 바꾸는 제품 스튜디오",
+  };
+
   return (
     <main className="flex min-h-screen flex-col bg-[#f4f1eb] text-[#24272d]">
+      <StructuredData data={organizationStructuredData} />
       <header className="border-b border-[#d9d6cf] bg-white/75">
         <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-6 sm:px-10">
           <a className="text-lg font-semibold tracking-[-0.03em]" href="https://paranglabs.com">

@@ -29,6 +29,7 @@ Host: https://sweethome.paranglabs.com
     const urls = sitemap().map((entry) => entry.url);
 
     expect(urls).toContain("https://sweethome.paranglabs.com/");
+    expect(urls).toContain("https://sweethome.paranglabs.com/seoul-neighborhood-guide");
     expect(urls).toContain("https://sweethome.paranglabs.com/app");
     expect(urls).toContain("https://sweethome.paranglabs.com/app/report-map");
     expect(urls.some((url) => url.includes("/login") || url.includes("/mypage"))).toBe(false);
