@@ -8,6 +8,7 @@ const FOOTER_GROUPS = [
     links: [
       ["서비스 소개", "/#product"],
       ["이용 방법", "/#process"],
+      ["서울 동네 추천 가이드", "/seoul-neighborhood-guide"],
       ["내 조건으로 후보 찾기", "/app"],
       ["지도에서 비교하기", "/app/report-map?mode=direct&conditions=price,convenience,safety,population,transport"],
     ],
