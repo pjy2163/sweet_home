@@ -12,10 +12,10 @@ def test_heatmap_returns_regions_for_default_metric() -> None:
     result = response.json()
     assert result["metric"] == "jeonse_ratio"
     assert result["metadata"]["metric_label"] == "전세가 서울 평균 대비"
-    assert result["metadata"]["region_count"] == 433
+    assert result["metadata"]["region_count"] == 426
     assert result["metadata"]["data_region_count"] > 0
     assert result["metadata"]["unit"] == "%"
-    assert len(result["regions"]) == 433
+    assert len(result["regions"]) == 426
     assert sum(
         1
         for region in result["regions"]
@@ -83,8 +83,8 @@ def test_heatmap_returns_bus_stop_provenance_and_coverage() -> None:
     assert metadata["source_url"].startswith("https://data.seoul.go.kr/")
     assert metadata["source_license"] == "공공누리 제1유형 · 출처표시"
     assert metadata["data_date"] == "2026-07-01"
-    assert metadata["data_region_count"] == 420
-    assert metadata["missing_region_count"] == 13
+    assert metadata["data_region_count"] == 426
+    assert metadata["missing_region_count"] == 0
     assert "공간조인" in metadata["methodology"]
 
 

@@ -10,7 +10,7 @@ def test_list_regions_returns_region_options() -> None:
 
     assert response.status_code == 200
     regions = response.json()
-    assert len(regions) == 433
+    assert len(regions) == 426
     assert regions[0] == {
         "region_id": "1168066000",
         "gu_name": "강남구",

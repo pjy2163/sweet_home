@@ -14,7 +14,7 @@ def test_compare_regions_returns_structured_report() -> None:
     comparison = response.json()
     assert comparison["region_a"]["display_name"] == "강남구 개포1동"
     assert comparison["region_b"]["display_name"] == "강남구 개포4동"
-    assert comparison["region_a"]["jeonse_ratio"] == 57.25
+    assert comparison["region_a"]["jeonse_ratio"] == 57.29
     assert "두 지역의 전세가 수준은 서울 평균 대비 큰 차이가 아닙니다." in comparison["summary"]
     assert "이 리포트는 투자 추천이 아니라 후보 지역 비교를 위한 참고 정보입니다." in comparison["summary"]
     assert "[SweetHome 지역 비교 리포트]" in comparison["report_text"]

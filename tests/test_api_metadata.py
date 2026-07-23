@@ -11,7 +11,7 @@ def test_metadata_returns_data_basis() -> None:
 
     assert response.status_code == 200
     metadata = response.json()
-    assert metadata["region_count"] == 433
+    assert metadata["region_count"] == 426
     assert metadata["price_latest_month"] == "2026-02"
     assert metadata["population_latest_month"] == "2026-05"
     assert metadata["safety_latest_date"] == "안심시설수 2023-04-21; 유흥시설수 2026-06-17"

@@ -203,13 +203,28 @@ def test_explore_regions_returns_static_transport_evidence() -> None:
     assert "실제 도보거리나 이동시간이 아닙니다" in nearest_station["interpretation"]
 
 
-def test_explore_explains_missing_transport_boundary_mapping() -> None:
-    client = TestClient(app)
+def test_explore_explains_missing_transport_boundary_mapping(monkeypatch) -> None:
     profile = build_indicator_profile()
-    missing_region_id = profile.loc[
-        ~profile["교통_데이터여부"].fillna(False).astype(bool),
-        "region_id",
-    ].iloc[0]
+    missing_region_id = profile["region_id"].iloc[0]
+    missing_mask = profile["region_id"].eq(missing_region_id)
+    profile.loc[missing_mask, "교통_데이터여부"] = False
+    profile.loc[
+        missing_mask,
+        [
+            "지하철역수",
+            "지하철노선수",
+            "최근접지하철역명",
+            "최근접지하철역거리_m",
+            "버스정류소수",
+            "버스정류소_면적당",
+        ],
+    ] = pd.NA
+    profile.loc[
+        missing_mask,
+        "버스정류소_면적당_상대수준",
+    ] = "데이터없음"
+    monkeypatch.setattr(explore_service, "read_indicator_profile", lambda: profile)
+    client = TestClient(app)
 
     response = client.get(
         "/explore",
