@@ -26,12 +26,18 @@ Host: https://sweethome.paranglabs.com
 
   it("lists only public absolute URLs", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://sweethome.paranglabs.com");
-    const urls = sitemap().map((entry) => entry.url);
+    const entries = sitemap();
+    const urls = entries.map((entry) => entry.url);
 
     expect(urls).toContain("https://sweethome.paranglabs.com/");
     expect(urls).toContain("https://sweethome.paranglabs.com/seoul-neighborhood-guide");
+    expect(urls).toContain("https://sweethome.paranglabs.com/guides/seoul-rent-neighborhoods");
+    expect(urls).toContain("https://sweethome.paranglabs.com/guides/seoul-living-alone");
+    expect(urls).toContain("https://sweethome.paranglabs.com/guides/seoul-commute-neighborhoods");
     expect(urls).toContain("https://sweethome.paranglabs.com/app");
     expect(urls).toContain("https://sweethome.paranglabs.com/app/report-map");
+    expect(entries).toHaveLength(10);
+    expect(entries.every((entry) => entry.lastModified)).toBe(true);
     expect(urls.some((url) => url.includes("/login") || url.includes("/mypage"))).toBe(false);
   });
 });

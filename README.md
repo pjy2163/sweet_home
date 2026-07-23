@@ -1,5 +1,8 @@
 # 스위트홈(SweetHome)
 
+[서비스 바로가기](https://sweethome.paranglabs.com/) ·
+[서울 동네 추천 가이드](https://sweethome.paranglabs.com/seoul-neighborhood-guide)
+
 <img width="900" alt="sweethome-portfolio-cover-text-large" src="https://github.com/user-attachments/assets/2b04aef8-4142-4f75-bbf1-7a614d42dcab" />
 
 

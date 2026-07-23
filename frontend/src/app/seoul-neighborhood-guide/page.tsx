@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { StructuredData } from "@/components/structured-data";
+import { SEO_GUIDES } from "@/lib/seo-guides";
 import { siteUrl } from "@/lib/site-url";
 
 const GUIDE_PATH = "/seoul-neighborhood-guide";
@@ -12,6 +13,7 @@ const GUIDE_TITLE = "서울 동네 추천: 예산·교통·생활 조건별 지�
 const GUIDE_DESCRIPTION =
   "서울에서 살 동네를 찾을 때 예산, 월세, 생활 편의, 교통과 야간 생활환경을 어떤 기준으로 비교해야 하는지 알아보고 내 조건에 맞는 후보를 좁혀보세요.";
 const PUBLISHED_AT = "2026-07-19T00:00:00+09:00";
+const MODIFIED_AT = "2026-07-23T00:00:00+09:00";
 
 export const metadata: Metadata = {
   title: GUIDE_TITLE,
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
     title: `${GUIDE_TITLE} | SweetHome`,
     description: GUIDE_DESCRIPTION,
     publishedTime: PUBLISHED_AT,
-    modifiedTime: PUBLISHED_AT,
+    modifiedTime: MODIFIED_AT,
     images: [
       {
         url: "/sweethome-brand-illustration.png",
@@ -32,6 +34,12 @@ export const metadata: Metadata = {
         alt: "서울 지도 위에서 후보 지역을 비교하는 SweetHome",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${GUIDE_TITLE} | SweetHome`,
+    description: GUIDE_DESCRIPTION,
+    images: ["/twitter-image"],
   },
 };
 
@@ -97,7 +105,7 @@ export default function SeoulNeighborhoodGuidePage() {
         description: GUIDE_DESCRIPTION,
         inLanguage: "ko-KR",
         datePublished: PUBLISHED_AT,
-        dateModified: PUBLISHED_AT,
+        dateModified: MODIFIED_AT,
         image: [imageUrl],
         author: { "@id": organizationId },
         publisher: { "@id": organizationId },
@@ -156,7 +164,7 @@ export default function SeoulNeighborhoodGuidePage() {
             </p>
             <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-subtle">
               <span>작성·운영 Parang Labs</span>
-              <time dateTime={PUBLISHED_AT}>게시·수정 2026년 7월 19일</time>
+              <time dateTime={MODIFIED_AT}>게시 2026년 7월 19일 · 수정 2026년 7월 23일</time>
             </div>
           </header>
 
@@ -197,6 +205,25 @@ export default function SeoulNeighborhoodGuidePage() {
                   <h3 className="text-xl font-semibold leading-8">{intent.title}</h3>
                   <p className="text-sm leading-7 text-muted">{intent.body}</p>
                 </section>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-16 border-t border-line pt-14">
+            <p className="text-xs font-semibold tracking-[.1em] text-sage">상황별 상세 가이드</p>
+            <h2 className="mt-4 text-3xl font-medium tracking-[-.04em]">내가 동네를 찾는 이유에 맞춰 살펴보세요</h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {SEO_GUIDES.map((guide) => (
+                <Link
+                  className="rounded-2xl border border-line bg-white p-6 transition hover:border-sage-line hover:bg-mint/30"
+                  href={guide.path}
+                  key={guide.slug}
+                >
+                  <p className="text-xs font-semibold text-sage">{guide.kicker}</p>
+                  <h3 className="mt-3 text-lg font-semibold leading-7">{guide.title}</h3>
+                  <p className="mt-4 text-sm leading-6 text-muted">{guide.description}</p>
+                  <span className="mt-5 inline-flex text-sm font-semibold text-sage-strong">자세히 보기 →</span>
+                </Link>
               ))}
             </div>
           </section>

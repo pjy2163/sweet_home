@@ -6,6 +6,7 @@ import { AuthMenu } from "@/components/auth-menu";
 import { LandingScrollEffects } from "@/components/landing-scroll-effects";
 import { SiteFooter } from "@/components/site-footer";
 import { StructuredData } from "@/components/structured-data";
+import { SEO_GUIDES } from "@/lib/seo-guides";
 import { siteUrl } from "@/lib/site-url";
 
 const APP_URL = "/app";
@@ -169,7 +170,7 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-[1240px] gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[.85fr_1.15fr] lg:items-center lg:py-24">
           <div data-scroll-reveal>
             <p className="text-xs font-semibold tracking-[.08em] text-sage">서울 주거 의사결정 도구</p>
-            <h1 className="mt-6 max-w-xl text-[2.65rem] font-medium leading-[1.14] tracking-[-.04em] sm:text-[3.35rem]">서울 동네 추천,<br />내 조건에 맞는 곳부터<br />비교해 보세요.</h1>
+            <h1 className="mt-6 max-w-xl text-[2.65rem] font-medium leading-[1.14] tracking-[-.04em] sm:text-[3.35rem]">서울에서 살 동네,<br />내 조건에 맞는 곳부터<br />비교해 보세요.</h1>
             <p className="mt-7 max-w-lg text-base leading-7 text-[#626a7c]">예산, 월세, 생활 편의, 교통과 야간 생활환경을 같은 기준으로 비교해 서울에서 직접 살펴볼 후보 지역을 좁혀드립니다.</p>
             <div className="mt-9 flex flex-wrap items-center gap-5"><ArrowLink className="inline-flex items-center gap-8 rounded-lg bg-ink px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-charcoal">내 조건으로 후보 찾기</ArrowLink><Link className="rounded-lg border border-[#dbe6e1] px-5 py-3.5 text-sm font-semibold text-[#4e596d] transition hover:border-sage hover:text-sage-strong" href={DIRECT_MAP_URL}>지도에서 비교하기 ↗</Link><Link className="text-sm font-semibold text-[#566074]" href="/seoul-neighborhood-guide">서울 동네 추천 가이드 →</Link></div>
             <p className="mt-7 text-xs leading-5 text-[#9299a7]">특정 지역을 정답처럼 추천하지 않습니다.<br />조건에 맞는 후보와 비교 근거를 제공하고, 최종 선택은 사용자가 합니다.</p>
@@ -215,6 +216,33 @@ export default function LandingPage() {
           <div className="mt-16 border-t border-[#dfe3e9]">
             {FLOW.map((item) => <article className="grid gap-6 border-b border-[#dfe3e9] py-10 sm:grid-cols-[90px_1fr_1fr] sm:items-start" data-scroll-reveal key={item.number}><p className="text-xs font-semibold text-sage">{item.number}</p><div><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8a91a0]">{item.label}</p><h3 className="mt-3 text-2xl font-medium leading-tight tracking-[-.035em]">{item.title.split("\n").map((line) => <span className="block" key={line}>{line}</span>)}</h3></div><p className="max-w-lg text-sm leading-7 text-[#656d7e] sm:pt-7">{item.description}</p></article>)}
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-line bg-white/48">
+        <div className="mx-auto max-w-[1240px] px-5 py-20 sm:px-8 lg:py-24">
+          <div className="grid gap-8 lg:grid-cols-[.45fr_1fr]" data-scroll-reveal>
+            <p className="text-xs font-semibold tracking-[.08em] text-[#7f8797]">서울 주거 가이드</p>
+            <div>
+              <h2 className="text-4xl font-medium leading-[1.12] tracking-[-.045em] sm:text-5xl">상황에 맞는 기준부터<br />확인해 보세요.</h2>
+              <p className="mt-6 max-w-2xl text-base leading-7 text-[#626a7c]">추천 순위 대신 월세, 자취와 출퇴근처럼 실제 동네를 찾는 상황별로 어떤 데이터를 확인해야 하는지 정리했습니다.</p>
+            </div>
+          </div>
+          <div className="mt-12 grid gap-4 lg:grid-cols-3">
+            {SEO_GUIDES.map((guide) => (
+              <Link
+                className="rounded-2xl border border-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-sage-line hover:shadow-[0_14px_36px_rgba(67,62,63,.07)]"
+                href={guide.path}
+                key={guide.slug}
+              >
+                <p className="text-xs font-semibold text-sage">{guide.kicker}</p>
+                <h3 className="mt-3 text-xl font-semibold leading-8">{guide.title}</h3>
+                <p className="mt-4 text-sm leading-7 text-[#656d7e]">{guide.description}</p>
+                <span className="mt-6 inline-flex text-sm font-semibold text-sage-strong">가이드 보기 →</span>
+              </Link>
+            ))}
+          </div>
+          <Link className="mt-8 inline-flex text-sm font-semibold text-[#566074] underline underline-offset-4" href="/seoul-neighborhood-guide">서울 동네 추천 종합 가이드 보기 →</Link>
         </div>
       </section>
 
