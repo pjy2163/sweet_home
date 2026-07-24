@@ -70,6 +70,7 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
                     "selection_mode": "candidate",
                     "contract_type": "monthly_rent",
                     "budget_max_krw_10k": 80,
+                    "deposit_max_krw_10k": 1000,
                 },
             },
         )
@@ -85,6 +86,7 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
         "selection_mode": "candidate",
         "contract_type": "monthly_rent",
         "budget_max_krw_10k": 80.0,
+        "deposit_max_krw_10k": 1000.0,
         "building_type": None,
         "area_band": None,
     }

@@ -33,8 +33,9 @@ describe("SweetHome API client", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await fetchCandidateMatches(["price", "transport"], 2, {
-      contractType: "jeonse",
-      budgetMaxKrw10k: 25_000,
+      contractType: "monthly_rent",
+      budgetMaxKrw10k: 80,
+      depositMaxKrw10k: 2_000,
       regionIds: ["1168064000", "1162069500"],
     });
 
@@ -42,8 +43,9 @@ describe("SweetHome API client", () => {
     expect(requestUrl.pathname).toBe("/api/backend/explore");
     expect(requestUrl.searchParams.get("price")).toBe("true");
     expect(requestUrl.searchParams.get("transport")).toBe("true");
-    expect(requestUrl.searchParams.get("contract_type")).toBe("jeonse");
-    expect(requestUrl.searchParams.get("budget_max_krw_10k")).toBe("25000");
+    expect(requestUrl.searchParams.get("contract_type")).toBe("monthly_rent");
+    expect(requestUrl.searchParams.get("budget_max_krw_10k")).toBe("80");
+    expect(requestUrl.searchParams.get("deposit_max_krw_10k")).toBe("2000");
     expect(requestUrl.searchParams.getAll("region_ids")).toEqual([
       "1168064000",
       "1162069500",

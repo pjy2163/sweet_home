@@ -62,7 +62,7 @@ import type {
 
 const METRICS: Array<{ id: HeatmapMetric; label: string }> = [
   { id: "jeonse_ratio", label: "전세가" },
-  { id: "deposit_ratio", label: "실거래가" },
+  { id: "deposit_ratio", label: "전월세 보증금" },
   { id: "safe_facility_density", label: "안심 인프라" },
   { id: "store_density", label: "편의" },
   { id: "bus_stop_density", label: "버스정류소 밀도" },
@@ -107,12 +107,22 @@ function ReportMapContent() {
     const valid: ExploreCondition[] = ["safety", "convenience", "price", "population", "transport"];
     return raw.split(",").filter((c): c is ExploreCondition => valid.includes(c as ExploreCondition));
   }, [searchParams]);
-  const contractType = useMemo<"monthly_rent" | "jeonse" | undefined>(() => {
+  const contractType = useMemo<
+    "monthly_rent" | "jeonse" | "purchase" | undefined
+  >(() => {
     const raw = searchParams.get("contract_type");
-    return raw === "monthly_rent" || raw === "jeonse" ? raw : undefined;
+    return raw === "monthly_rent" || raw === "jeonse" || raw === "purchase"
+      ? raw
+      : undefined;
   }, [searchParams]);
   const budgetMaxKrw10k = useMemo<number | undefined>(() => {
     const raw = searchParams.get("budget_max_krw_10k");
+    if (!raw) return undefined;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+  }, [searchParams]);
+  const depositMaxKrw10k = useMemo<number | undefined>(() => {
+    const raw = searchParams.get("deposit_max_krw_10k");
     if (!raw) return undefined;
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
@@ -154,9 +164,10 @@ function ReportMapContent() {
     selection_mode: directSelectionMode ? "direct_map" : "candidate",
     contract_type: contractType,
     budget_max_krw_10k: budgetMaxKrw10k,
+    deposit_max_krw_10k: depositMaxKrw10k,
     building_type: buildingType,
     area_band: areaBand,
-  }), [areaBand, budgetMaxKrw10k, buildingType, contractType, directSelectionMode]);
+  }), [areaBand, budgetMaxKrw10k, buildingType, contractType, depositMaxKrw10k, directSelectionMode]);
 
   useEffect(() => {
     if (selectedConditions.length === 0 || directSelectionMode) {
@@ -167,6 +178,7 @@ function ReportMapContent() {
       excludeLowVolumePrice,
       contractType,
       budgetMaxKrw10k,
+      depositMaxKrw10k,
       buildingType,
       areaBand,
       regionIds: focusSavedCandidates ? [...savedRegionIds] : undefined,
@@ -174,7 +186,7 @@ function ReportMapContent() {
       if (!ignore) setCandidateRegions(result.regions);
     }).catch(() => {});
     return () => { ignore = true; };
-  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, directSelectionMode, excludeLowVolumePrice, focusSavedCandidates, savedRegionIds, selectedConditions]);
+  }, [areaBand, budgetMaxKrw10k, buildingType, contractType, depositMaxKrw10k, directSelectionMode, excludeLowVolumePrice, focusSavedCandidates, savedRegionIds, selectedConditions]);
 
   const visibleCandidateRegions = useMemo(
     () => {
@@ -264,8 +276,17 @@ function ReportMapContent() {
                 비교 조건
               </p>
               <p className="mt-2 text-sm font-semibold">
-                {contractType === "monthly_rent" ? "월세" : "전세 보증금"} {budgetMaxKrw10k.toLocaleString()}만원 이하
+                {contractType === "monthly_rent"
+                  ? "월세"
+                  : contractType === "jeonse"
+                    ? "전세 보증금"
+                    : "매매가"} {budgetMaxKrw10k.toLocaleString()}만원 이하
               </p>
+              {contractType === "monthly_rent" && depositMaxKrw10k ? (
+                <p className="mt-1 text-sm font-semibold">
+                  보증금 {depositMaxKrw10k.toLocaleString()}만원 이하
+                </p>
+              ) : null}
               <p className="mt-1 text-xs text-[#6c7689]">
                 후보 보드와 동일한 예산{buildingType || areaBand ? "·주거 조건" : ""} 필터가 적용됐습니다.
               </p>

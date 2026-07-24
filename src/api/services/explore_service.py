@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.api.errors import EXPLORE_CONDITION_REQUIRED, ApiError
+from src.api.errors import (
+    EXPLORE_CONDITION_REQUIRED,
+    PURCHASE_DATA_UNAVAILABLE,
+    ApiError,
+)
 from src.api.schemas import ExploreMetadata, ExploreResponse
 from src.api.services.candidate_mapper import row_to_candidate_match
 from src.api.services.data_service import (
+    purchase_data_available,
+    read_housing_purchase_snapshot,
     read_housing_rent_snapshot,
     read_indicator_profile,
 )
@@ -28,6 +34,7 @@ def list_candidate_matches(
     exclude_low_volume_price: bool = False,
     contract_type: str | None = None,
     budget_max_krw_10k: float | None = None,
+    deposit_max_krw_10k: float | None = None,
     building_type: str | None = None,
     area_band: str | None = None,
     region_ids: list[str] | None = None,
@@ -54,6 +61,7 @@ def list_candidate_matches(
         affordability = build_affordability_matches(
             contract_type=contract_type,
             budget_max_krw_10k=budget_max_krw_10k,
+            deposit_max_krw_10k=deposit_max_krw_10k,
             building_type=building_type,
             area_band=area_band,
         )
@@ -115,6 +123,11 @@ def list_candidate_matches(
             transport_status=TRANSPORT_STATUS,
             contract_type=contract_type if budget_filter_applied else None,
             budget_max_krw_10k=budget_max_krw_10k if budget_filter_applied else None,
+            deposit_max_krw_10k=(
+                deposit_max_krw_10k
+                if budget_filter_applied and contract_type == "monthly_rent"
+                else None
+            ),
             budget_filter_applied=budget_filter_applied,
             building_type=building_type if budget_filter_applied else None,
             area_band=area_band if budget_filter_applied else None,
@@ -127,34 +140,62 @@ def build_affordability_matches(
     *,
     contract_type: str,
     budget_max_krw_10k: float,
+    deposit_max_krw_10k: float | None = None,
     building_type: str | None = None,
     area_band: str | None = None,
 ) -> pd.DataFrame:
-    if contract_type not in {"monthly_rent", "jeonse"}:
+    if contract_type not in {"monthly_rent", "jeonse", "purchase"}:
         raise ValueError(f"unsupported contract_type: {contract_type}")
 
-    housing = read_housing_rent_snapshot()
-    comparable = housing[
-        housing["lease_type"].eq(contract_type)
-        & housing["is_comparable"].fillna(False).astype(bool)
-    ].copy()
+    if contract_type == "purchase":
+        if not purchase_data_available():
+            raise ApiError(
+                status_code=503,
+                code=PURCHASE_DATA_UNAVAILABLE,
+                message=(
+                    "매매 실거래 데이터가 아직 준비되지 않았습니다. "
+                    "검증된 매매 snapshot 적재 후 이용해 주세요."
+                ),
+            )
+        comparable = read_housing_purchase_snapshot()
+        comparable = comparable[
+            comparable["is_comparable"].fillna(False).astype(bool)
+        ].copy()
+    else:
+        housing = read_housing_rent_snapshot()
+        comparable = housing[
+            housing["lease_type"].eq(contract_type)
+            & housing["is_comparable"].fillna(False).astype(bool)
+        ].copy()
     if building_type is not None:
         comparable = comparable[comparable["building_type"].eq(building_type)].copy()
     if area_band is not None:
         comparable = comparable[comparable["area_band"].eq(area_band)].copy()
-    cost_column = (
-        "median_monthly_rent_krw_10k"
-        if contract_type == "monthly_rent"
-        else "median_deposit_krw_10k"
-    )
+    cost_column = {
+        "monthly_rent": "median_monthly_rent_krw_10k",
+        "jeonse": "median_deposit_krw_10k",
+        "purchase": "median_purchase_price_krw_10k",
+    }[contract_type]
     comparable["_budget_value"] = pd.to_numeric(
         comparable[cost_column],
         errors="coerce",
     )
-    affordable = comparable[
+    affordable_mask = (
         comparable["_budget_value"].notna()
         & comparable["_budget_value"].le(budget_max_krw_10k)
-    ].copy()
+    )
+    comparable["_deposit_value"] = pd.NA
+    if contract_type == "monthly_rent":
+        comparable["_deposit_value"] = pd.to_numeric(
+            comparable["median_deposit_krw_10k"],
+            errors="coerce",
+        )
+        if deposit_max_krw_10k is not None:
+            affordable_mask &= (
+                comparable["_deposit_value"].notna()
+                & comparable["_deposit_value"].le(deposit_max_krw_10k)
+            )
+    affordable = comparable[affordable_mask].copy()
 
     if affordable.empty:
         return pd.DataFrame(
@@ -162,6 +203,8 @@ def build_affordability_matches(
                 "region_id",
                 "budget_contract_type",
                 "budget_observed_value",
+                "budget_deposit_observed_value",
+                "budget_deposit_max_krw_10k",
                 "budget_matching_segment_count",
                 "budget_reference_month",
                 "budget_sample_confidence",
@@ -169,8 +212,13 @@ def build_affordability_matches(
         )
 
     affordable = affordable.sort_values(
-        ["region_id", "_budget_value", "weighted_record_count"],
-        ascending=[True, True, False],
+        [
+            "region_id",
+            "_budget_value",
+            "_deposit_value",
+            "weighted_record_count",
+        ],
+        ascending=[True, True, True, False],
     )
     representative = affordable.groupby("region_id", as_index=False).first()
     counts = affordable.groupby("region_id").size().rename(
@@ -181,6 +229,7 @@ def build_affordability_matches(
         [
             "region_id",
             "_budget_value",
+            "_deposit_value",
             "budget_matching_segment_count",
             "reference_month",
             "sample_confidence",
@@ -188,10 +237,16 @@ def build_affordability_matches(
     ].rename(
         columns={
             "_budget_value": "budget_observed_value",
+            "_deposit_value": "budget_deposit_observed_value",
             "reference_month": "budget_reference_month",
             "sample_confidence": "budget_sample_confidence",
         },
-    ).assign(budget_contract_type=contract_type)
+    ).assign(
+        budget_contract_type=contract_type,
+        budget_deposit_max_krw_10k=(
+            deposit_max_krw_10k if contract_type == "monthly_rent" else pd.NA
+        ),
+    )
 
 
 def selected_condition_names(

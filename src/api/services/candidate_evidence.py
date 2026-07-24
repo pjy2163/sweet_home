@@ -22,12 +22,12 @@ def build_candidate_evidence(
 ) -> list[CandidateEvidenceMetric]:
     evidence = []
 
-    if row.get("budget_contract_type") in {"monthly_rent", "jeonse"}:
-        contract_label = (
-            "월세"
-            if row["budget_contract_type"] == "monthly_rent"
-            else "전세 보증금"
-        )
+    if row.get("budget_contract_type") in {"monthly_rent", "jeonse", "purchase"}:
+        contract_label = {
+            "monthly_rent": "월세",
+            "jeonse": "전세 보증금",
+            "purchase": "매매가",
+        }[str(row["budget_contract_type"])]
         evidence.append(
             CandidateEvidenceMetric(
                 condition="price",
@@ -49,6 +49,37 @@ def build_candidate_evidence(
                 reliability=str(row.get("budget_sample_confidence", "확인 필요")),
             ),
         )
+        if (
+            row["budget_contract_type"] == "monthly_rent"
+            and row.get("budget_deposit_max_krw_10k") is not None
+            and not pd.isna(row.get("budget_deposit_max_krw_10k"))
+        ):
+            evidence.append(
+                CandidateEvidenceMetric(
+                    condition="price",
+                    label="예산 이내 월세 보증금 중위값",
+                    value=none_or_rounded_float(
+                        row.get("budget_deposit_observed_value"),
+                        1,
+                    ),
+                    unit="만원",
+                    display_value=format_metric_value(
+                        row.get("budget_deposit_observed_value"),
+                        "만원",
+                        0,
+                    ),
+                    interpretation=(
+                        "같은 세부 주거유형의 월세 보증금 중위값입니다. "
+                        "월 임대료와 보증금 상한을 함께 충족합니다."
+                    ),
+                    level="예산 이내",
+                    is_matched=True,
+                    data_date=none_or_text(row.get("budget_reference_month")),
+                    reliability=str(
+                        row.get("budget_sample_confidence", "확인 필요"),
+                    ),
+                ),
+            )
 
     if "price" in selected_conditions:
         evidence.extend(
@@ -56,7 +87,7 @@ def build_candidate_evidence(
                 ratio_evidence(
                     row=row,
                     condition="price",
-                    label="실거래가",
+                    label="전체 전월세 보증금",
                     value_column="실거래가_서울평균대비율",
                     matched_column="실거래가_서울평균이하여부",
                     data_date_column="가격_기준월",

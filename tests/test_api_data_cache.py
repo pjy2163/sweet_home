@@ -133,3 +133,86 @@ def test_app_lifespan_warms_data_cache_before_serving_requests(monkeypatch) -> N
 
     assert response.status_code == 200
     assert warm_calls == [True]
+
+
+def test_purchase_data_requires_a_valid_comparable_snapshot(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    invalid_path = tmp_path / "purchase.csv"
+    pd.DataFrame([{"region_id": "1168064000"}]).to_csv(invalid_path, index=False)
+    data_service.clear_data_cache()
+    monkeypatch.setattr(
+        data_service,
+        "HOUSING_PURCHASE_SNAPSHOT_PATH",
+        invalid_path,
+    )
+
+    assert data_service.purchase_data_available() is False
+    assert data_service.read_housing_purchase_snapshot().empty
+
+    valid_path = tmp_path / "valid-purchase.csv"
+    pd.DataFrame(
+        [
+            {
+                "region_id": "1168064000",
+                "reference_month": "2025-12",
+                "building_type": "apartment",
+                "area_band": "large",
+                "median_purchase_price_krw_10k": 100000,
+                "weighted_record_count": 10,
+                "sample_confidence": "high",
+                "is_comparable": True,
+            },
+        ],
+    ).to_csv(valid_path, index=False)
+    data_service.clear_data_cache()
+    monkeypatch.setattr(
+        data_service,
+        "HOUSING_PURCHASE_SNAPSHOT_PATH",
+        valid_path,
+    )
+
+    assert data_service.purchase_data_available() is True
+    assert len(data_service.read_housing_purchase_snapshot()) == 1
+    data_service.clear_data_cache()
+
+
+def test_purchase_data_rejects_invalid_prices_and_duplicate_segments(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    purchase_path = tmp_path / "invalid-purchase.csv"
+    rows = [
+        {
+            "region_id": "1168064000",
+            "reference_month": "2025-12",
+            "building_type": "apartment",
+            "area_band": "large",
+            "median_purchase_price_krw_10k": -1,
+            "weighted_record_count": 10,
+            "sample_confidence": "high",
+            "is_comparable": True,
+        },
+        {
+            "region_id": "1168064000",
+            "reference_month": "2025-11",
+            "building_type": "apartment",
+            "area_band": "large",
+            "median_purchase_price_krw_10k": 100000,
+            "weighted_record_count": 10,
+            "sample_confidence": "high",
+            "is_comparable": True,
+        },
+    ]
+    pd.DataFrame(rows).to_csv(purchase_path, index=False)
+    data_service.clear_data_cache()
+    monkeypatch.setattr(
+        data_service,
+        "HOUSING_PURCHASE_SNAPSHOT_PATH",
+        purchase_path,
+    )
+
+    assert data_service.purchase_data_available() is False
+    assert data_service.read_housing_purchase_snapshot().empty
+    data_service.clear_data_cache()

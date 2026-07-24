@@ -27,8 +27,15 @@ export function DecisionJourney({ report }: { report: SavedReportDetail }) {
     ? "지도에서 직접 후보 선택"
     : "조건으로 후보를 좁혀 선택";
   const housingConditions = [
-    context?.contract_type === "monthly_rent" ? "월세" : context?.contract_type === "jeonse" ? "전세" : null,
+    context?.contract_type === "monthly_rent"
+      ? "월세"
+      : context?.contract_type === "jeonse"
+        ? "전세"
+        : context?.contract_type === "purchase"
+          ? "매매"
+          : null,
     context?.budget_max_krw_10k ? `예산 ${context.budget_max_krw_10k.toLocaleString("ko-KR")}만원 이하` : null,
+    context?.deposit_max_krw_10k ? `보증금 ${context.deposit_max_krw_10k.toLocaleString("ko-KR")}만원 이하` : null,
     context?.building_type ? BUILDING_LABELS[context.building_type] : null,
     context?.area_band ? AREA_LABELS[context.area_band] : null,
   ].filter((item): item is string => Boolean(item));

@@ -207,8 +207,9 @@ def explore_regions(
     population: bool = False,
     transport: bool = False,
     exclude_low_volume_price: bool = False,
-    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None,
+    contract_type: Optional[Literal["monthly_rent", "jeonse", "purchase"]] = None,
     budget_max_krw_10k: Optional[float] = Query(default=None, gt=0),
+    deposit_max_krw_10k: Optional[float] = Query(default=None, gt=0),
     building_type: Optional[Literal[
         "apartment",
         "officetel",
@@ -228,6 +229,7 @@ def explore_regions(
         exclude_low_volume_price=exclude_low_volume_price,
         contract_type=contract_type,
         budget_max_krw_10k=budget_max_krw_10k,
+        deposit_max_krw_10k=deposit_max_krw_10k,
         building_type=building_type,
         area_band=area_band,
         region_ids=region_ids,

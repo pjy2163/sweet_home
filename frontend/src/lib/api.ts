@@ -162,8 +162,9 @@ export async function fetchCandidateMatches(
   limit = 8,
   options: {
     excludeLowVolumePrice?: boolean;
-    contractType?: "monthly_rent" | "jeonse";
+    contractType?: "monthly_rent" | "jeonse" | "purchase";
     budgetMaxKrw10k?: number;
+    depositMaxKrw10k?: number;
     buildingType?: HousingBuildingType;
     areaBand?: HousingAreaBand;
     regionIds?: string[];
@@ -181,6 +182,9 @@ export async function fetchCandidateMatches(
   }
   if (options.budgetMaxKrw10k !== undefined) {
     params.set("budget_max_krw_10k", String(options.budgetMaxKrw10k));
+  }
+  if (options.depositMaxKrw10k !== undefined) {
+    params.set("deposit_max_krw_10k", String(options.depositMaxKrw10k));
   }
   if (options.buildingType) params.set("building_type", options.buildingType);
   if (options.areaBand) params.set("area_band", options.areaBand);

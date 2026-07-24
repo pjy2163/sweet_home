@@ -15,6 +15,9 @@ SNAPSHOT_PATH = BASE_DIR / "data" / "processed" / "region_comparison_snapshot.cs
 HOUSING_RENT_SNAPSHOT_PATH = (
     BASE_DIR / "data" / "processed" / "housing_rent_snapshot.csv"
 )
+HOUSING_PURCHASE_SNAPSHOT_PATH = (
+    BASE_DIR / "data" / "processed" / "housing_purchase_snapshot.csv"
+)
 GEOMETRY_PATH = BASE_DIR / "data" / "processed" / "region_geometry.csv"
 
 GEOMETRY_COLUMNS = [
@@ -24,6 +27,16 @@ GEOMETRY_COLUMNS = [
     "centroid_lat",
     "map_x",
     "map_y",
+]
+HOUSING_PURCHASE_COLUMNS = [
+    "region_id",
+    "reference_month",
+    "building_type",
+    "area_band",
+    "median_purchase_price_krw_10k",
+    "weighted_record_count",
+    "sample_confidence",
+    "is_comparable",
 ]
 
 
@@ -90,6 +103,70 @@ def read_housing_rent_snapshot() -> pd.DataFrame:
     return _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH).copy(deep=True)
 
 
+def purchase_data_available() -> bool:
+    if not HOUSING_PURCHASE_SNAPSHOT_PATH.exists():
+        return False
+
+    try:
+        snapshot = _read_csv_cached(HOUSING_PURCHASE_SNAPSHOT_PATH)
+    except (OSError, UnicodeDecodeError, pd.errors.ParserError):
+        return False
+    if snapshot.empty or not set(HOUSING_PURCHASE_COLUMNS).issubset(snapshot.columns):
+        return False
+
+    comparable = snapshot["is_comparable"].apply(
+        lambda value: (
+            True
+            if value is True or str(value).strip().lower() in {"true", "1"}
+            else (
+                False
+                if value is False or str(value).strip().lower() in {"false", "0"}
+                else pd.NA
+            )
+        ),
+    )
+    price = pd.to_numeric(
+        snapshot["median_purchase_price_krw_10k"],
+        errors="coerce",
+    )
+    weighted_count = pd.to_numeric(
+        snapshot["weighted_record_count"],
+        errors="coerce",
+    )
+    valid_month = snapshot["reference_month"].astype(str).str.fullmatch(
+        r"\d{4}-(0[1-9]|1[0-2])",
+    )
+    valid_keys = snapshot[
+        ["region_id", "reference_month", "building_type", "area_band"]
+    ].notna().all(axis=1)
+    valid_segments = (
+        snapshot["building_type"].isin(
+            {"apartment", "officetel", "multi_family", "detached_multiunit"},
+        )
+        & snapshot["area_band"].isin({"compact", "mid_size", "large"})
+    )
+    duplicate_keys = snapshot.duplicated(
+        ["region_id", "building_type", "area_band"],
+    )
+    valid_rows = (
+        valid_keys
+        & valid_month
+        & valid_segments
+        & price.gt(0)
+        & weighted_count.gt(0)
+        & comparable.notna()
+        & ~duplicate_keys
+    )
+    return bool(valid_rows.all() and comparable.fillna(False).astype(bool).any())
+
+
+def read_housing_purchase_snapshot() -> pd.DataFrame:
+    if not purchase_data_available():
+        return pd.DataFrame(columns=HOUSING_PURCHASE_COLUMNS)
+
+    return _read_csv_cached(HOUSING_PURCHASE_SNAPSHOT_PATH).copy(deep=True)
+
+
 def read_indicator_profile() -> pd.DataFrame:
     return _build_indicator_profile_cached().copy(deep=True)
 
@@ -99,6 +176,8 @@ def warm_data_cache() -> None:
     _build_indicator_profile_cached()
     if HOUSING_RENT_SNAPSHOT_PATH.exists():
         _read_csv_cached(HOUSING_RENT_SNAPSHOT_PATH)
+    if purchase_data_available():
+        _read_csv_cached(HOUSING_PURCHASE_SNAPSHOT_PATH)
 
 
 def clear_data_cache() -> None:

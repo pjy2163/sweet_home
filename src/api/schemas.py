@@ -55,8 +55,9 @@ DecisionPriority = Literal[
 
 class SavedReportDecisionContext(BaseModel):
     selection_mode: Literal["candidate", "direct_map"]
-    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
+    contract_type: Optional[Literal["monthly_rent", "jeonse", "purchase"]] = None
     budget_max_krw_10k: Optional[float] = Field(default=None, gt=0)
+    deposit_max_krw_10k: Optional[float] = Field(default=None, gt=0)
     building_type: Optional[Literal[
         "apartment",
         "officetel",
@@ -127,6 +128,8 @@ class MetadataResponse(BaseModel):
     safety_latest_date: Optional[str]
     commercial_latest_quarter: Optional[str]
     transport_latest_date: Optional[str]
+    purchase_data_available: bool
+    purchase_latest_month: Optional[str]
 
 
 class RegionComparisonMetrics(BaseModel):
@@ -213,8 +216,9 @@ class ExploreMetadata(BaseModel):
     aggregation: str
     limitation: str
     transport_status: str
-    contract_type: Optional[Literal["monthly_rent", "jeonse"]] = None
+    contract_type: Optional[Literal["monthly_rent", "jeonse", "purchase"]] = None
     budget_max_krw_10k: Optional[float] = None
+    deposit_max_krw_10k: Optional[float] = None
     budget_filter_applied: bool = False
     building_type: Optional[str] = None
     area_band: Optional[str] = None

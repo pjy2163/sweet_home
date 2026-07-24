@@ -4,7 +4,11 @@ import pandas as pd
 
 from src.api.errors import ApiError, REGION_AMBIGUOUS, REGION_NOT_FOUND
 from src.api.schemas import MetadataResponse, RegionComparisonMetrics, RegionOption
-from src.api.services.data_service import read_enriched_snapshot
+from src.api.services.data_service import (
+    purchase_data_available,
+    read_enriched_snapshot,
+    read_housing_purchase_snapshot,
+)
 from src.report.generate_report import (
     AGGREGATION_TEXT,
     DATA_SOURCE_TEXT,
@@ -111,6 +115,8 @@ def list_region_options() -> list[RegionOption]:
 
 def get_data_metadata() -> MetadataResponse:
     snapshot = read_enriched_snapshot()
+    has_purchase_data = purchase_data_available()
+    purchase_snapshot = read_housing_purchase_snapshot()
     price_latest_column = (
         "가격_최신가용월" if "가격_최신가용월" in snapshot.columns else "가격_기준월"
     )
@@ -125,4 +131,10 @@ def get_data_metadata() -> MetadataResponse:
         safety_latest_date=_latest_text(snapshot, "안전_기준일자"),
         commercial_latest_quarter=_latest_text(snapshot, "상권_기준일자"),
         transport_latest_date=_latest_text(snapshot, "교통_기준일자"),
+        purchase_data_available=has_purchase_data,
+        purchase_latest_month=(
+            _latest_text(purchase_snapshot, "reference_month")
+            if has_purchase_data
+            else None
+        ),
     )

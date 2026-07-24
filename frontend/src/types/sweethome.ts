@@ -29,8 +29,9 @@ export type SavedReportCreate = {
 
 export type SavedReportDecisionContext = {
   selection_mode: "candidate" | "direct_map";
-  contract_type?: "monthly_rent" | "jeonse";
+  contract_type?: "monthly_rent" | "jeonse" | "purchase";
   budget_max_krw_10k?: number;
+  deposit_max_krw_10k?: number;
   building_type?: HousingBuildingType;
   area_band?: HousingAreaBand;
 };
@@ -73,6 +74,8 @@ export type Metadata = {
   safety_latest_date: string | null;
   commercial_latest_quarter: string | null;
   transport_latest_date: string | null;
+  purchase_data_available: boolean;
+  purchase_latest_month: string | null;
   source: string;
   aggregation: string;
   limitation: string;
@@ -176,8 +179,9 @@ export type ExploreMetadata = {
   aggregation: string;
   limitation: string;
   transport_status: string;
-  contract_type: "monthly_rent" | "jeonse" | null;
+  contract_type: "monthly_rent" | "jeonse" | "purchase" | null;
   budget_max_krw_10k: number | null;
+  deposit_max_krw_10k: number | null;
   budget_filter_applied: boolean;
   building_type: HousingBuildingType | null;
   area_band: HousingAreaBand | null;

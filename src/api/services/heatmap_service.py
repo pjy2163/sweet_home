@@ -17,7 +17,7 @@ HEATMAP_METRICS: dict[str, dict[str, str]] = {
     "deposit_ratio": {
         "column": "실거래가_서울평균대비율",
         "date_column": "가격_기준월",
-        "label": "실거래가 서울 평균 대비",
+        "label": "전월세 보증금 서울 평균 대비",
         "description": "전월세 전체 평균 보증금이 같은 월 서울 평균 대비 어느 수준인지 보여줍니다.",
         "unit": "%",
         "source_name": "서울 전월세 실거래 공공데이터",

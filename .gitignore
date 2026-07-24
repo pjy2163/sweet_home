@@ -53,6 +53,8 @@ data/processed/region_indicator_profile.csv
 data/processed/housing_rent_fact.csv
 data/processed/housing_rent_snapshot.csv
 data/processed/housing_rent_comparison.csv
+data/processed/housing_purchase_fact.csv
+data/processed/housing_purchase_snapshot.csv
 
 # Keep small CSV schemas/results only when intentionally reviewed.
 # If a processed CSV becomes large or sensitive, move it to data/raw or add it here explicitly.

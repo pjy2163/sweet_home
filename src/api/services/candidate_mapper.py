@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pandas as pd
+
 from src.api.schemas import CandidateMatchRegion
 from src.api.services.candidate_evidence import (
     build_candidate_evidence,
@@ -17,22 +19,38 @@ def row_to_candidate_match(
     indicator_summary = {}
     matched_indicators = []
 
-    if row.get("budget_contract_type") in {"monthly_rent", "jeonse"}:
-        contract_label = (
-            "월세"
-            if row["budget_contract_type"] == "monthly_rent"
-            else "전세 보증금"
-        )
+    if row.get("budget_contract_type") in {"monthly_rent", "jeonse", "purchase"}:
+        contract_label = {
+            "monthly_rent": "월세",
+            "jeonse": "전세 보증금",
+            "purchase": "매매가",
+        }[str(row["budget_contract_type"])]
         observed_value = format_metric_value(
             row.get("budget_observed_value"),
             "만원",
             0,
         )
         matched_indicators.append(f"{contract_label} 예산 이내")
-        indicator_summary["budget"] = (
+        summary = (
             f"비교 가능한 세부 주거유형 중 {contract_label} 중위값 "
             f"{observed_value} 사례가 확인됩니다."
         )
+        if (
+            row["budget_contract_type"] == "monthly_rent"
+            and row.get("budget_deposit_max_krw_10k") is not None
+            and not pd.isna(row.get("budget_deposit_max_krw_10k"))
+        ):
+            deposit_value = format_metric_value(
+                row.get("budget_deposit_observed_value"),
+                "만원",
+                0,
+            )
+            matched_indicators.append("월세 보증금 예산 이내")
+            summary = (
+                f"비교 가능한 세부 주거유형 중 월세 중위값 {observed_value}, "
+                f"보증금 중위값 {deposit_value} 사례가 확인됩니다."
+            )
+        indicator_summary["budget"] = summary
 
     if "safety" in selected_conditions:
         indicator_summary["safety"] = (
@@ -55,9 +73,9 @@ def row_to_candidate_match(
     price_indicators = []
     if "price" in selected_conditions:
         if is_true_indicator(row["실거래가_서울평균이하여부"]):
-            price_indicators.append("실거래가_서울평균이하여부")
+            price_indicators.append("전월세 보증금 서울 평균 이하")
         if is_true_indicator(row["전세가_서울평균이하여부"]):
-            price_indicators.append("전세가_서울평균이하여부")
+            price_indicators.append("전세 보증금 서울 평균 이하")
         if price_indicators:
             matched_indicators.extend(price_indicators)
             indicator_summary["price"] = "가격 지표가 서울 평균 이하로 관측됩니다."

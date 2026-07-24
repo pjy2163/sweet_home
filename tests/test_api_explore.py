@@ -19,7 +19,7 @@ def mock_housing_rent_snapshot(monkeypatch) -> None:
                     "area_band": "compact" if index % 2 == 0 else "mid_size",
                     "is_comparable": True,
                     "median_monthly_rent_krw_10k": 40 if index % 2 == 0 else 60,
-                    "median_deposit_krw_10k": 1000,
+                    "median_deposit_krw_10k": 1000 if index % 2 == 0 else 2000,
                     "weighted_record_count": 10,
                     "reference_month": "2025-12",
                     "sample_confidence": "moderate",
@@ -255,7 +255,8 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
         params={
             "convenience": "true",
             "contract_type": "monthly_rent",
-            "budget_max_krw_10k": "50",
+            "budget_max_krw_10k": "70",
+            "deposit_max_krw_10k": "1500",
             "limit": "20",
         },
     )
@@ -264,7 +265,8 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
     result = response.json()
     assert result["metadata"]["budget_filter_applied"] is True
     assert result["metadata"]["contract_type"] == "monthly_rent"
-    assert result["metadata"]["budget_max_krw_10k"] == 50
+    assert result["metadata"]["budget_max_krw_10k"] == 70
+    assert result["metadata"]["deposit_max_krw_10k"] == 1500
     assert result["regions"]
     for region in result["regions"]:
         assert "월세 예산 이내" in region["matched_indicators"]
@@ -273,7 +275,13 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
             for metric in region["evidence_metrics"]
             if metric["label"] == "예산 이내 월세 중위값"
         )
-        assert budget_evidence["value"] <= 50
+        deposit_evidence = next(
+            metric
+            for metric in region["evidence_metrics"]
+            if metric["label"] == "예산 이내 월세 보증금 중위값"
+        )
+        assert budget_evidence["value"] <= 70
+        assert deposit_evidence["value"] <= 1500
         assert "주택유형과 면적을 지정한 결과는 아닙니다" in budget_evidence[
             "interpretation"
         ]
@@ -303,6 +311,78 @@ def test_explore_applies_jeonse_budget_as_hard_filter(monkeypatch) -> None:
             if metric["label"] == "예산 이내 전세 보증금 중위값"
         )
         assert budget_evidence["value"] <= 12000
+
+
+def test_explore_applies_purchase_budget_when_snapshot_is_available(
+    monkeypatch,
+) -> None:
+    region_ids = build_indicator_profile()["region_id"].tolist()
+    purchase_snapshot = pd.DataFrame(
+        [
+            {
+                "region_id": region_id,
+                "building_type": "apartment",
+                "area_band": "large",
+                "is_comparable": True,
+                "median_purchase_price_krw_10k": 90000 + index * 1000,
+                "weighted_record_count": 10,
+                "reference_month": "2025-12",
+                "sample_confidence": "high",
+            }
+            for index, region_id in enumerate(region_ids)
+        ],
+    )
+    monkeypatch.setattr(explore_service, "purchase_data_available", lambda: True)
+    monkeypatch.setattr(
+        explore_service,
+        "read_housing_purchase_snapshot",
+        lambda: purchase_snapshot,
+    )
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "safety": "true",
+            "contract_type": "purchase",
+            "budget_max_krw_10k": "92000",
+            "building_type": "apartment",
+            "area_band": "large",
+            "limit": "10",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["metadata"]["contract_type"] == "purchase"
+    assert result["regions"]
+    for region in result["regions"]:
+        evidence = next(
+            metric
+            for metric in region["evidence_metrics"]
+            if metric["label"] == "예산 이내 매매가 중위값"
+        )
+        assert evidence["value"] <= 92000
+        assert "매매가 예산 이내" in region["matched_indicators"]
+
+
+def test_explore_rejects_purchase_budget_without_validated_snapshot(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(explore_service, "purchase_data_available", lambda: False)
+    client = TestClient(app)
+
+    response = client.get(
+        "/explore",
+        params={
+            "price": "true",
+            "contract_type": "purchase",
+            "budget_max_krw_10k": "100000",
+        },
+    )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == "PURCHASE_DATA_UNAVAILABLE"
 
 
 def test_explore_rejects_non_positive_budget() -> None:
