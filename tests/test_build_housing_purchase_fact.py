@@ -1,5 +1,8 @@
+from pathlib import Path
+
 import pandas as pd
 
+import src.real_estate.build_housing_purchase_fact as purchase_builder
 from src.real_estate.build_housing_purchase_fact import (
     build_housing_purchase_fact,
 )
@@ -90,3 +93,34 @@ def test_purchase_fact_rejects_sources_without_purchase_price() -> None:
         assert "purchase_price_krw_10k" in str(error)
     else:
         raise AssertionError("missing purchase price column must be rejected")
+
+
+def test_purchase_source_discovery_accepts_official_download_filename(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    official_path = tmp_path / "서울시 부동산 실거래가 정보_2025.csv"
+    pd.DataFrame(
+        columns=[
+            "자치구코드",
+            "법정동코드",
+            "계약일",
+            "건물용도",
+            "건물면적(㎡)",
+            "물건금액(만원)",
+            "취소일",
+        ],
+    ).to_csv(official_path, index=False, encoding="cp949")
+    pd.DataFrame(
+        columns=[
+            "자치구코드",
+            "법정동코드",
+            "계약일",
+            "건물용도",
+            "임대면적",
+            "보증금(만원)",
+        ],
+    ).to_csv(tmp_path / "seoul_month_2025.csv", index=False, encoding="cp949")
+    monkeypatch.setattr(purchase_builder, "RAW_DIR", tmp_path)
+
+    assert purchase_builder.find_source_files() == [official_path]

@@ -40,6 +40,8 @@ jobs:
       AZURE_ARTIFACT_CONTAINER: ${{ vars.AZURE_ARTIFACT_CONTAINER }}
       HOUSING_RENT_SNAPSHOT_BLOB: ${{ vars.HOUSING_RENT_SNAPSHOT_BLOB }}
       HOUSING_RENT_SNAPSHOT_SHA256: ${{ vars.HOUSING_RENT_SNAPSHOT_SHA256 }}
+      HOUSING_PURCHASE_SNAPSHOT_BLOB: ${{ vars.HOUSING_PURCHASE_SNAPSHOT_BLOB }}
+      HOUSING_PURCHASE_SNAPSHOT_SHA256: ${{ vars.HOUSING_PURCHASE_SNAPSHOT_SHA256 }}
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       GOOGLE_AUTH_CLIENT_ID: ${{ vars.GOOGLE_AUTH_CLIENT_ID }}
       GITHUB_AUTH_CLIENT_ID: ${{ vars.OAUTH_GITHUB_CLIENT_ID }}
@@ -70,6 +72,8 @@ jobs:
             "${AZURE_ARTIFACT_CONTAINER}"
             "${HOUSING_RENT_SNAPSHOT_BLOB}"
             "${HOUSING_RENT_SNAPSHOT_SHA256}"
+            "${HOUSING_PURCHASE_SNAPSHOT_BLOB}"
+            "${HOUSING_PURCHASE_SNAPSHOT_SHA256}"
             "${NEXT_PUBLIC_SITE_URL}"
             "${GOOGLE_AUTH_CLIENT_ID}"
             "${GITHUB_AUTH_CLIENT_ID}"
@@ -127,27 +131,41 @@ jobs:
         shell: bash
         run: az acr login --name "${AZURE_ACR_NAME}"
 
-      - name: Download verified private data artifact
+      - name: Download verified private data artifacts
         shell: bash
         run: |
           set -euo pipefail
-          artifact_path="data/processed/housing_rent_snapshot.csv"
-          mkdir -p "$(dirname "${artifact_path}")"
 
-          az storage blob download \
-            --account-name "${AZURE_ARTIFACT_STORAGE_ACCOUNT}" \
-            --container-name "${AZURE_ARTIFACT_CONTAINER}" \
-            --name "${HOUSING_RENT_SNAPSHOT_BLOB}" \
-            --file "${artifact_path}" \
-            --auth-mode login \
-            --overwrite true \
-            --only-show-errors \
-            --output none
+          download_and_verify() {
+            local blob_name="$1"
+            local expected_sha256="$2"
+            local artifact_path="$3"
+            mkdir -p "$(dirname "${artifact_path}")"
 
-          printf '%s  %s\n' \
+            az storage blob download \
+              --account-name "${AZURE_ARTIFACT_STORAGE_ACCOUNT}" \
+              --container-name "${AZURE_ARTIFACT_CONTAINER}" \
+              --name "${blob_name}" \
+              --file "${artifact_path}" \
+              --auth-mode login \
+              --overwrite true \
+              --only-show-errors \
+              --output none
+
+            printf '%s  %s\n' \
+              "${expected_sha256}" \
+              "${artifact_path}" \
+              | sha256sum --check --strict
+          }
+
+          download_and_verify \
+            "${HOUSING_RENT_SNAPSHOT_BLOB}" \
             "${HOUSING_RENT_SNAPSHOT_SHA256}" \
-            "${artifact_path}" \
-            | sha256sum --check --strict
+            "data/processed/housing_rent_snapshot.csv"
+          download_and_verify \
+            "${HOUSING_PURCHASE_SNAPSHOT_BLOB}" \
+            "${HOUSING_PURCHASE_SNAPSHOT_SHA256}" \
+            "data/processed/housing_purchase_snapshot.csv"
 
       - name: Build immutable backend image
         shell: bash

@@ -58,22 +58,46 @@ def find_source_column(source: pd.DataFrame, canonical_name: str) -> str:
     )
 
 
-def read_source(path: Path) -> pd.DataFrame:
+def read_source(path: Path, *, nrows: int | None = None) -> pd.DataFrame:
     for encoding in ("utf-8-sig", "cp949"):
         try:
-            return pd.read_csv(path, encoding=encoding, dtype=str)
+            return pd.read_csv(
+                path,
+                encoding=encoding,
+                dtype=str,
+                nrows=nrows,
+            )
         except UnicodeDecodeError:
             continue
 
     raise UnicodeDecodeError("csv", b"", 0, 1, f"unsupported encoding: {path}")
 
 
+def is_purchase_source(path: Path) -> bool:
+    try:
+        header = read_source(path, nrows=0)
+    except (OSError, UnicodeDecodeError, pd.errors.ParserError):
+        return False
+
+    return all(
+        any(candidate in header.columns for candidate in aliases)
+        for aliases in SOURCE_COLUMN_ALIASES.values()
+    )
+
+
 def find_source_files() -> list[Path]:
-    files = sorted(RAW_DIR.glob(RAW_PATTERN))
+    preferred_files = set(RAW_DIR.glob(RAW_PATTERN))
+    detected_files = {
+        path
+        for path in RAW_DIR.glob("*.csv")
+        if is_purchase_source(path)
+    }
+    files = sorted(preferred_files | detected_files)
     if not files:
         raise FileNotFoundError(
             "housing purchase source is missing. "
-            f"Place official Seoul purchase CSV files as {RAW_DIR / RAW_PATTERN}.",
+            "Place official Seoul purchase CSV files under "
+            f"{RAW_DIR}. The preferred filename is {RAW_PATTERN}.",
         )
     return files
 

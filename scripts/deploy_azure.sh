@@ -22,6 +22,11 @@ if [[ ! -f data/processed/housing_rent_snapshot.csv ]]; then
   exit 1
 fi
 
+if [[ ! -f data/processed/housing_purchase_snapshot.csv ]]; then
+  echo "Missing private build artifact: data/processed/housing_purchase_snapshot.csv" >&2
+  exit 1
+fi
+
 INTERNAL_API_KEY="$(openssl rand -hex 32)"
 
 for migration in db/migrations/*.sql; do

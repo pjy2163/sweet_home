@@ -65,6 +65,7 @@ def test_warm_cache_reuses_source_frames_for_all_derived_data(
     snapshot_path = tmp_path / "snapshot.csv"
     geometry_path = tmp_path / "geometry.csv"
     missing_housing_path = tmp_path / "missing-housing.csv"
+    missing_purchase_path = tmp_path / "missing-purchase.csv"
     pd.DataFrame(
         [
             {
@@ -103,6 +104,11 @@ def test_warm_cache_reuses_source_frames_for_all_derived_data(
         data_service,
         "HOUSING_RENT_SNAPSHOT_PATH",
         missing_housing_path,
+    )
+    monkeypatch.setattr(
+        data_service,
+        "HOUSING_PURCHASE_SNAPSHOT_PATH",
+        missing_purchase_path,
     )
     monkeypatch.setattr(data_service.pd, "read_csv", tracked_read_csv)
     monkeypatch.setattr(data_service, "_enrich_with_geometry", tracked_enrich)
