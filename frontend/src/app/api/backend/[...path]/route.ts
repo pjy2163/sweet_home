@@ -31,8 +31,11 @@ const ALLOWED_GET_PATHS = new Set([
 ]);
 const SAVED_REPORT_DETAIL_PATH = /^saved-reports\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BACKEND_UNAVAILABLE_MESSAGE =
-  "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.";
-const BACKEND_REQUEST_TIMEOUT_MS = 10_000;
+  "데이터를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.";
+const BACKEND_GET_REQUEST_TIMEOUTS_MS = [20_000, 30_000] as const;
+const BACKEND_GET_RETRY_DELAY_MS = 750;
+const BACKEND_MUTATION_TIMEOUT_MS = 10_000;
+const RETRYABLE_BACKEND_STATUSES = new Set([502, 503, 504]);
 
 function backendHeaders(request: NextRequest) {
   const headers = new Headers({ accept: "application/json" });
@@ -89,15 +92,14 @@ export async function GET(
   const developmentResponse = developmentGetResponse(request, resource);
   if (developmentResponse) return developmentResponse;
 
+  const authenticationResponse = authenticationGetResponse(request, resource);
+  if (authenticationResponse) return authenticationResponse;
+
   const targetUrl = new URL(`/${path.join("/")}`, API_BASE_URL);
   targetUrl.search = request.nextUrl.search;
 
   try {
-    const response = await fetch(targetUrl, {
-      headers: backendHeaders(request),
-      cache: "no-store",
-      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
-    });
+    const response = await fetchBackendGet(targetUrl, backendHeaders(request));
     const payload = await response.json();
 
     return NextResponse.json(payload, { status: response.status });
@@ -160,7 +162,7 @@ export async function POST(
       headers,
       body,
       cache: "no-store",
-      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(BACKEND_MUTATION_TIMEOUT_MS),
     });
     const payload = await response.json();
     if (!response.ok && resource === "agreements/me") {
@@ -213,7 +215,7 @@ export async function DELETE(
       method: "DELETE",
       headers: backendHeaders(request),
       cache: "no-store",
-      signal: AbortSignal.timeout(BACKEND_REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(BACKEND_MUTATION_TIMEOUT_MS),
     });
     if (response.status === 204) return new NextResponse(null, { status: 204 });
     const payload = await response.json();
@@ -224,6 +226,44 @@ export async function DELETE(
       { status: 503 },
     );
   }
+}
+
+async function fetchBackendGet(targetUrl: URL, headers: Headers) {
+  let lastError: unknown;
+
+  for (const [attempt, timeoutMs] of BACKEND_GET_REQUEST_TIMEOUTS_MS.entries()) {
+    try {
+      const response = await fetch(targetUrl, {
+        headers,
+        cache: "no-store",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const isLastAttempt = attempt === BACKEND_GET_REQUEST_TIMEOUTS_MS.length - 1;
+      if (!RETRYABLE_BACKEND_STATUSES.has(response.status) || isLastAttempt) {
+        return response;
+      }
+      await response.body?.cancel();
+    } catch (error) {
+      lastError = error;
+      if (attempt === BACKEND_GET_REQUEST_TIMEOUTS_MS.length - 1) throw error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, BACKEND_GET_RETRY_DELAY_MS));
+  }
+
+  throw lastError ?? new Error("Backend GET request failed");
+}
+
+function authenticationGetResponse(request: NextRequest, resource: string) {
+  if (resource !== "auth/me") return null;
+
+  const identity = trustedAzureIdentity(request);
+  return identity
+    ? NextResponse.json({ authenticated: true, provider: identity.provider })
+    : NextResponse.json(
+      { code: "AUTHENTICATION_REQUIRED", message: "로그인이 필요합니다." },
+      { status: 401 },
+    );
 }
 
 function developmentGetResponse(request: NextRequest, resource: string) {

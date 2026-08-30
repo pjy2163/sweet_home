@@ -91,7 +91,7 @@ export default function ReportMapPage() {
   return (
     <Suspense fallback={
       <main className="min-h-screen bg-[#090a0b] p-4 text-[#f5f5f7] flex items-center justify-center">
-        <p className="text-[#9f9fa0] text-sm">불러오는 중...</p>
+        <p className="text-[#9f9fa0] text-sm">데이터를 준비하는 중입니다.</p>
       </main>
     }>
       <ReportMapContent />
@@ -395,7 +395,7 @@ function ReportMapContent() {
                 unit={heatmap.metadata.unit}
                 view={reportView}
               />
-              {isLoading ? <MapStatusBanner text="새 지표를 불러오는 중입니다. 현재 지도는 그대로 유지됩니다." /> : null}
+              {isLoading ? <MapStatusBanner text="데이터를 준비하는 중입니다. 현재 지도는 그대로 유지됩니다." /> : null}
               {errorMessage ? (
                 <MapStatusBanner
                   onRetry={() => setHeatmapReloadKey((key) => key + 1)}
@@ -405,7 +405,7 @@ function ReportMapContent() {
               ) : null}
             </>
           ) : isLoading ? (
-            <MapNotice text="지도 데이터를 불러오는 중입니다." />
+            <MapNotice text="데이터를 준비하는 중입니다." />
           ) : errorMessage ? (
             <MapNotice
               onRetry={() => setHeatmapReloadKey((key) => key + 1)}
@@ -620,7 +620,7 @@ function KakaoReportMap({
     mapClickRequestRef.current = requestId;
     setMapClickNotice({
       tone: "loading",
-      text: `${addressName}의 행정동 데이터를 불러오는 중입니다.`,
+      text: `데이터를 준비하는 중입니다. ${addressName}의 행정동을 확인하고 있습니다.`,
     });
 
     try {

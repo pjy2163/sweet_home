@@ -4,27 +4,85 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DELETE, GET, POST } from "./route";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe("backend proxy error boundary", () => {
   it("does not expose the internal backend address when the API is unavailable", async () => {
+    vi.useFakeTimers();
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("connection failed")));
 
-    const response = await GET(
+    const responsePromise = GET(
       new NextRequest("https://sweethome.test/api/backend/health"),
       { params: Promise.resolve({ path: ["health"] }) },
     );
+    await vi.advanceTimersByTimeAsync(750);
+    const response = await responsePromise;
     const payload = await response.json();
 
     expect(response.status).toBe(503);
     expect(payload).toEqual({
       code: "BACKEND_UNAVAILABLE",
-      message: "서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.",
+      message: "데이터를 준비하는 중입니다. 잠시 후 다시 시도해 주세요.",
     });
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(JSON.stringify(payload)).not.toContain("127.0.0.1");
     expect(payload).not.toHaveProperty("target");
+  });
+
+  it("retries an idempotent GET once while the backend starts", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error("backend is starting"))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "ok" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = GET(
+      new NextRequest("https://sweethome.test/api/backend/health"),
+      { params: Promise.resolve({ path: ["health"] }) },
+    );
+    await vi.advanceTimersByTimeAsync(750);
+    const response = await responsePromise;
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ok" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries a temporary backend 503 response once", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "starting" }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "ok" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const responsePromise = GET(
+      new NextRequest("https://sweethome.test/api/backend/health"),
+      { params: Promise.resolve({ path: ["health"] }) },
+    );
+    await vi.advanceTimersByTimeAsync(750);
+    const response = await responsePromise;
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "ok" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("rejects backend paths that are not explicitly allowed", async () => {
@@ -43,7 +101,7 @@ describe("backend proxy error boundary", () => {
     vi.stubEnv("SWEETHOME_INTERNAL_API_KEY", "internal-test-key");
     vi.stubEnv("SWEETHOME_TRUST_AZURE_IDENTITY_HEADERS", "true");
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ authenticated: true, provider: "github" }), {
+      new Response(JSON.stringify({ accepted: false }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
@@ -51,14 +109,14 @@ describe("backend proxy error boundary", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await GET(
-      new NextRequest("https://sweethome.test/api/backend/auth/me", {
+      new NextRequest("https://sweethome.test/api/backend/agreements/me", {
         headers: {
           "x-ms-client-principal-id": "opaque-subject",
           "x-ms-client-principal-idp": "github",
           "x-ms-client-principal-name": "private@example.com",
         },
       }),
-      { params: Promise.resolve({ path: ["auth", "me"] }) },
+      { params: Promise.resolve({ path: ["agreements", "me"] }) },
     );
 
     const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
@@ -78,13 +136,13 @@ describe("backend proxy error boundary", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await GET(
-      new NextRequest("https://sweethome.test/api/backend/auth/me", {
+      new NextRequest("https://sweethome.test/api/backend/agreements/me", {
         headers: {
           "x-ms-client-principal-id": "attacker-controlled-subject",
           "x-ms-client-principal-idp": "google",
         },
       }),
-      { params: Promise.resolve({ path: ["auth", "me"] }) },
+      { params: Promise.resolve({ path: ["agreements", "me"] }) },
     );
 
     const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
@@ -115,14 +173,29 @@ describe("backend proxy error boundary", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("resolves a trusted Azure login without waking the backend", async () => {
+    vi.stubEnv("SWEETHOME_TRUST_AZURE_IDENTITY_HEADERS", "true");
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await GET(
+      new NextRequest("https://sweethome.test/api/backend/auth/me", {
+        headers: {
+          "x-ms-client-principal-id": "opaque-subject",
+          "x-ms-client-principal-idp": "github",
+        },
+      }),
+      { params: Promise.resolve({ path: ["auth", "me"] }) },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ authenticated: true, provider: "github" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("ignores a forged development cookie outside development", async () => {
     vi.stubEnv("NODE_ENV", "production");
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ code: "AUTHENTICATION_REQUIRED" }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      }),
-    );
+    const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await GET(
@@ -134,10 +207,8 @@ describe("backend proxy error boundary", () => {
       { params: Promise.resolve({ path: ["auth", "me"] }) },
     );
 
-    const forwarded = fetchMock.mock.calls[0][1].headers as Headers;
     expect(response.status).toBe(401);
-    expect(forwarded.has("x-sweethome-principal-id")).toBe(false);
-    expect(forwarded.has("x-sweethome-identity-provider")).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("previews authentication, agreements, and saved reports in local development", async () => {

@@ -508,7 +508,7 @@ function DecisionProfilePanel({ profile, entryMode, regions, directRegionIds, er
             </div>
           </fieldset>
           {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-          <button className="mt-8 h-13 w-full rounded-lg bg-ink px-5 font-semibold text-white transition hover:bg-charcoal disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터 불러오는 중…" : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
+          <button className="mt-8 h-13 w-full rounded-lg bg-ink px-5 font-semibold text-white transition hover:bg-charcoal disabled:bg-[#a6adba]" disabled={isLoading} onClick={onContinue} type="button">{isLoading ? "데이터를 준비하는 중입니다." : entryMode === "known" ? "선택한 후보 분석" : "조건 확인하고 후보 탐색"}</button>
         </div>
         <aside className="rounded-xl border border-sage-soft bg-sage-soft p-6 sm:p-8">
           <p className="text-xs font-semibold tracking-[0.06em] text-sage">입력한 조건</p>
@@ -535,7 +535,7 @@ function CandidateBoard({ exploration, profile, candidateStates, candidateNotes,
         {exploration.regions.map((region) => <CandidateCard candidateNote={candidateNotes[region.region_id] ?? ""} exclusionReason={exclusionReasons[region.region_id]} isComparisonCandidate={comparisonRegionIds.includes(region.region_id)} key={region.region_id} region={region} state={candidateStates[region.region_id]} onComparisonToggle={onComparisonToggle} onExclusionReasonChange={onExclusionReasonChange} onNoteChange={onNoteChange} onUpdate={onUpdateCandidate} />)}
       </div>
       {error ? <p className="mt-5 rounded-lg bg-[#fff3f2] px-4 py-3 text-sm text-[#b1453f]">{error}</p> : null}
-      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(67,62,63,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">비교 후보 {comparisonRegionIds.length}/2 선택</p><p className="mt-1 text-xs text-[#7b8292]">검토 후보는 3곳까지, 최종 비교는 2곳을 선택합니다.</p></div><button className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={comparisonRegionIds.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "근거 불러오는 중…" : "선택한 2곳 비교"}</button></div>
+      <div className="sticky bottom-4 mt-7 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#dce1e9] bg-white/95 p-4 shadow-[0_14px_40px_rgba(67,62,63,.12)] backdrop-blur sm:px-6"><div><p className="font-semibold">비교 후보 {comparisonRegionIds.length}/2 선택</p><p className="mt-1 text-xs text-[#7b8292]">검토 후보는 3곳까지, 최종 비교는 2곳을 선택합니다.</p></div><button className="rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white disabled:bg-[#b7bdc8]" disabled={comparisonRegionIds.length !== 2 || isLoading} onClick={onCompare} type="button">{isLoading ? "데이터를 준비하는 중입니다." : "선택한 2곳 비교"}</button></div>
     </section>
   );
 }
