@@ -9,7 +9,7 @@ type MetricOption = {
 
 const VIEW_OPTIONS: Array<{ id: ReportView; label: string }> = [
   { id: "map", label: "지도" },
-  { id: "heatmap", label: "순위 보기" },
+  { id: "heatmap", label: "분포 보기" },
 ];
 
 export function ReportControls({

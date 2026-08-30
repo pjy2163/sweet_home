@@ -25,7 +25,7 @@ describe("ReportControls", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "순위 보기" }));
+    await user.click(screen.getByRole("button", { name: "분포 보기" }));
     await user.click(screen.getByRole("button", { name: "버스정류소 밀도" }));
 
     expect(onViewChange).toHaveBeenCalledWith("heatmap");

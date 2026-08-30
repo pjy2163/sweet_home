@@ -104,9 +104,11 @@ def test_population_condition_returns_context_without_ranking() -> None:
     response = client.get("/explore", params={"population": "true", "limit": "2"})
 
     assert response.status_code == 200
-    regions = response.json()["regions"]
+    result = response.json()
+    regions = result["regions"]
     assert len(regions) == 2
     assert all(region["match_count"] == 0 for region in regions)
+    assert "후보 순위를 산출하지 않으며" in result["metadata"]["limitation"]
     for region in regions:
         population_evidence = [
             metric

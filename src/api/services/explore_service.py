@@ -119,8 +119,13 @@ def list_candidate_matches(
                 "관측된 지역 중 선택 조건과 관련된 지표를 함께 확인한 결과입니다. "
                 "추천이나 지역의 우열 판단이 아닙니다."
                 if budget_filter_applied
-                else "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 "
-                "관측된 지역이며 추천이나 우열 판단이 아닙니다."
+                else (
+                    "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 "
+                    "관측된 지역이며 추천이나 우열 판단이 아닙니다."
+                    if convenience or price or transport
+                    else "야간 생활환경과 거주·활동 특성은 후보 순위를 산출하지 "
+                    "않으며, 관련 데이터가 관측된 지역을 비교 맥락으로 제공합니다."
+                )
             ),
             transport_status=TRANSPORT_STATUS,
             contract_type=contract_type if budget_filter_applied else None,

@@ -224,7 +224,7 @@ function CandidateMiniReport({
       <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-4">
         <p className="text-xs font-semibold text-[#9f9fa0]">{region.selection_source === "map_click" ? "클릭 위치 분석 기준" : "후보로 잡힌 이유"}</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          {region.selection_source === "map_click" ? <span className="text-sm leading-6 text-[#cacaca]">클릭한 좌표가 속한 행정동의 데이터입니다. 개별 주소나 건물을 분석한 결과는 아닙니다.</span> : (region.matched_indicators ?? []).length > 0 ? region.matched_indicators?.map((indicator) => <span className="rounded-full border border-sage/30 bg-sage/15 px-3 py-1 text-xs font-semibold text-sage-soft" key={indicator}>{indicator}</span>) : <span className="text-sm text-[#cacaca]">현재 선택한 지표 기준 상위 지역입니다.</span>}
+          {region.selection_source === "map_click" ? <span className="text-sm leading-6 text-[#cacaca]">클릭한 좌표가 속한 행정동의 데이터입니다. 개별 주소나 건물을 분석한 결과는 아닙니다.</span> : (region.matched_indicators ?? []).length > 0 ? region.matched_indicators?.map((indicator) => <span className="rounded-full border border-sage/30 bg-sage/15 px-3 py-1 text-xs font-semibold text-sage-soft" key={indicator}>{indicator}</span>) : <span className="text-sm text-[#cacaca]">선택한 지표의 관측 데이터를 함께 확인할 지역입니다.</span>}
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
