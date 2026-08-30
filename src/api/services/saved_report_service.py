@@ -49,12 +49,24 @@ def save_decision_report(
     current_identity = _require_identity(identity)
     require_current_agreement(current_identity)
     selected = set(request.priority_keys)
+    decision_context = (
+        request.decision_context.model_dump(mode="json")
+        if request.decision_context
+        else None
+    )
     explored = list_candidate_matches(
         safety="safety" in selected,
         convenience="convenience" in selected,
         price="price" in selected,
         population="population" in selected,
         transport="transport" in selected,
+        contract_type=(decision_context or {}).get("contract_type"),
+        budget_max_krw_10k=(decision_context or {}).get("budget_max_krw_10k"),
+        deposit_max_krw_10k=(decision_context or {}).get(
+            "deposit_max_krw_10k",
+        ),
+        building_type=(decision_context or {}).get("building_type"),
+        area_band=(decision_context or {}).get("area_band"),
         region_ids=request.region_ids,
         limit=2,
     )
@@ -85,6 +97,7 @@ def save_decision_report(
     )
     evidence_snapshot: dict[str, Any] = {
         "selected_priorities": request.priority_keys,
+        "decision_context": decision_context,
         "regions": [region.model_dump(mode="json") for region in ordered_regions],
         "detailed_regions": detailed_regions,
         "metadata": explored.metadata.model_dump(mode="json"),
@@ -112,11 +125,7 @@ def save_decision_report(
             "comparison_basis": request.comparison_basis,
             "notice": "추천이나 종합 순위가 아닌, 저장 시점의 비교 근거입니다.",
         },
-        "decision_context": (
-            request.decision_context.model_dump(mode="json")
-            if request.decision_context
-            else None
-        ),
+        "decision_context": decision_context,
         "regions": [region.model_dump(mode="json") for region in ordered_regions],
         "detailed_regions": detailed_regions,
         "source": explored.metadata.source,

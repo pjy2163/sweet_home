@@ -254,6 +254,7 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
         "/explore",
         params={
             "convenience": "true",
+            "price": "true",
             "contract_type": "monthly_rent",
             "budget_max_krw_10k": "70",
             "deposit_max_krw_10k": "1500",
@@ -270,6 +271,8 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
     assert result["regions"]
     for region in result["regions"]:
         assert "월세 예산 이내" in region["matched_indicators"]
+        assert "전월세 보증금 서울 평균 이하" not in region["matched_indicators"]
+        assert "전세 보증금 서울 평균 이하" not in region["matched_indicators"]
         budget_evidence = next(
             metric
             for metric in region["evidence_metrics"]
@@ -282,6 +285,14 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
         )
         assert budget_evidence["value"] <= 70
         assert deposit_evidence["value"] <= 1500
+        assert {
+            metric["label"]
+            for metric in region["evidence_metrics"]
+            if metric["condition"] == "price"
+        } == {
+            "예산 이내 월세 중위값",
+            "예산 이내 월세 보증금 중위값",
+        }
         assert "주택유형과 면적을 지정한 결과는 아닙니다" in budget_evidence[
             "interpretation"
         ]
@@ -311,6 +322,11 @@ def test_explore_applies_jeonse_budget_as_hard_filter(monkeypatch) -> None:
             if metric["label"] == "예산 이내 전세 보증금 중위값"
         )
         assert budget_evidence["value"] <= 12000
+        assert {
+            metric["label"]
+            for metric in region["evidence_metrics"]
+            if metric["condition"] == "price"
+        } == {"예산 이내 전세 보증금 중위값"}
 
 
 def test_explore_applies_purchase_budget_when_snapshot_is_available(
@@ -343,7 +359,7 @@ def test_explore_applies_purchase_budget_when_snapshot_is_available(
     response = client.get(
         "/explore",
         params={
-            "safety": "true",
+            "price": "true",
             "contract_type": "purchase",
             "budget_max_krw_10k": "92000",
             "building_type": "apartment",
@@ -364,6 +380,11 @@ def test_explore_applies_purchase_budget_when_snapshot_is_available(
         )
         assert evidence["value"] <= 92000
         assert "매매가 예산 이내" in region["matched_indicators"]
+        assert {
+            metric["label"]
+            for metric in region["evidence_metrics"]
+            if metric["condition"] == "price"
+        } == {"예산 이내 매매가 중위값"}
 
 
 def test_explore_rejects_purchase_budget_without_validated_snapshot(

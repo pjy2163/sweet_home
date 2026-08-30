@@ -71,7 +71,9 @@ def list_candidate_matches(
     if convenience:
         matched["match_count"] += matched["편의_매칭지표수"]
     if price:
-        matched["match_count"] += matched["가격_매칭지표수"]
+        matched["match_count"] += (
+            1 if budget_filter_applied else matched["가격_매칭지표수"]
+        )
     if transport:
         matched["match_count"] += matched["교통_매칭지표수"]
     direct_region_ids = [str(region_id) for region_id in (region_ids or [])]

@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+import hashlib
+import json
 
 from fastapi.testclient import TestClient
 
@@ -26,6 +28,11 @@ def test_saved_report_requires_authenticated_identity() -> None:
 
 def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> None:
     captured = {}
+    original_list_candidate_matches = saved_report_service.list_candidate_matches
+
+    def capture_list_candidate_matches(**options):
+        captured["explore_options"] = options
+        return original_list_candidate_matches(**options)
 
     def fake_persist_saved_report(**payload):
         captured.update(payload)
@@ -46,6 +53,11 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
         saved_report_service,
         "persist_saved_report",
         fake_persist_saved_report,
+    )
+    monkeypatch.setattr(
+        saved_report_service,
+        "list_candidate_matches",
+        capture_list_candidate_matches,
     )
     monkeypatch.setattr(
         agreement_service,
@@ -69,8 +81,8 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
                 "decision_context": {
                     "selection_mode": "candidate",
                     "contract_type": "monthly_rent",
-                    "budget_max_krw_10k": 80,
-                    "deposit_max_krw_10k": 1000,
+                    "budget_max_krw_10k": 1000000,
+                    "deposit_max_krw_10k": 1000000,
                 },
             },
         )
@@ -79,17 +91,32 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
     assert captured["auth_issuer"] == "google"
     assert captured["auth_subject"] == "opaque-user-subject"
     assert "email" not in captured
+    assert captured["explore_options"]["contract_type"] == "monthly_rent"
+    assert captured["explore_options"]["budget_max_krw_10k"] == 1000000
+    assert captured["explore_options"]["deposit_max_krw_10k"] == 1000000
     assert response.json()["priority_keys"] == ["price", "transport"]
     assert response.json()["report_content"]["regions"][0]["region_id"] == region_id
     assert response.json()["report_content"]["detailed_regions"][0]["region_id"] == region_id
     assert response.json()["report_content"]["decision_context"] == {
         "selection_mode": "candidate",
         "contract_type": "monthly_rent",
-        "budget_max_krw_10k": 80.0,
-        "deposit_max_krw_10k": 1000.0,
+        "budget_max_krw_10k": 1000000.0,
+        "deposit_max_krw_10k": 1000000.0,
         "building_type": None,
         "area_band": None,
     }
+    assert captured["evidence_snapshot"]["decision_context"] == response.json()[
+        "report_content"
+    ]["decision_context"]
+    canonical_evidence = json.dumps(
+        captured["evidence_snapshot"],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    assert captured["evidence_hash"] == hashlib.sha256(
+        canonical_evidence.encode("utf-8"),
+    ).hexdigest()
     assert response.json()["title"].endswith("살펴보기")
 
 

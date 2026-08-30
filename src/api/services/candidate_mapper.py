@@ -18,8 +18,13 @@ def row_to_candidate_match(
 ) -> CandidateMatchRegion:
     indicator_summary = {}
     matched_indicators = []
+    has_contract_budget = row.get("budget_contract_type") in {
+        "monthly_rent",
+        "jeonse",
+        "purchase",
+    }
 
-    if row.get("budget_contract_type") in {"monthly_rent", "jeonse", "purchase"}:
+    if has_contract_budget:
         contract_label = {
             "monthly_rent": "월세",
             "jeonse": "전세 보증금",
@@ -50,7 +55,9 @@ def row_to_candidate_match(
                 f"비교 가능한 세부 주거유형 중 월세 중위값 {observed_value}, "
                 f"보증금 중위값 {deposit_value} 사례가 확인됩니다."
             )
-        indicator_summary["budget"] = summary
+        indicator_summary[
+            "price" if "price" in selected_conditions else "budget"
+        ] = summary
 
     if "safety" in selected_conditions:
         indicator_summary["safety"] = (
@@ -71,7 +78,7 @@ def row_to_candidate_match(
             )
 
     price_indicators = []
-    if "price" in selected_conditions:
+    if "price" in selected_conditions and not has_contract_budget:
         if is_true_indicator(row["실거래가_서울평균이하여부"]):
             price_indicators.append("전월세 보증금 서울 평균 이하")
         if is_true_indicator(row["전세가_서울평균이하여부"]):

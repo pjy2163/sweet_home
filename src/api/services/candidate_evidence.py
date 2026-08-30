@@ -21,8 +21,13 @@ def build_candidate_evidence(
     selected_conditions: list[str],
 ) -> list[CandidateEvidenceMetric]:
     evidence = []
+    has_contract_budget = row.get("budget_contract_type") in {
+        "monthly_rent",
+        "jeonse",
+        "purchase",
+    }
 
-    if row.get("budget_contract_type") in {"monthly_rent", "jeonse", "purchase"}:
+    if has_contract_budget:
         contract_label = {
             "monthly_rent": "월세",
             "jeonse": "전세 보증금",
@@ -81,7 +86,7 @@ def build_candidate_evidence(
                 ),
             )
 
-    if "price" in selected_conditions:
+    if "price" in selected_conditions and not has_contract_budget:
         evidence.extend(
             [
                 ratio_evidence(
