@@ -553,7 +553,10 @@ function KakaoReportMap({
     fetchCandidateMatches(
       selectedConditions.length > 0 ? selectedConditions : CONDITION_OPTIONS,
       2,
-      { regionIds: pendingReportRegionIds },
+      {
+        ...candidateOptionsFromDecisionContext(decisionContext),
+        regionIds: pendingReportRegionIds,
+      },
     ).then((result) => {
       if (!ignore) {
         setOpenReports(result.regions.map((region) => ({
@@ -569,7 +572,7 @@ function KakaoReportMap({
       }
     });
     return () => { ignore = true; };
-  }, [pendingReportRegionIds, selectedConditions]);
+  }, [decisionContext, pendingReportRegionIds, selectedConditions]);
 
   function updateCandidateState(regionId: string, nextState: CandidateState) {
     setCandidateStates((current) => {
@@ -624,9 +627,14 @@ function KakaoReportMap({
     });
 
     try {
-      const result = await fetchCandidateMatches(CONDITION_OPTIONS, 1, {
-        regionIds: [regionId],
-      });
+      const result = await fetchCandidateMatches(
+        selectedConditions.length > 0 ? selectedConditions : CONDITION_OPTIONS,
+        1,
+        {
+          ...candidateOptionsFromDecisionContext(decisionContext),
+          regionIds: [regionId],
+        },
+      );
       if (requestId !== mapClickRequestRef.current) return;
 
       const clickedRegion = result.regions[0];
@@ -652,7 +660,7 @@ function KakaoReportMap({
           : "클릭한 위치의 데이터를 불러오지 못했습니다.",
       });
     }
-  }, [openRegionReport]);
+  }, [decisionContext, openRegionReport, selectedConditions]);
 
   const closeRegionReport = useCallback((regionId: string) => {
     setOpenReports((reports) =>
@@ -892,6 +900,18 @@ function pendingReportRedirect(regionIds: string[], requestId: string) {
   returnUrl.searchParams.set("report_regions", regionIds.join(","));
   returnUrl.searchParams.set("save_request", requestId);
   return `${returnUrl.pathname}${returnUrl.search}`;
+}
+
+function candidateOptionsFromDecisionContext(
+  context: SavedReportDecisionContext,
+) {
+  return {
+    contractType: context.contract_type,
+    budgetMaxKrw10k: context.budget_max_krw_10k,
+    depositMaxKrw10k: context.deposit_max_krw_10k,
+    buildingType: context.building_type,
+    areaBand: context.area_band,
+  };
 }
 
 function toReportRegion(

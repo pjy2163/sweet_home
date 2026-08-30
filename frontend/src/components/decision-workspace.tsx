@@ -95,6 +95,9 @@ export function DecisionWorkspace() {
   const [exclusionReasons, setExclusionReasons] = useState<Record<string, ExclusionReason>>({});
   const [comparisonRegionIds, setComparisonRegionIds] = useState<string[]>([]);
   const [comparison, setComparison] = useState<CompareResponse | null>(null);
+  const [comparisonCandidates, setComparisonCandidates] = useState<
+    CandidateMatchRegion[]
+  >([]);
   const [singleRegion, setSingleRegion] = useState<CandidateMatchRegion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -178,6 +181,15 @@ export function DecisionWorkspace() {
         setCandidateNotes({});
         setExclusionReasons({});
 
+        const directResult = await fetchCandidateMatches(profile.conditions, 8, {
+          ...options,
+          regionIds: selectedDirectRegionIds,
+        });
+        if (directResult.regions.length < selectedDirectRegionIds.length) {
+          setError("선택한 후보 중 입력 조건을 충족하는 분석 데이터를 찾지 못했습니다.");
+          return;
+        }
+
         if (selectedDirectRegionIds.length === 2) {
           const directComparison = await fetchComparison(
             selectedDirectRegionIds[0],
@@ -186,23 +198,16 @@ export function DecisionWorkspace() {
           setExploration(null);
           setComparisonRegionIds(selectedDirectRegionIds);
           setSingleRegion(null);
+          setComparisonCandidates(directResult.regions);
           setComparison(directComparison);
           setStep("comparison");
-          return;
-        }
-
-        const directResult = await fetchCandidateMatches(profile.conditions, 8, {
-          contractType: options.contractType,
-          regionIds: selectedDirectRegionIds,
-        });
-        if (directResult.regions.length < selectedDirectRegionIds.length) {
-          setError("선택한 후보의 분석 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
           return;
         }
 
         setExploration(directResult);
         setComparisonRegionIds([]);
         setComparison(null);
+        setComparisonCandidates([]);
         setSingleRegion(directResult.regions[0]);
         setStep("comparison");
         return;
@@ -214,6 +219,7 @@ export function DecisionWorkspace() {
       setExclusionReasons({});
       setComparisonRegionIds([]);
       setComparison(null);
+      setComparisonCandidates([]);
       setSingleRegion(null);
       setExploration(result);
       setStep("candidates");
@@ -267,6 +273,15 @@ export function DecisionWorkspace() {
     setIsLoading(true);
     try {
       setSingleRegion(null);
+      const candidatesById = new Map(
+        exploration?.regions.map((region) => [region.region_id, region]) ?? [],
+      );
+      setComparisonCandidates(
+        comparisonRegionIds.flatMap((regionId) => {
+          const candidate = candidatesById.get(regionId);
+          return candidate ? [candidate] : [];
+        }),
+      );
       setComparison(
         await fetchComparison(
           comparisonRegionIds[0],
@@ -356,7 +371,7 @@ export function DecisionWorkspace() {
               {singleRegion ? (
                 <SingleRegionResult mapHref={buildReportMapUrl(profile, [singleRegion], true)} region={singleRegion} selectedConditions={profile.conditions} />
               ) : (
-                <ComparisonResult comparison={comparison} mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)} selectedConditions={profile.conditions} />
+                <ComparisonResult candidateRegions={comparisonCandidates} comparison={comparison} mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)} selectedConditions={profile.conditions} />
               )}
             </div>
           ) : null}

@@ -11,12 +11,15 @@ import {
 import { formatNumber, formatRatio } from "@/lib/format";
 import { layoutStyles, textStyles } from "@/styles/components";
 import type {
+  CandidateEvidenceMetric,
+  CandidateMatchRegion,
   CompareResponse,
   ExploreCondition,
   RegionMetrics,
 } from "@/types/sweethome";
 
 type ComparisonResultProps = {
+  candidateRegions?: CandidateMatchRegion[];
   comparison: CompareResponse | null;
   mapHref: string;
   selectedConditions: ExploreCondition[];
@@ -53,6 +56,7 @@ const CONDITION_LABELS: Record<ExploreCondition, string> = {
 };
 
 export function ComparisonResult({
+  candidateRegions = [],
   comparison,
   mapHref,
   selectedConditions,
@@ -62,6 +66,7 @@ export function ComparisonResult({
       {comparison ? (
         <ResultPanel
           comparison={comparison}
+          candidateRegions={candidateRegions}
           mapHref={mapHref}
           selectedConditions={selectedConditions}
         />
@@ -73,16 +78,18 @@ export function ComparisonResult({
 }
 
 function ResultPanel({
+  candidateRegions,
   comparison,
   mapHref,
   selectedConditions,
 }: {
+  candidateRegions: CandidateMatchRegion[];
   comparison: CompareResponse;
   mapHref: string;
   selectedConditions: ExploreCondition[];
 }) {
   const sections = selectedConditions.map((condition) =>
-    buildConditionComparison(condition, comparison),
+    buildConditionComparison(condition, comparison, candidateRegions),
   );
 
   return (
@@ -238,15 +245,60 @@ function ConditionComparisonCard({
 function buildConditionComparison(
   condition: ExploreCondition,
   comparison: CompareResponse,
+  candidateRegions: CandidateMatchRegion[],
 ): ConditionComparison {
   const a = comparison.region_a;
   const b = comparison.region_b;
 
-  if (condition === "price") return priceComparison(a, b);
+  if (condition === "price") {
+    const candidateA = candidateRegions.find((region) => region.region_id === a.region_id);
+    const candidateB = candidateRegions.find((region) => region.region_id === b.region_id);
+    if (candidateA && candidateB) return contextualPriceComparison(candidateA, candidateB);
+    return priceComparison(a, b);
+  }
   if (condition === "convenience") return convenienceComparison(a, b);
   if (condition === "safety") return safetyComparison(a, b);
   if (condition === "population") return populationComparison(a, b);
   return transportComparison(a, b);
+}
+
+function contextualPriceComparison(
+  a: CandidateMatchRegion,
+  b: CandidateMatchRegion,
+): ConditionComparison {
+  const aMetrics = a.evidence_metrics.filter((metric) => metric.condition === "price");
+  const bMetrics = b.evidence_metrics.filter((metric) => metric.condition === "price");
+  const labels = [...new Set([...aMetrics, ...bMetrics].map((metric) => metric.label))];
+  const primaryLabel = labels[0] ?? "입력 조건 가격 근거";
+  const aPrimary = metricByLabel(aMetrics, primaryLabel);
+  const bPrimary = metricByLabel(bMetrics, primaryLabel);
+
+  return {
+    id: "price",
+    title: "주거 비용",
+    description: "입력한 계약 유형·예산·주거 조건을 충족한 가격 근거를 비교합니다.",
+    basis: {
+      primaryDate: aPrimary?.data_date ?? null,
+      secondaryDate: bPrimary?.data_date ?? null,
+    },
+    sources: COMPARISON_DATA_SOURCES.price,
+    metrics: labels.map((label) => ({
+      label,
+      a: metricByLabel(aMetrics, label)?.display_value ?? "데이터 없음",
+      b: metricByLabel(bMetrics, label)?.display_value ?? "데이터 없음",
+    })),
+    overview: {
+      label: primaryLabel,
+      a: aPrimary?.display_value ?? "데이터 없음",
+      b: bPrimary?.display_value ?? "데이터 없음",
+    },
+    observation: "두 후보에서 같은 입력 조건으로 확인된 가격 근거를 나란히 표시합니다.",
+    verify: "집계 구간의 중위값이므로 실제 매물의 관리비·층·상태와 계약 가능 여부를 다시 확인해야 합니다.",
+  };
+}
+
+function metricByLabel(metrics: CandidateEvidenceMetric[], label: string) {
+  return metrics.find((metric) => metric.label === label);
 }
 
 function priceComparison(a: RegionMetrics, b: RegionMetrics): ConditionComparison {
