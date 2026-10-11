@@ -272,7 +272,7 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
     assert result["metadata"]["deposit_max_krw_10k"] == 1500
     assert result["regions"]
     for region in result["regions"]:
-        assert "월세 예산 이내" in region["matched_indicators"]
+        assert "월세 중위값 예산 이내" in region["matched_indicators"]
         assert "전월세 보증금 서울 평균 이하" not in region["matched_indicators"]
         assert "전세 보증금 서울 평균 이하" not in region["matched_indicators"]
         budget_evidence = next(
@@ -295,7 +295,19 @@ def test_explore_applies_monthly_rent_budget_as_hard_filter(monkeypatch) -> None
             "예산 이내 월세 중위값",
             "예산 이내 월세 보증금 중위값",
         }
-        assert "주택유형과 면적을 지정한 결과는 아닙니다" in budget_evidence[
+        assert "실제 거래나 현재 매물의 계약 가능성을 보장하지 않습니다" in budget_evidence[
+            "interpretation"
+        ]
+        assert region["price_basis"] == {
+            "building_type": "officetel",
+            "area_band": "compact",
+            "reference_month": "2025-12",
+            "weighted_record_count": 10,
+            "sample_confidence": "moderate",
+            "selection_method": "lowest_cost_comparable_segment",
+            "comparison_method": "independent_medians",
+        }
+        assert "동시에 충족하는 실제 거래가 있다는 뜻은 아닙니다" in deposit_evidence[
             "interpretation"
         ]
 
@@ -381,7 +393,7 @@ def test_explore_applies_purchase_budget_when_snapshot_is_available(
             if metric["label"] == "예산 이내 매매가 중위값"
         )
         assert evidence["value"] <= 92000
-        assert "매매가 예산 이내" in region["matched_indicators"]
+        assert "매매가 중위값 예산 이내" in region["matched_indicators"]
         assert {
             metric["label"]
             for metric in region["evidence_metrics"]

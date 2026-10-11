@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { DataBasis } from "@/components/data-provenance";
+import { PriceBasis } from "@/components/price-basis";
 import { formatNumber, formatRatio } from "@/lib/format";
 import type { CandidateEvidenceMetric, ExploreCondition } from "@/types/sweethome";
 
@@ -234,6 +235,7 @@ function CandidateMiniReport({
       <div className="mt-4">
         {evidenceProfiles.length > 0 ? <div className="rounded-xl border border-white/10 bg-black/20 p-4"><div className="mb-4 flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#9f9fa0]">지역 데이터 프로필</p><p className="font-mono text-[10px] tracking-[0.08em] text-[#6a6b6b]">낮음 · 보통 · 높음</p></div><div className="grid gap-4">{evidenceProfiles.map((profile) => <EvidenceProfileRow key={profile.condition} profile={profile} />)}</div></div> : <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-sm font-semibold">{formatMapValue(region.value, unit)}</p><p className="mt-2 text-xs leading-5 text-[#cacaca]">후보 조건 없이 연 지도에서는 선택한 지표의 현재 값만 표시합니다.</p></div>}
       </div>
+      {region.price_basis ? <PriceBasis basis={region.price_basis} dark /> : null}
       {evidence.length > 0 ? <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-[#f5f5f7]">상세 데이터 근거</p><span className="text-[10px] text-[#6a6b6b]">{evidence.length}개 지표</span></div><div className="mt-4 grid gap-3">{evidence.map((metric) => <div className="rounded-lg border border-white/8 bg-white/[0.04] p-3" key={`${metric.condition}-${metric.label}-${metric.data_date ?? "none"}`}><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold text-sage">{CONDITION_LABELS[metric.condition]}</p><p className="mt-1 text-xs font-semibold text-[#cacaca]">{metric.label}</p></div><p className="text-lg font-semibold text-white">{metric.display_value}</p></div><p className="mt-2 text-xs leading-5 text-[#9f9fa0]">{metric.interpretation}</p><div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#6f7378]"><DataBasis primaryDate={metric.data_date} /><span>{metric.reliability}</span></div></div>)}</div></div> : null}
     </aside>
   );

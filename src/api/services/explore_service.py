@@ -115,9 +115,11 @@ def list_candidate_matches(
             source=DATA_SOURCE_TEXT,
             aggregation="행정동 기준 최신 지표 profile mart",
             limitation=(
-                "후보군은 입력 예산을 충족하는 비교 가능한 세부 주거유형이 "
-                "관측된 지역 중 선택 조건과 관련된 지표를 함께 확인한 결과입니다. "
-                "추천이나 지역의 우열 판단이 아닙니다."
+                "후보군은 입력 예산 이하의 대표 중위값이 관측된 지역입니다. "
+                "조건에 맞는 비교 가능한 구간 중 비용 중위값이 가장 낮은 구간을 "
+                "대표로 표시합니다. 월세와 보증금은 각각의 중위값을 비교하며, "
+                "두 상한을 동시에 충족하는 실제 거래나 현재 매물의 존재를 "
+                "보장하지 않습니다. 추천이나 지역의 우열 판단이 아닙니다."
                 if budget_filter_applied
                 else (
                     "후보군은 선택 조건과 관련된 데이터 수치가 상대적으로 많이 "
@@ -215,6 +217,9 @@ def build_affordability_matches(
                 "budget_matching_segment_count",
                 "budget_reference_month",
                 "budget_sample_confidence",
+                "budget_building_type",
+                "budget_area_band",
+                "budget_weighted_record_count",
             ],
         )
 
@@ -224,10 +229,13 @@ def build_affordability_matches(
             "_budget_value",
             "_deposit_value",
             "weighted_record_count",
+            "building_type",
+            "area_band",
         ],
-        ascending=[True, True, True, False],
+        ascending=[True, True, True, False, True, True],
     )
-    representative = affordable.groupby("region_id", as_index=False).first()
+    # Keep all evidence from one row; groupby.first() fills nulls from later rows.
+    representative = affordable.drop_duplicates("region_id", keep="first")
     counts = affordable.groupby("region_id").size().rename(
         "budget_matching_segment_count",
     )
@@ -240,6 +248,9 @@ def build_affordability_matches(
             "budget_matching_segment_count",
             "reference_month",
             "sample_confidence",
+            "building_type",
+            "area_band",
+            "weighted_record_count",
         ]
     ].rename(
         columns={
@@ -247,6 +258,9 @@ def build_affordability_matches(
             "_deposit_value": "budget_deposit_observed_value",
             "reference_month": "budget_reference_month",
             "sample_confidence": "budget_sample_confidence",
+            "building_type": "budget_building_type",
+            "area_band": "budget_area_band",
+            "weighted_record_count": "budget_weighted_record_count",
         },
     ).assign(
         budget_contract_type=contract_type,

@@ -5,6 +5,7 @@ import pandas as pd
 from src.api.schemas import CandidateMatchRegion
 from src.api.services.candidate_evidence import (
     build_candidate_evidence,
+    build_candidate_price_basis,
     format_metric_value,
     is_true_indicator,
     none_or_rounded_float,
@@ -35,10 +36,10 @@ def row_to_candidate_match(
             "만원",
             0,
         )
-        matched_indicators.append(f"{contract_label} 예산 이내")
+        matched_indicators.append(f"{contract_label} 중위값 예산 이내")
         summary = (
             f"비교 가능한 세부 주거유형 중 {contract_label} 중위값 "
-            f"{observed_value} 사례가 확인됩니다."
+            f"{observed_value}이 관측됩니다. 실제 계약 가능성은 별도 확인이 필요합니다."
         )
         if (
             row["budget_contract_type"] == "monthly_rent"
@@ -50,10 +51,11 @@ def row_to_candidate_match(
                 "만원",
                 0,
             )
-            matched_indicators.append("월세 보증금 예산 이내")
+            matched_indicators.append("월세 보증금 중위값 예산 이내")
             summary = (
                 f"비교 가능한 세부 주거유형 중 월세 중위값 {observed_value}, "
-                f"보증금 중위값 {deposit_value} 사례가 확인됩니다."
+                f"보증금 중위값 {deposit_value}이 각각 관측됩니다. "
+                "두 예산을 동시에 충족하는 실제 거래를 의미하지 않습니다."
             )
         indicator_summary[
             "price" if "price" in selected_conditions else "budget"
@@ -133,4 +135,5 @@ def row_to_candidate_match(
         matched_indicators=matched_indicators,
         indicator_summary=indicator_summary,
         evidence_metrics=build_candidate_evidence(row, selected_conditions),
+        price_basis=build_candidate_price_basis(row),
     )

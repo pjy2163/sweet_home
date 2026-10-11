@@ -108,6 +108,12 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
     assert captured["evidence_snapshot"]["decision_context"] == response.json()[
         "report_content"
     ]["decision_context"]
+    price_basis = response.json()["report_content"]["regions"][0]["price_basis"]
+    assert price_basis["building_type"] is not None
+    assert price_basis["area_band"] is not None
+    assert price_basis["weighted_record_count"] > 0
+    assert price_basis["comparison_method"] == "independent_medians"
+    assert captured["evidence_snapshot"]["regions"][0]["price_basis"] == price_basis
     canonical_evidence = json.dumps(
         captured["evidence_snapshot"],
         ensure_ascii=False,

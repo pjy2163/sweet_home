@@ -21,7 +21,7 @@ import {
   fetchHeatmap,
 } from "@/lib/api";
 import { DataBasis } from "@/components/data-provenance";
-import { mergeCandidateMetricRegions } from "@/components/report-map/candidate-metric-regions";
+import { mergeCandidateMetricRegions, toReportRegion } from "@/components/report-map/candidate-metric-regions";
 import {
   MapClickNotice,
   MapNotice,
@@ -843,6 +843,7 @@ function SaveReportAction({
             matched_indicators: region.matched_indicators ?? [],
             indicator_summary: region.indicator_summary ?? {},
             evidence_metrics: region.evidence_metrics ?? [],
+            price_basis: region.price_basis,
           }))
           : undefined,
         preview_detailed_regions: previewDetailedRegions,
@@ -911,31 +912,5 @@ function candidateOptionsFromDecisionContext(
     depositMaxKrw10k: context.deposit_max_krw_10k,
     buildingType: context.building_type,
     areaBand: context.area_band,
-  };
-}
-
-function toReportRegion(
-  region: CandidateMatchRegion,
-  selectionSource: ReportRegion["selection_source"] = "candidate",
-): ReportRegion {
-  return {
-    region_id: region.region_id,
-    gu_name: region.gu_name,
-    dong_name: region.dong_name,
-    display_name: region.display_name,
-    area_km2: region.area_km2,
-    centroid_lon: region.centroid_lon,
-    centroid_lat: region.centroid_lat,
-    map_x: region.map_x,
-    map_y: region.map_y,
-    value: region.match_count,
-    percentile: null,
-    level: "very_high",
-    has_data: true,
-    match_count: region.match_count,
-    matched_indicators: region.matched_indicators,
-    indicator_summary: region.indicator_summary,
-    evidence_metrics: region.evidence_metrics,
-    selection_source: selectionSource,
   };
 }

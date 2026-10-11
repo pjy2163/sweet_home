@@ -5,6 +5,20 @@ import type {
 
 import type { ReportRegion } from "./types";
 
+export function toReportRegion(
+  region: CandidateMatchRegion,
+  selectionSource: ReportRegion["selection_source"] = "candidate",
+): ReportRegion {
+  return {
+    ...region,
+    value: region.match_count,
+    percentile: null,
+    level: "very_high",
+    has_data: true,
+    selection_source: selectionSource,
+  };
+}
+
 export function mergeCandidateMetricRegions(
   candidates: CandidateMatchRegion[],
   metricRegions: HeatmapRegion[],
@@ -34,6 +48,7 @@ export function mergeCandidateMetricRegions(
       matched_indicators: candidate.matched_indicators,
       indicator_summary: candidate.indicator_summary,
       evidence_metrics: candidate.evidence_metrics,
+      price_basis: candidate.price_basis,
       selection_source: "candidate",
     };
   });

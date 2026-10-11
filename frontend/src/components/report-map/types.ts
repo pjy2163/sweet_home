@@ -1,5 +1,6 @@
 import type {
   CandidateEvidenceMetric,
+  CandidatePriceBasis,
   ExploreCondition,
   HeatmapRegion,
 } from "@/types/sweethome";
@@ -11,6 +12,7 @@ export type ReportRegion = HeatmapRegion & {
   matched_indicators?: string[];
   indicator_summary?: Record<string, string>;
   evidence_metrics?: CandidateEvidenceMetric[];
+  price_basis?: CandidatePriceBasis | null;
   selection_source?: "candidate" | "map_click";
 };
 

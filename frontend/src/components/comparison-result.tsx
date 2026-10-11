@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PriceBasis } from "@/components/price-basis";
 
 import {
   DataBasis,
@@ -118,6 +119,8 @@ function ResultPanel({
       </div>
 
       <ComparisonOverview comparison={comparison} sections={sections} />
+
+      {candidateRegions.some((region) => region.price_basis) ? <div className="grid gap-4 px-6 pt-6 sm:grid-cols-2 sm:px-10">{candidateRegions.map((region) => <div key={region.region_id}><p className="text-sm font-semibold">{region.display_name}</p><PriceBasis basis={region.price_basis} /></div>)}</div> : null}
 
       <div className="grid gap-5 p-6 sm:p-10">
         {sections.map((section, index) => (
@@ -276,7 +279,7 @@ function contextualPriceComparison(
   return {
     id: "price",
     title: "주거 비용",
-    description: "입력한 계약 유형·예산·주거 조건을 충족한 가격 근거를 비교합니다.",
+    description: "입력한 주거 조건에 맞는 구간의 대표 중위값을 예산과 비교합니다. 지역별 대표 주거유형·면적과 기준월을 함께 확인하세요.",
     basis: {
       primaryDate: aPrimary?.data_date ?? null,
       secondaryDate: bPrimary?.data_date ?? null,
