@@ -3,6 +3,24 @@ import { describe, expect, it } from "vitest";
 import { SECURITY_HEADERS } from "@/lib/security-headers";
 
 describe("public response security headers", () => {
+  it("allows the Kakao Maps loader and its current CDN script without allowing arbitrary HTTPS scripts", () => {
+    const policy = SECURITY_HEADERS.find(
+      ({ key }) => key === "Content-Security-Policy",
+    )?.value ?? "";
+    const scriptSources = policy.split(";")
+      .map((directive) => directive.trim().split(/\s+/))
+      .find(([directive]) => directive === "script-src") ?? [];
+
+    for (const source of [
+      "https://dapi.kakao.com/v2/maps/sdk.js",
+      "https://t1.kakaocdn.net/mapjsapi/js/main/4.5.29/kakao.js",
+    ]) {
+      expect(scriptSources).toContain(new URL(source).origin);
+    }
+    expect(scriptSources).not.toContain("https:");
+    expect(scriptSources).not.toContain("*");
+  });
+
   it("clickjacking, MIME sniffing, referrer, and unused browser capabilities are restricted", () => {
     const headers = Object.fromEntries(
       SECURITY_HEADERS.map(({ key, value }) => [key, value]),
