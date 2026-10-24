@@ -8,6 +8,7 @@ import { AuthMenu } from "@/components/auth-menu";
 import { ComparisonResult } from "@/components/comparison-result";
 import { RegionSearchCombobox } from "@/components/region-search-combobox";
 import { SingleRegionResult } from "@/components/single-region-result";
+import { PriceBasis } from "@/components/price-basis";
 import {
   fetchCandidateMatches,
   fetchComparison,
@@ -95,6 +96,9 @@ export function DecisionWorkspace() {
   const [exclusionReasons, setExclusionReasons] = useState<Record<string, ExclusionReason>>({});
   const [comparisonRegionIds, setComparisonRegionIds] = useState<string[]>([]);
   const [comparison, setComparison] = useState<CompareResponse | null>(null);
+  const [comparisonCandidates, setComparisonCandidates] = useState<
+    CandidateMatchRegion[]
+  >([]);
   const [singleRegion, setSingleRegion] = useState<CandidateMatchRegion | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -178,6 +182,15 @@ export function DecisionWorkspace() {
         setCandidateNotes({});
         setExclusionReasons({});
 
+        const directResult = await fetchCandidateMatches(profile.conditions, 8, {
+          ...options,
+          regionIds: selectedDirectRegionIds,
+        });
+        if (directResult.regions.length < selectedDirectRegionIds.length) {
+          setError("선택한 후보 중 입력 조건을 충족하는 분석 데이터를 찾지 못했습니다.");
+          return;
+        }
+
         if (selectedDirectRegionIds.length === 2) {
           const directComparison = await fetchComparison(
             selectedDirectRegionIds[0],
@@ -186,23 +199,16 @@ export function DecisionWorkspace() {
           setExploration(null);
           setComparisonRegionIds(selectedDirectRegionIds);
           setSingleRegion(null);
+          setComparisonCandidates(directResult.regions);
           setComparison(directComparison);
           setStep("comparison");
-          return;
-        }
-
-        const directResult = await fetchCandidateMatches(profile.conditions, 8, {
-          contractType: options.contractType,
-          regionIds: selectedDirectRegionIds,
-        });
-        if (directResult.regions.length < selectedDirectRegionIds.length) {
-          setError("선택한 후보의 분석 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
           return;
         }
 
         setExploration(directResult);
         setComparisonRegionIds([]);
         setComparison(null);
+        setComparisonCandidates([]);
         setSingleRegion(directResult.regions[0]);
         setStep("comparison");
         return;
@@ -214,6 +220,7 @@ export function DecisionWorkspace() {
       setExclusionReasons({});
       setComparisonRegionIds([]);
       setComparison(null);
+      setComparisonCandidates([]);
       setSingleRegion(null);
       setExploration(result);
       setStep("candidates");
@@ -267,6 +274,15 @@ export function DecisionWorkspace() {
     setIsLoading(true);
     try {
       setSingleRegion(null);
+      const candidatesById = new Map(
+        exploration?.regions.map((region) => [region.region_id, region]) ?? [],
+      );
+      setComparisonCandidates(
+        comparisonRegionIds.flatMap((regionId) => {
+          const candidate = candidatesById.get(regionId);
+          return candidate ? [candidate] : [];
+        }),
+      );
       setComparison(
         await fetchComparison(
           comparisonRegionIds[0],
@@ -356,7 +372,7 @@ export function DecisionWorkspace() {
               {singleRegion ? (
                 <SingleRegionResult mapHref={buildReportMapUrl(profile, [singleRegion], true)} region={singleRegion} selectedConditions={profile.conditions} />
               ) : (
-                <ComparisonResult comparison={comparison} mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)} selectedConditions={profile.conditions} />
+                <ComparisonResult candidateRegions={comparisonCandidates} comparison={comparison} mapHref={buildReportMapUrl(profile, comparisonRegionIds, true)} selectedConditions={profile.conditions} />
               )}
             </div>
           ) : null}
@@ -549,6 +565,7 @@ function CandidateCard({ region, state, candidateNote, exclusionReason, isCompar
       <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-medium text-[#818898]">{region.gu_name}</p><h3 className="mt-1 text-xl font-semibold">{region.dong_name}</h3></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${isComparisonCandidate ? "bg-sage text-white" : state === "saved" ? "bg-sage-soft text-sage" : state === "excluded" ? "bg-[#f0f1f3] text-[#858b98]" : "bg-[#eef7f3] text-[#3c8065]"}`}>{statusLabel}</span></div>
       <div className="mt-5"><p className="text-xs font-semibold uppercase tracking-[.12em] text-[#8b92a1]">포함 근거</p><ul className="mt-3 space-y-2 text-sm leading-6 text-[#596174]">{Object.values(region.indicator_summary).slice(0, 3).map((summary) => <li className="flex gap-2" key={summary}><span className="text-sage">•</span>{summary}</li>)}</ul></div>
       <div className="mt-5 flex flex-wrap gap-2">{region.matched_indicators.map((indicator) => <span className="rounded-full border border-line px-2.5 py-1 text-xs text-[#687083]" key={indicator}>{indicator}</span>)}</div>
+      {region.price_basis ? <PriceBasis basis={region.price_basis} /> : null}
       {state === "excluded" ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">제외 이유<select className="mt-2 h-11 w-full rounded-lg border border-line bg-white px-3 text-sm font-normal" onChange={(event) => onExclusionReasonChange(region.region_id, event.target.value as ExclusionReason)} value={exclusionReason ?? "other"}><option value="budget">비용 조건</option><option value="transport">교통 접근성</option><option value="night_environment">야간 생활환경</option><option value="convenience">생활 편의</option><option value="housing">주택 조건</option><option value="other">기타</option></select></label> : null}
       {(state === "saved" || state === "excluded") ? <label className="mt-5 block text-xs font-semibold text-[#737b8d]">판단 메모<textarea className="mt-2 min-h-20 w-full resize-y rounded-lg border border-line bg-white p-3 text-sm font-normal leading-5 outline-none focus:border-sage" maxLength={180} onChange={(event) => onNoteChange(region.region_id, event.target.value)} placeholder="직접 확인할 내용이나 판단 이유를 남겨보세요." value={candidateNote} /></label> : null}
       <div className={`mt-6 grid gap-2 ${state === "saved" ? "grid-cols-3" : "grid-cols-2"}`}><button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "saved" ? "border-sage-line bg-sage-soft text-sage" : "border-line text-[#4f586b]"}`} onClick={() => onUpdate(region.region_id, "saved")} type="button">{state === "saved" ? "검토 취소" : "검토 추가"}</button>{state === "saved" ? <button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${isComparisonCandidate ? "border-sage bg-sage text-white" : "border-line text-[#4f586b]"}`} onClick={() => onComparisonToggle(region.region_id)} type="button">{isComparisonCandidate ? "비교 해제" : "비교 선택"}</button> : null}<button className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${state === "excluded" ? "border-[#cfd4dc] bg-[#f1f2f4] text-[#777e8c]" : "border-line text-[#757c8b]"}`} onClick={() => onUpdate(region.region_id, "excluded")} type="button">{state === "excluded" ? "제외 취소" : "제외"}</button></div>

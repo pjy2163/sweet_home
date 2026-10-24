@@ -2,7 +2,21 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.api.schemas import CandidateEvidenceMetric
+from src.api.schemas import CandidateEvidenceMetric, CandidatePriceBasis
+
+
+def build_candidate_price_basis(row: dict[str, object]) -> CandidatePriceBasis | None:
+    if row.get("budget_contract_type") not in {"monthly_rent", "jeonse", "purchase"}:
+        return None
+    return CandidatePriceBasis(
+        building_type=none_or_text(row.get("budget_building_type")),
+        area_band=none_or_text(row.get("budget_area_band")),
+        reference_month=none_or_text(row.get("budget_reference_month")),
+        weighted_record_count=none_or_rounded_float(
+            row.get("budget_weighted_record_count"), 2,
+        ),
+        sample_confidence=none_or_text(row.get("budget_sample_confidence")),
+    )
 
 
 def none_or_rounded_float(value: object, digits: int = 2) -> float | None:
@@ -21,8 +35,13 @@ def build_candidate_evidence(
     selected_conditions: list[str],
 ) -> list[CandidateEvidenceMetric]:
     evidence = []
+    has_contract_budget = row.get("budget_contract_type") in {
+        "monthly_rent",
+        "jeonse",
+        "purchase",
+    }
 
-    if row.get("budget_contract_type") in {"monthly_rent", "jeonse", "purchase"}:
+    if has_contract_budget:
         contract_label = {
             "monthly_rent": "월세",
             "jeonse": "전세 보증금",
@@ -40,8 +59,9 @@ def build_candidate_evidence(
                     0,
                 ),
                 interpretation=(
-                    "비교 가능한 세부 주거유형 중 입력 예산 이내인 관측값입니다. "
-                    "주택유형과 면적을 지정한 결과는 아닙니다."
+                    "선택한 주거유형·면적 조건에 맞는 비교 가능한 구간 중 "
+                    "비용 중위값이 가장 낮은 구간의 대표 통계입니다. "
+                    "실제 거래나 현재 매물의 계약 가능성을 보장하지 않습니다."
                 ),
                 level="예산 이내",
                 is_matched=True,
@@ -69,8 +89,9 @@ def build_candidate_evidence(
                         0,
                     ),
                     interpretation=(
-                        "같은 세부 주거유형의 월세 보증금 중위값입니다. "
-                        "월 임대료와 보증금 상한을 함께 충족합니다."
+                        "같은 주거유형·면적 구간의 보증금 중위값입니다. "
+                        "월세와 보증금은 각각의 중위값을 비교하므로 두 상한을 "
+                        "동시에 충족하는 실제 거래가 있다는 뜻은 아닙니다."
                     ),
                     level="예산 이내",
                     is_matched=True,
@@ -81,7 +102,7 @@ def build_candidate_evidence(
                 ),
             )
 
-    if "price" in selected_conditions:
+    if "price" in selected_conditions and not has_contract_budget:
         evidence.extend(
             [
                 ratio_evidence(

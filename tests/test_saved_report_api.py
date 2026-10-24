@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
+import hashlib
+import json
 
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.api.services import saved_report_service
 from src.api.services import agreement_service
+from src.api.services import explore_service
 from src.api.repositories.saved_report_repository import ReportLimitExceeded
 
 
@@ -26,6 +30,11 @@ def test_saved_report_requires_authenticated_identity() -> None:
 
 def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> None:
     captured = {}
+    original_list_candidate_matches = saved_report_service.list_candidate_matches
+
+    def capture_list_candidate_matches(**options):
+        captured["explore_options"] = options
+        return original_list_candidate_matches(**options)
 
     def fake_persist_saved_report(**payload):
         captured.update(payload)
@@ -48,6 +57,11 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
         fake_persist_saved_report,
     )
     monkeypatch.setattr(
+        saved_report_service,
+        "list_candidate_matches",
+        capture_list_candidate_matches,
+    )
+    monkeypatch.setattr(
         agreement_service,
         "get_current_agreement",
         lambda **_: {"accepted_at": datetime(2026, 7, 15, tzinfo=timezone.utc)},
@@ -55,6 +69,24 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
 
     with TestClient(app) as client:
         region_id = client.get("/regions").json()[0]["region_id"]
+        # The rent snapshot is a local/generated artifact, not part of checkout.
+        rent_snapshot = pd.DataFrame([{
+            "region_id": region_id,
+            "lease_type": "monthly_rent",
+            "building_type": "officetel",
+            "area_band": "compact",
+            "is_comparable": True,
+            "median_monthly_rent_krw_10k": 70,
+            "median_deposit_krw_10k": 1000,
+            "weighted_record_count": 12.5,
+            "reference_month": "2026-07",
+            "sample_confidence": "high",
+        }])
+        monkeypatch.setattr(
+            explore_service,
+            "read_housing_rent_snapshot",
+            lambda: rent_snapshot.copy(deep=True),
+        )
         response = client.post(
             "/saved-reports",
             headers={
@@ -69,8 +101,8 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
                 "decision_context": {
                     "selection_mode": "candidate",
                     "contract_type": "monthly_rent",
-                    "budget_max_krw_10k": 80,
-                    "deposit_max_krw_10k": 1000,
+                    "budget_max_krw_10k": 1000000,
+                    "deposit_max_krw_10k": 1000000,
                 },
             },
         )
@@ -79,17 +111,43 @@ def test_saved_report_is_bound_to_opaque_authenticated_subject(monkeypatch) -> N
     assert captured["auth_issuer"] == "google"
     assert captured["auth_subject"] == "opaque-user-subject"
     assert "email" not in captured
+    assert captured["explore_options"]["contract_type"] == "monthly_rent"
+    assert captured["explore_options"]["budget_max_krw_10k"] == 1000000
+    assert captured["explore_options"]["deposit_max_krw_10k"] == 1000000
     assert response.json()["priority_keys"] == ["price", "transport"]
     assert response.json()["report_content"]["regions"][0]["region_id"] == region_id
     assert response.json()["report_content"]["detailed_regions"][0]["region_id"] == region_id
     assert response.json()["report_content"]["decision_context"] == {
         "selection_mode": "candidate",
         "contract_type": "monthly_rent",
-        "budget_max_krw_10k": 80.0,
-        "deposit_max_krw_10k": 1000.0,
+        "budget_max_krw_10k": 1000000.0,
+        "deposit_max_krw_10k": 1000000.0,
         "building_type": None,
         "area_band": None,
     }
+    assert captured["evidence_snapshot"]["decision_context"] == response.json()[
+        "report_content"
+    ]["decision_context"]
+    price_basis = response.json()["report_content"]["regions"][0]["price_basis"]
+    assert price_basis == {
+        "building_type": "officetel",
+        "area_band": "compact",
+        "reference_month": "2026-07",
+        "weighted_record_count": 12.5,
+        "sample_confidence": "high",
+        "selection_method": "lowest_cost_comparable_segment",
+        "comparison_method": "independent_medians",
+    }
+    assert captured["evidence_snapshot"]["regions"][0]["price_basis"] == price_basis
+    canonical_evidence = json.dumps(
+        captured["evidence_snapshot"],
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    assert captured["evidence_hash"] == hashlib.sha256(
+        canonical_evidence.encode("utf-8"),
+    ).hexdigest()
     assert response.json()["title"].endswith("살펴보기")
 
 

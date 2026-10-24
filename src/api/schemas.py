@@ -182,6 +182,18 @@ class CompareResponse(BaseModel):
     report_text: str
 
 
+class CandidatePriceBasis(BaseModel):
+    building_type: Optional[str] = None
+    area_band: Optional[str] = None
+    reference_month: Optional[str] = None
+    weighted_record_count: Optional[float] = None
+    sample_confidence: Optional[str] = None
+    selection_method: Literal["lowest_cost_comparable_segment"] = (
+        "lowest_cost_comparable_segment"
+    )
+    comparison_method: Literal["independent_medians"] = "independent_medians"
+
+
 class CandidateEvidenceMetric(BaseModel):
     condition: str
     label: str
@@ -209,6 +221,7 @@ class CandidateMatchRegion(BaseModel):
     matched_indicators: list[str]
     indicator_summary: dict[str, str]
     evidence_metrics: list[CandidateEvidenceMetric]
+    price_basis: Optional[CandidatePriceBasis] = None
 
 
 class ExploreMetadata(BaseModel):

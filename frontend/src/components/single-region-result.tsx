@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PriceBasis } from "@/components/price-basis";
 
 import { DataBasis } from "@/components/data-provenance";
 import { layoutStyles, textStyles } from "@/styles/components";
@@ -48,6 +49,7 @@ export function SingleRegionResult({
         </div>
 
         <div className="grid gap-5 p-6 sm:p-10">
+          {region.price_basis ? <PriceBasis basis={region.price_basis} /> : null}
           {selectedConditions.map((condition) => {
             const metrics = region.evidence_metrics.filter(
               (metric) => metric.condition === condition,

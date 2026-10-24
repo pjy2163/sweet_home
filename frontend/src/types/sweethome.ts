@@ -145,6 +145,16 @@ export type HousingBuildingType =
 
 export type HousingAreaBand = "compact" | "mid_size" | "large";
 
+export type CandidatePriceBasis = {
+  building_type: string | null;
+  area_band: string | null;
+  reference_month: string | null;
+  weighted_record_count: number | null;
+  sample_confidence: string | null;
+  selection_method: "lowest_cost_comparable_segment";
+  comparison_method: "independent_medians";
+};
+
 export type CandidateMatchRegion = {
   region_id: string;
   gu_name: string;
@@ -159,6 +169,7 @@ export type CandidateMatchRegion = {
   matched_indicators: string[];
   indicator_summary: Record<string, string>;
   evidence_metrics: CandidateEvidenceMetric[];
+  price_basis?: CandidatePriceBasis | null;
 };
 
 export type CandidateEvidenceMetric = {

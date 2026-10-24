@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { DataBasis } from "@/components/data-provenance";
+import { PriceBasis } from "@/components/price-basis";
 import { DetailedComparison } from "@/components/saved-report/detailed-comparison";
 import { reportHistoryTitle } from "@/lib/report-history";
 import type {
@@ -28,8 +29,21 @@ const NEXT_CHECKS: Record<ExploreCondition, string> = {
 
 export function ReportAnalysis({ report }: { report: SavedReportDetail }) {
   const regions = report.report_content.regions;
-  const rows = comparisonRows(regions, report.priority_keys);
   const cautions = qualityCautions(regions);
+  const hasContractPrice = Boolean(
+    report.report_content.decision_context?.contract_type
+    || regions.some((region) => region.price_basis),
+  );
+  const hasDetailedRegions = Boolean(report.report_content.detailed_regions?.length);
+  const detailedPriorities = hasContractPrice
+    ? report.priority_keys.filter((condition) => condition !== "price")
+    : report.priority_keys;
+  const rows = comparisonRows(
+    regions,
+    hasDetailedRegions && hasContractPrice
+      ? report.priority_keys.filter((condition) => condition === "price")
+      : report.priority_keys,
+  );
 
   return (
     <section className="mt-10 overflow-hidden rounded-[1.75rem] border border-[#dcd9ef] bg-white/94 shadow-[0_22px_60px_rgba(75,67,125,0.10)]">
@@ -55,6 +69,8 @@ export function ReportAnalysis({ report }: { report: SavedReportDetail }) {
           <SummaryFact label="저장 데이터 기준" value={formatDataVersion(report.data_version)} />
         </div>
 
+        {hasContractPrice ? <div className="mt-6 grid gap-4 sm:grid-cols-2">{regions.map((region) => <div key={region.region_id}><p className="text-sm font-semibold">{region.display_name}</p><PriceBasis basis={region.price_basis} /></div>)}</div> : null}
+
         <div className="mt-10 flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold tracking-[0.12em] text-[#6257a6]">SIDE-BY-SIDE</p>
@@ -63,12 +79,13 @@ export function ReportAnalysis({ report }: { report: SavedReportDetail }) {
           <p className="hidden text-xs text-subtle sm:block">{regions.length === 2 ? "수치의 크기가 더 적합한 지역을 뜻하지 않습니다." : "공개 데이터의 관측값을 저장 시점 기준으로 보여드립니다."}</p>
         </div>
 
-        {report.report_content.detailed_regions?.length ? (
+        {hasDetailedRegions && detailedPriorities.length > 0 ? (
           <DetailedComparison
-            priorities={report.priority_keys}
-            regions={report.report_content.detailed_regions}
+            priorities={detailedPriorities}
+            regions={report.report_content.detailed_regions!}
           />
-        ) : (
+        ) : null}
+        {!hasDetailedRegions || (hasContractPrice && rows.length > 0) ? (
           <div className="mt-5 overflow-x-auto rounded-2xl border border-line">
             <div className="grid min-w-[34rem] grid-cols-[minmax(8rem,0.9fr)_repeat(var(--region-count),minmax(9rem,1fr))] bg-[#f7f6fb] text-xs font-bold text-muted" style={{ "--region-count": Math.max(regions.length, 1) } as CSSProperties}>
               <div className="p-4">확인 지표</div>
@@ -87,7 +104,7 @@ export function ReportAnalysis({ report }: { report: SavedReportDetail }) {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         <div className="mt-10 grid gap-5 lg:grid-cols-[1.35fr_0.9fr]">
           <div className="rounded-2xl border border-[#dedaf0] bg-[#faf9ff] p-6">

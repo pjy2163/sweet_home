@@ -5,7 +5,7 @@ import type {
   HeatmapRegion,
 } from "@/types/sweethome";
 
-import { mergeCandidateMetricRegions } from "./candidate-metric-regions";
+import { mergeCandidateMetricRegions, toReportRegion } from "./candidate-metric-regions";
 
 const candidate: CandidateMatchRegion = {
   region_id: "11110530",
@@ -21,6 +21,13 @@ const candidate: CandidateMatchRegion = {
   matched_indicators: ["가격"],
   indicator_summary: { price: "예산 범위" },
   evidence_metrics: [],
+  price_basis: {
+    building_type: "officetel", area_band: "compact",
+    reference_month: "2026-07", weighted_record_count: 8.5,
+    sample_confidence: "moderate",
+    selection_method: "lowest_cost_comparable_segment",
+    comparison_method: "independent_medians",
+  },
 };
 
 const metricRegion: HeatmapRegion = {
@@ -40,6 +47,12 @@ const metricRegion: HeatmapRegion = {
 };
 
 describe("mergeCandidateMetricRegions", () => {
+  it("지도에서 직접 선택해도 대표 가격 근거가 유지된다", () => {
+    const result = toReportRegion(candidate, "map_click");
+    expect(result.price_basis).toEqual(candidate.price_basis);
+    expect(result.evidence_metrics).toEqual(candidate.evidence_metrics);
+    expect(result.selection_source).toBe("map_click");
+  });
   it("후보 정보에 현재 선택 지표의 값과 수준을 결합한다", () => {
     const [result] = mergeCandidateMetricRegions([candidate], [metricRegion]);
 
@@ -47,6 +60,7 @@ describe("mergeCandidateMetricRegions", () => {
     expect(result.level).toBe("high");
     expect(result.match_count).toBe(3);
     expect(result.matched_indicators).toEqual(["가격"]);
+    expect(result.price_basis).toEqual(candidate.price_basis);
   });
 
   it("선택 지표 데이터가 없으면 결측 상태를 명시한다", () => {
